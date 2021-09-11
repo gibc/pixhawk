@@ -12,6 +12,7 @@ pyglet.options['debug_gl']= False
 pitch_batch = pyglet.graphics.Batch()
 clip_batch = pyglet.graphics.Batch()
 
+
 gline60= 0
 gline45= 0
 gline30= 0
@@ -155,6 +156,22 @@ def get_heading_color(heading):
     else:
         return (255,255,255,255)
     
+def draw_pitch_ticks(tick_list, rotate, center, interval, length, pitch):
+    idx = 0
+    offset = len(tick_list)*interval
+    offset = center[0] + offset/2
+    offset = offset+pitch
+    for line in tick_list:
+        pt1 = rotate_point((center[0]-length/2, offset-interval*idx), rotate, center)
+        pt2 = rotate_point((center[0]+length/2, offset-interval*idx), rotate, center)
+        line.position = pt2[0], pt2[1], pt1[0], pt1[1]
+        #line.color = (0,0,0)
+        line.draw()
+        idx = idx+1
+        if idx == len(tick_list)/2:
+            idx = idx+1
+    
+    
         
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
@@ -171,23 +188,24 @@ try:
     pitch_5_y = int(pitch_scale * 5)
     
     #pitch_batch = pyglet.graphics.Batch()
-    pitch_line1 = shapes.Line(center_x-30, center_y+pitch_5_y , center_x+30, center_y+pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
-    pitch_line2 = shapes.Line(center_x-30, center_y+2*pitch_5_y , center_x+30, center_y+2*pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
-    pitch_line3 = shapes.Line(center_x-30, center_y+3*pitch_5_y , center_x+30, center_y+3*pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
+    pitch_tick_list = []
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y+pitch_5_y , center_x+30, center_y+pitch_5_y , width, color = (255,255,255)))
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y+2*pitch_5_y , center_x+30, center_y+2*pitch_5_y , width, color = (255,255,255)))
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y+3*pitch_5_y , center_x+30, center_y+3*pitch_5_y , width, color = (255,255,255)))
     
-    pitch_line4 = shapes.Line(center_x-30, center_y-pitch_5_y , center_x+30, center_y-pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
-    pitch_line5 = shapes.Line(center_x-30, center_y-2*pitch_5_y , center_x+30, center_y-2*pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
-    pitch_line6 = shapes.Line(center_x-30, center_y-3*pitch_5_y , center_x+30, center_y-3*pitch_5_y , width, color = (255,255,255), batch=pitch_batch)
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y-pitch_5_y , center_x+30, center_y-pitch_5_y , width, color = (255,255,255)))
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y-2*pitch_5_y , center_x+30, center_y-2*pitch_5_y , width, color = (255,255,255)))
+    pitch_tick_list.append(shapes.Line(center_x-30, center_y-3*pitch_5_y , center_x+30, center_y-3*pitch_5_y , width, color = (255,255,255)))
    
-    noise_line1 = shapes.Line(center_x-70, center_y , center_x-25, center_y, 2*width, color = (255,255,255), batch=pitch_batch)
-    noise_line2 = shapes.Line(center_x+25, center_y , center_x+70, center_y, 2*width, color = (255,255,255), batch=pitch_batch)
+    noise_line1 = shapes.Line(center_x-100, center_y , center_x-25, center_y, 2*width, color = (0,255,100), batch=pitch_batch)
+    noise_line2 = shapes.Line(center_x+25, center_y , center_x+100, center_y, 2*width, color = (0,255,100), batch=pitch_batch)
     
-    noise_line3 = shapes.Line(center_x-25, center_y , center_x, center_y-15, 2*width, color = (255,255,255), batch=pitch_batch)
-    noise_line4 = shapes.Line(center_x+25, center_y , center_x, center_y-15, 2*width, color = (255,255,255), batch=pitch_batch)
+    noise_line3 = shapes.Line(center_x-25, center_y , center_x, center_y-15, 2*width, color = (0,255,100), batch=pitch_batch)
+    noise_line4 = shapes.Line(center_x+25, center_y , center_x, center_y-15, 2*width, color = (0,255,100), batch=pitch_batch)
     
     pitch_label = pyglet.text.Label('pitch: ',
                           font_size=36/2,
-                          x=center_x+75,
+                          x=center_x+105,
                           y=window.height // 2,
                           anchor_x='left',
                           anchor_y='center')
@@ -349,8 +367,9 @@ def on_draw():
         pitch_label.text = str(round(ahdata.pitch, 2)) 
         pitch_label.draw()
         
-        pitch_batch.draw()
         
+        draw_pitch_ticks(pitch_tick_list, ahdata.roll, (center_x, center_y), pitch_5_y, 50, -pitch_y)
+        pitch_batch.draw()
            
         pt1 = rotate_point((center_x, roll_top), -ahdata.roll, center_point=(center_x, arc_center))
         pt2 = rotate_point((center_x, roll_top-100), -ahdata.roll, center_point=(center_x, arc_center))
