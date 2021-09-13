@@ -159,7 +159,7 @@ def get_heading_color(heading):
 def draw_pitch_ticks(tick_list, rotate, center, interval, length, pitch):
     idx = 0
     offset = len(tick_list)*interval
-    offset = center[0] + offset/2
+    offset = center[1] + offset/2
     offset = offset+pitch
     for line in tick_list:
         pt1 = rotate_point((center[0]-length/2, offset-interval*idx), rotate, center)
