@@ -9,6 +9,10 @@ from pymavlink import mavutil
 import math
 from threading import Thread, Lock
 import time
+import os
+
+#print(os.environ)
+
 
 class aharsData:
     def __init__(self, roll, pitch, heading):

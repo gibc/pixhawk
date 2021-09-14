@@ -1,0 +1,28 @@
+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
+
+git clone https://gibc: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@github.com/gibc/pixhawk.git
+
+to save updates to repo
+git status
+git commit -am "add newfile2"
+git push https://gibc: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@github.com/gibc/pixhawk.git
+
+to update local repo from remote
+git pull https://github.com/gibc/pixhawk.git master
+
+python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
+
+[Unit]
+Description=pixhawk sevice
+After=multi-user-target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
+
+[Install]
+WantedBy=multi-user.target
+
+/home/pi/.local/lib/python3.7/site-packages/pymavlink
+

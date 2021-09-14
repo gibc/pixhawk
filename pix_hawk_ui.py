@@ -1,3 +1,10 @@
+#-*- coding:UTF-8 -*-
+import sys
+print(sys.path)
+for path in sys.path:
+    print(path)
+sys.path.append('/home/pi/.local/lib/python3.7/site-packages')
+sys.path.append('/usr/lib/python3/dist-packages (3.4)')
 import pix_hawk_msg
 import pyglet
 from pyglet import clock
@@ -6,6 +13,8 @@ from math import sin, cos, radians, fmod
 import os
 
 #add a comment to test commit to repo again
+#print(os.environ['PATH'])
+
 
 pyglet.options['debug_gl']= False
 
