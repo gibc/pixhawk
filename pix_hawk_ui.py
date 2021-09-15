@@ -12,9 +12,9 @@ from pyglet import shapes
 from math import sin, cos, radians, fmod
 import os
 
-#add a comment to test commit to repo again
-#print(os.environ['PATH'])
+#test save after reboot
 
+os.system('xrandr -o left')
 
 pyglet.options['debug_gl']= False
 
@@ -480,6 +480,10 @@ def on_draw1():
 def update(dt):
     x=0
     print("dt: ", dt)
+    
+@window.event       
+def on_close():
+    os.system('xrandr -o normal')
     
     
 
