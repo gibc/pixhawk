@@ -88,12 +88,12 @@ def make_roll_tick(angle, length, start_x, start_y, center_x, center_y):
 
     #gline=shapes.Line(500, 500, 1000, 1000, 4, color = (255,255,255), batch=pitch_batch)
     if angle > 0:
-        roll_label_ = pyglet.text.Label(str(angle),font_size=36/2, x=pt[0], y=pt[1], anchor_x='right',anchor_y='bottom', batch=pitch_batch)
+        roll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1], anchor_x='right',anchor_y='bottom', batch=pitch_batch)
     elif angle == 0:
-        roll_label_ = pyglet.text.Label(str(angle),font_size=36/2, x=pt[0], y=pt[1]-3, anchor_x='center',anchor_y='bottom', batch=pitch_batch)
+        roll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1]-3, anchor_x='center',anchor_y='bottom', batch=pitch_batch)
     else:
         angle = abs(angle)
-        oll_label_ = pyglet.text.Label(str(angle),font_size=36/2, x=pt[0], y=pt[1], anchor_x='left',anchor_y='bottom', batch=pitch_batch)
+        oll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1], anchor_x='left',anchor_y='bottom', batch=pitch_batch)
 
 def get_tick_angle(origin, tick_number, tick_interval):
     #print('origin', origin)
@@ -232,7 +232,7 @@ try:
     noise_line4 = shapes.Line(center_x+25, center_y , center_x, center_y-15, 2*width, color = (0,255,100), batch=pitch_batch)
     
     pitch_label = pyglet.text.Label('pitch: ',
-                          font_size=36/2,
+                          font_size=30,
                           x=center_x+105,
                           y=window.height // 2,
                           anchor_x='left',
@@ -308,7 +308,7 @@ try:
     roll_line = shapes.Line(center_x, window.height-320, center_x, window.height-20, 6, color = (0,255,100))
     #roll_triangle = shapes.Triangle(center_x, roll_top, center_x-20, roll_top-20, center_x+20, roll_top-20, color = (0,255,100))
     roll_label = pyglet.text.Label(' roll: ',
-                          font_size=36/2,
+                          font_size=30,
                           x=center_x,
                           #y=window.height-200,
                           y=win_rect.y+win_rect.height-200,
@@ -322,45 +322,45 @@ try:
     heading_center_y = compass_rect.y+compass_rect.height/2
     
     #heading_label_rect = shapes.Rectangle(compass_rect.x, heading_center_y, 60, 40,  color = (0,0,0))
-    heading_label_rect = shapes.BorderedRectangle(compass_rect.x, heading_center_y, 60, 40, border=8, color = (0, 0, 0),
+    heading_label_rect = shapes.BorderedRectangle(compass_rect.x, heading_center_y, 125, 40, border=8, color = (0, 0, 0),
                                             border_color = (255,255,255))
     heading_label_rect.anchor_x = heading_label_rect.width/2
     heading_label_rect.anchor_y = heading_label_rect.height/2
     
     heading_label = pyglet.text.Label('heading: ',
-                          font_size=36/2,
+                          font_size=30,
                           x=compass_rect.x,
                           y=heading_center_y,
                           anchor_y='center', anchor_x='center')
                           #batch=pitch_batch)
     
     heading_label_1 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
     heading_label_2 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
     heading_label_3 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
     heading_label_4 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
     heading_label_5 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
     heading_label_6 = pyglet.text.Label('45',
-                          font_size=36/2,
+                          font_size=30,
                           x=heading_center_x + 45*heading_scale,
                           y=compass_rect.y+compass_rect.height/2,
                           anchor_y='center', anchor_x='center')
