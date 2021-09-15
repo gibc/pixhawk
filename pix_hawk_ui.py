@@ -180,15 +180,34 @@ def draw_pitch_ticks(tick_list, rotate, center, interval, length, pitch):
         if idx == len(tick_list)/2:
             idx = idx+1
     
-    
+def get_win_rect(window):
+    width = 0
+    height = 0
+    x = 0
+    y = 0
+    if window.width > window.height:
+        width = window.height
+        height= window.height
+        x = (window.width - window.height)/2
+        y = 0 #bottom of the screen
+    else:
+        width = window.width
+        height= window.width
+        x = 0
+        y = (window.height - window.width)/2 #centered up y axis to middle screen
+        
+    win_rect = shapes.Rectangle(x, y, width, height,  color = (0, 0, 0))
+    win_rect.opacity = 100
+    return win_rect
         
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd.start()
     ahdata = pix_hawk_msg.aharsData(-1,-1,-1)
 
-    #window = pyglet.window.Window(fullscreen=True)
-    window = pyglet.window.Window(700,700)
+    window = pyglet.window.Window(fullscreen=True)
+    #window = pyglet.window.Window(700,700)
+    win_rect = get_win_rect(window)
     center_x=window.width / 2
     center_y=window.height / 2
     
@@ -243,16 +262,28 @@ try:
     bot_rect.anchor_y = rect_ht
 
     ah_win_wd = int((window.width-window.height)/2)
-
-    left_clip_rect = shapes.Rectangle(0, 0, ah_win_wd, window.height, color = (0, 0, 0), batch=clip_batch)
-    rgt_clip_rect = shapes.Rectangle(window.width-ah_win_wd, 0, ah_win_wd, window.height, color = (0, 0, 0), batch=clip_batch)
-
+    if ah_win_wd < 0:
+        ah_win_wd = int((window.height-window.width)/2)
+    
+    # if normal orientation..
+    if win_rect.y == 0:
+        left_clip_rect = shapes.Rectangle(0, 0, ah_win_wd, window.height, color = (0, 0, 0), batch=clip_batch)
+        rgt_clip_rect = shapes.Rectangle(window.width-ah_win_wd, 0, ah_win_wd, window.height, color = (0, 0, 0), batch=clip_batch)
+    else:
+    # if rotated orientatio..
+        # top clip rect
+        left_clip_rect = shapes.Rectangle(0, window.height-ah_win_wd, window.width, ah_win_wd, color = (0, 0, 0), batch=clip_batch)
+        # bottom clip rect
+        rgt_clip_rect = shapes.Rectangle(0, 0, window.width, ah_win_wd, color = (0, 0, 0), batch=clip_batch)
+        
     line1 = shapes.Line(700/2, 700/2, 700/2, 600, width, color = (50, 225, 30))
     horz_line = shapes.Line(0, 500/2, 500, 500/2, width, color = (50, 225, 30))
     
     compass_height = 100
-    compass_width = window.width-2*ah_win_wd
-    roll_top = window.height - compass_height
+    #compass_width = window.width-2*ah_win_wd
+    compass_width = win_rect.width
+    #roll_top = window.height - compass_height
+    roll_top = win_rect.height+win_rect.y - compass_height
     tick_length = 40
     arc_radius = 300
     arc_center = roll_top - arc_radius
@@ -279,7 +310,8 @@ try:
     roll_label = pyglet.text.Label(' roll: ',
                           font_size=36/2,
                           x=center_x,
-                          y=window.height-200,
+                          #y=window.height-200,
+                          y=win_rect.y+win_rect.height-200,
                           anchor_x='center',
                           anchor_y='top')
 
@@ -442,7 +474,7 @@ def on_draw():
         left_clip_rect.draw()
         rgt_clip_rect.draw()
         
-        
+        #win_rect.draw()
         
     except Exception as e:
         ex_stop(e)
