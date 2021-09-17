@@ -112,6 +112,7 @@ def get_tick_angle(origin, tick_number, tick_interval):
     return tick_n_pos
 
 from math import floor
+
 def round_down(num, divisor):
     return floor(num / divisor) * divisor
 
