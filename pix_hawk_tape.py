@@ -19,46 +19,54 @@ class Tape:
         self.units_interval = units_interval  #eg 30 degrees
         self.tape_unit = tape_unit
         self.origin_offset = origin_offset
-        self.current_value_lable = pyglet.text.Label('--',
-                          font_size=30,
-                          x=0,
-                          y=0,
-                          anchor_y='center', anchor_x='center')
+        
         self.tick_labels = []
         if not horizontal:
             self.pixel_wd = pixel_ht
             serl.pixel_ht = pixel_wd
             
-        tick_pixels = self.pixel_wd/self.tick_count
-        self.units2pix_scale = self.units_interval/tick_pixels
+        self.tick_pixels = self.pixel_wd/self.tick_count
+        self.units2pix_scale = self.tick_pixels/self.units_interval
  
         self.border_rect = shapes.BorderedRectangle(self.x, self.y,  self.pixel_wd, self.pixel_ht, border=3, color = (0, 0, 255),
                                             border_color = (255,255,255))
-        
-        self.current_val_rect = shapes.BorderedRectangle(self.x+self.pixel_wd/2, self.y,  125, self.pixel_ht, border=10, color = (0, 0, 255),
+        self.curval_wd = 125
+        self.current_val_rect = shapes.BorderedRectangle(self.x+self.pixel_wd/2-self.curval_wd/2., self.y,  self.curval_wd, self.pixel_ht, border=10, color = (0, 0, 255),
                                             border_color = (255,255,255))
-        for i in range(tick_count):
-            self.tick_labels.append(pyglet.text.Label('--',
+        self.current_val_label = pyglet.text.Label('****',
                           font_size=30,
-                          x=0,
-                          y=0,
-                          anchor_y='center', anchor_x='center'))
+                          x=self.current_val_rect.x+self.curval_wd/2,
+                          y=self.current_val_rect.y,
+                          anchor_y='bottom', anchor_x='center')
+        for i in range(tick_count):
+            self.tick_labels.append(pyglet.text.Label('****',
+                          font_size=30,
+                          x=self.current_val_rect.x,
+                          y=self.current_val_rect.y,
+                          anchor_y='bottom', anchor_x='center'))
             
             
             
     def draw(self, current_val):
         
         heading_origin = self.get_90_origin(current_val)
+        self.border_rect.draw()
+        
         
         for i in range (self.tick_count):
                 
             nxt = self.get_tick_angle(heading_origin, i, self.units_interval)
+            print('nxt', nxt)
             self.tick_labels[i].text = self.get_heading_str(nxt)
         
-        #heading_label_1.text = get_heading_str(nxt)
             org_offset = self.angle_dif_right(heading_origin, nxt)
-        #heading_label_1.x = int(compass_rect.x - compass_rect.width/2) + int(heading_scale*org_offset)
-            self.tick_labels[i].x = int(self.border_rect.x - self.border_rect.width/2) + int(self.units2pix_scale*org_offset)
+            print('org_offset', org_offset)
+            #heading_label_1.x = int(compass_rect.x - compass_rect.width/2) + int(heading_scale*org_offset)
+            self.tick_labels[i].x = int(self.border_rect.x) + int(self.units2pix_scale*org_offset)
+            print('int(self.units2pix_scale*org_offset)',int(self.units2pix_scale*org_offset))
+            print('self.border_rect.x', self.border_rect.x)
+            print('self.units2pix_scale', self.units2pix_scale)
+            print('self.tick_labels[i].x',self.tick_labels[i].x)
         #heading_label_1.color = get_heading_color(nxt)
             self.tick_labels[i].color = self.get_heading_color(nxt)
         #heading_label_1.draw()
@@ -67,12 +75,12 @@ class Tape:
         
         
         #heading_label_rect.draw()
-        self.border_rect.draw()
-        self.current_val_rect.draw()
+        #self.border_rect.draw()
+        #self.current_val_rect.draw()
         #heading_label.text = get_heading_str(round(abs(ahdata.heading)))
-        self.current_value_lable.text = self.get_heading_str(round(abs(current_val)))
-        #heading_label.draw()
-        self.current_value_lable.draw()
+        self.current_val_label.text = self.get_heading_str(round(abs(current_val)))
+        self.current_val_rect.draw()
+        self.current_val_label.draw()
         
     def get_90_origin(self, a1):
         if a1 > 90:
@@ -146,6 +154,31 @@ class Tape:
 
 
 if __name__ == '__main__':
-    tape = Tape(100, 100, 200, 50, 6, 30, 90, tape_unit=TapeUnit.FEET, horizontal=True)
-    tape.draw(299)
+    # unit test code
+    def on_draw():
+        window.clear()
+        #rect.draw()
+        tape.draw(90)
+    
+    def update(dt):
+        x=0
+        #print("dt: ", dt)
+        
+    window = pyglet.window.Window(1000,700)
+    window.on_draw = on_draw
+    center_x = window.width/2
+    center_y = window.height/2
+    #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
+                                            #border_color = (255,255,255))
+    tape = Tape(100, 100, 900, 50, 6, 30, 90, tape_unit=TapeUnit.DEGREE, horizontal=True)
+    
+    pyglet.clock.schedule_interval(update, .1)
+
+
+    pyglet.app.run()
+    
+    
+    
+    #tape = Tape(100, 100, 200, 50, 6, 30, 90, tape_unit=TapeUnit.FEET, horizontal=True)
+    #tape.draw(299)
         
