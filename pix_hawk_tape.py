@@ -24,7 +24,7 @@ class Tape:
         self.tick_count = tick_count
         self.units_interval = units_interval  #eg 30 degrees
         self.tape_unit = tape_unit
-        self.origin_offset = origin_offset
+        self.origin_offset = (tick_count * units_interval) / 2
         
         """
         self.lable_wd = 120
@@ -59,9 +59,9 @@ class Tape:
         #                                    border_color = (255,255,255))
         self.current_val_label = pyglet.text.Label('****',
                           font_size=30,
-                          x=self.current_val_rect.x+self.curval_wd/2,
+                          x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
-                          anchor_y='bottom', anchor_x='center')
+                          anchor_y='bottom', anchor_x='left')
         for i in range(tick_count):
             self.tick_labels.append(pyglet.text.Label('****',
                           font_size=30,
@@ -72,19 +72,24 @@ class Tape:
             
             
     def draw(self, current_val):
-        
-        heading_origin = self.get_90_origin(current_val)
+        if self.tape_unit == TapeUnit.DEGREE:
+            heading_origin = self.get_90_origin(current_val)
+        if self.tape_unit == TapeUnit.MPH:
+            heading_origin = self.get_mph_origin(current_val)
         self.border_rect.draw()
         
         
         for i in range (self.tick_count):
                 
-            nxt = self.get_tick_angle(heading_origin, i, self.units_interval)
+            nxt = self.get_tick_value(heading_origin, i, self.units_interval)
             print('nxt', nxt)
-            self.tick_labels[i].text = self.get_heading_str(nxt)
+            if nxt < 0:
+                continue
+            self.tick_labels[i].text = self.get_value_str(nxt)
+            print('self.tick_labels[i].text ', self.tick_labels[i].text)
         
             org_offset = self.angle_dif_right(heading_origin, nxt)
-            print('org_offset', org_offset)
+            print('****org_offset****', org_offset)
             
             if self.orient == Orient.HORZ:
                 self.tick_labels[i].x = int(self.border_rect.x) + int(self.units2pix_scale*org_offset)
@@ -101,20 +106,31 @@ class Tape:
                 if self.tick_labels[i].x > self.border_rect.x+self.border_rect.width - str_wd:
                     continue
             else:
-                pass
+                if self.tick_labels[i].y < self.border_rect.y:
+                    continue
+                if self.tick_labels[i].y > self.border_rect.y + self.border_rect.height-5:
+                    continue
+
             
             #print('int(self.units2pix_scale*org_offset)',int(self.units2pix_scale*org_offset))
-            print('self.border_rect.x', self.border_rect.x)
-            print('self.units2pix_scale', self.units2pix_scale)
+            #print('self.border_rect.x', self.border_rect.x)
+            #print('self.units2pix_scale', self.units2pix_scale)
             #print('self.tick_labels[i].x',self.tick_labels[i].x)
         
-            self.tick_labels[i].color = self.get_heading_color(nxt)
+            self.tick_labels[i].color = self.get_value_color(nxt)
         
             self.tick_labels[i].draw()
             #print('self.tick_labels[i].x: ', self.tick_labels[i].x)
             
-        
-        self.current_val_label.text = self.get_heading_str(round(abs(current_val)))
+        if self.tape_unit == TapeUnit.DEGREE:
+            self.current_val_label.text = self.get_value_str(round(abs(current_val)))
+        if self.tape_unit == TapeUnit.MPH:
+            self.current_val_label.x = self.current_val_rect.x
+            if current_val < 100:
+                self.current_val_label.x += 25
+            if current_val < 10:
+                self.current_val_label.x += 25
+            self.current_val_label.text = str(current_val)
         self.current_val_rect.draw()
         self.current_val_label.draw()
         
@@ -125,8 +141,11 @@ class Tape:
             br_ht = self.pixel_wd
             br_wd = self.pixel_ht
             
-        return shapes.BorderedRectangle(self.x, self.y,  br_wd, br_ht, border=3, color = (0, 0, 255),
+        rect = shapes.BorderedRectangle(self.x, self.y,  br_wd, br_ht, border=3, color = (0, 0, 255),
                                             border_color = (255,255,255))
+        rect.opacity = 100
+        #rect = shapes.Rectangle(self.x, self.y,  br_wd, br_ht, color = (0, 0, 255, 100))
+        return rect
     
     def get_value_rect(self):
         br_ht = self.pixel_ht
@@ -136,7 +155,7 @@ class Tape:
         
         if self.orient == Orient.VERT:
             font_ht = 50
-            br_wd = self.pixel_ht
+            br_wd = self.pixel_ht*1.5
             br_ht = font_ht
             x = self.x
             y = self.y+self.border_rect.height/2-br_ht/2
@@ -155,25 +174,34 @@ class Tape:
         else:
             return 360+(a1-90)
         
-    def get_tick_angle(self, origin, tick_number, tick_interval):
-    #print('origin', origin)
-    #print('tick_number', tick_number)
-    #print('tick_interval', tick_interval)
-    #dist = fmod(origin, tick_interval) # dist to tick 1
-    #print("math mod", fmod(origin, tick_interval))
-        tick1_pos = self.round_down(origin, tick_interval)
-        tick1_pos = tick1_pos+tick_interval
-    #print('origin', origin)
-    #print('tick1_pos', tick1_pos)
+    def get_mph_origin(self, cur_val):
+        return cur_val - self.origin_offset
+        
+    def get_tick_value(self, origin, tick_number, tick_interval):
+        
+        if self.tape_unit == TapeUnit.DEGREE:
     
-        #tick_number = tick_number - 1
-        tick_n_pos = self.get_sum_right(tick1_pos, tick_interval*tick_number)
-    #print('tick_n_pos', tick_n_pos)
-        return tick_n_pos
+            tick1_pos = self.round_down(origin, tick_interval)
+            tick1_pos = tick1_pos+tick_interval
+            tick_n_pos = self.get_sum_right(tick1_pos, tick_interval*tick_number)
+    
+            return tick_n_pos
+        
+        if self.tape_unit == TapeUnit.MPH:
+    
+            tick1_pos = self.round_down(origin, tick_interval)
+            tick1_pos = tick1_pos+tick_interval
+            tick_n_pos = tick1_pos + tick_interval*tick_number
+
+            return tick_n_pos
 
 
     def round_down(self, num, divisor):
         return floor(num / divisor) * divisor
+    
+    def round_half_up(self, n, decimals=0):
+        multiplier = 10 ** decimals
+        return int(floor(n*multiplier + 0.5) / multiplier)
 
     def get_sum_right(self, a1, a2):
     #print('get_sum_right', a1, a2)
@@ -190,40 +218,57 @@ class Tape:
             to360 = 360 - a1
         return to360 + a2
        
-    def get_heading_str(self, heading):
-        if heading == 0:
-            return '<N>'
-        if heading == 360:
-            return '<N>'
-        if heading == 90:
-            return '<E>'
-        if heading == 180:
-            return '<S>'
-        if heading == 270:
-            return '<W>'
-        else:
-            return str(heading)+'°'
+    def get_value_str(self, value):
+        if self.tape_unit == TapeUnit.DEGREE:
+            if value == 0:
+                return '<N>'
+            if value == 360:
+                return '<N>'
+            if value == 90:
+                return '<E>'
+            if value == 180:
+                return '<S>'
+            if value == 270:
+                return '<W>'
+            else:
+                return str(value)+'°'
+            
+        if self.tape_unit == TapeUnit.MPH:
+            value = self.round_half_up(value, 1)
+            value = int(value/10)
+            if value < 10:
+                return '  '+str(value)
+            return str(value)#+"m"
+        
+        if self.tape_unit == TapeUnit.FEET:
+            value = round_half_up(value, 2)
+            value = int(value/100)
+            return str(value)+"ft"
+            
     
-    def get_heading_color(self, heading):
-        ordinal_color = (255,255,0,255)
-        if heading == 0:
-            return ordinal_color
-        if heading == 360:
-            return ordinal_color
-        if heading == 90:
-            return ordinal_color
-        if heading == 180:
-            return ordinal_color
-        if heading == 270:
-            return ordinal_color
+    def get_value_color(self, heading):
+        if self.tape_unit == TapeUnit.DEGREE:
+            ordinal_color = (255,255,0,255)
+            if heading == 0:
+                return ordinal_color
+            if heading == 360:
+                return ordinal_color
+            if heading == 90:
+                return ordinal_color
+            if heading == 180:
+                return ordinal_color
+            if heading == 270:
+                return ordinal_color
+            else:
+                return (255,255,255,255)
         else:
             return (255,255,255,255)
-
 
 if __name__ == '__main__':
     # unit test code
     mock_angle = 0
     mock_delta = 5
+    mock_units = TapeUnit.MPH
     def on_draw():
         window.clear()
         #rect.draw()
@@ -236,14 +281,26 @@ if __name__ == '__main__':
     def mock_data(dt):
         global mock_angle
         global mock_delta
-        mock_angle = mock_angle + mock_delta
-        if mock_angle > 360:
-            mock_angle = 360
-            mock_delta = -5
-        if mock_angle < 0:
-            mock_angle = 0
-            mock_delta = 5
-        print('mock_angle ',mock_angle)
+        global mock_units
+        if mock_units == TapeUnit.DEGREE:
+            mock_angle = mock_angle + mock_delta
+            if mock_angle > 360:
+                mock_angle = 360
+                mock_delta = -5
+            if mock_angle < 0:
+                mock_angle = 0
+                mock_delta = 5
+            print('mock_angle ',mock_angle)
+        
+        if mock_units == TapeUnit.MPH:
+            mock_angle = mock_angle + mock_delta
+            if mock_angle > 150:
+                mock_angle = 150
+                mock_delta = -2
+            if mock_angle < 0:
+                mock_angle = 0
+                mock_delta = 2
+            print('mock_mph ',mock_angle)
             
             
         pass
@@ -254,7 +311,7 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = Tape(50, 100, 500, 120, 6, 30, 90, tape_unit=TapeUnit.DEGREE, orient=Orient.VERT)
+    tape = Tape(50, 100, 500, 55, 6, 10, 0, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
     pyglet.clock.schedule_interval(mock_data, .5)
@@ -263,6 +320,4 @@ if __name__ == '__main__':
     
     
     
-    #tape = Tape(100, 100, 200, 50, 6, 30, 90, tape_unit=TapeUnit.FEET, horizontal=True)
-    #tape.draw(299)
         
