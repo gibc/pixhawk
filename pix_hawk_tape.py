@@ -74,7 +74,7 @@ class Tape:
     def draw(self, current_val):
         if self.tape_unit == TapeUnit.DEGREE:
             heading_origin = self.get_90_origin(current_val)
-        if self.tape_unit == TapeUnit.MPH:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
             heading_origin = self.get_mph_origin(current_val)
         self.border_rect.draw()
         
@@ -124,13 +124,23 @@ class Tape:
             
         if self.tape_unit == TapeUnit.DEGREE:
             self.current_val_label.text = self.get_value_str(round(abs(current_val)))
-        if self.tape_unit == TapeUnit.MPH:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
             self.current_val_label.x = self.current_val_rect.x
             if current_val < 100:
                 self.current_val_label.x += 25
             if current_val < 10:
                 self.current_val_label.x += 25
             self.current_val_label.text = str(current_val)
+        if self.tape_unit == TapeUnit.FEET:
+            self.current_val_label.x = self.current_val_rect.x
+            if current_val < 1000:
+                self.current_val_label.x += 25
+            if current_val < 100:
+                self.current_val_label.x += 25
+            if current_val < 10:
+                self.current_val_label.x += 25
+            self.current_val_label.text = str(current_val)
+            
         self.current_val_rect.draw()
         self.current_val_label.draw()
         
@@ -155,9 +165,12 @@ class Tape:
         
         if self.orient == Orient.VERT:
             font_ht = 50
-            br_wd = self.pixel_ht*1.5
+            if self.tape_unit == TapeUnit.MPH:
+                br_wd = self.pixel_ht*1.5
+            elif self.tape_unit == TapeUnit.FEET:
+                br_wd = self.pixel_ht*2
             br_ht = font_ht
-            x = self.x
+            x = self.x#+self.border_rect.width
             y = self.y+self.border_rect.height/2-br_ht/2
             
         
@@ -187,7 +200,7 @@ class Tape:
     
             return tick_n_pos
         
-        if self.tape_unit == TapeUnit.MPH:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
     
             tick1_pos = self.round_down(origin, tick_interval)
             tick1_pos = tick1_pos+tick_interval
@@ -241,9 +254,9 @@ class Tape:
             return str(value)#+"m"
         
         if self.tape_unit == TapeUnit.FEET:
-            value = round_half_up(value, 2)
+            value = self.round_half_up(value, 2)
             value = int(value/100)
-            return str(value)+"ft"
+            return str(value)#+"ft"
             
     
     def get_value_color(self, heading):
@@ -266,9 +279,9 @@ class Tape:
 
 if __name__ == '__main__':
     # unit test code
-    mock_angle = 0
-    mock_delta = 5
-    mock_units = TapeUnit.MPH
+    mock_angle = 5000
+    mock_delta = 2
+    mock_units = TapeUnit.FEET
     def on_draw():
         window.clear()
         #rect.draw()
@@ -302,6 +315,15 @@ if __name__ == '__main__':
                 mock_delta = 2
             print('mock_mph ',mock_angle)
             
+        if mock_units == TapeUnit.FEET:
+            mock_angle = mock_angle + mock_delta
+            if mock_angle > 8000:
+                mock_angle = 8000
+                mock_delta = -2
+            if mock_angle < 0:
+                mock_angle = 0
+                mock_delta = 2
+            print('mock_feet ',mock_angle)    
             
         pass
         
@@ -311,7 +333,7 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = Tape(50, 100, 500, 55, 6, 10, 0, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
+    tape = Tape(50, 100, 500, 55, 6, 100, 0, tape_unit=TapeUnit.FEET, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
     pyglet.clock.schedule_interval(mock_data, .5)
