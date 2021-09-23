@@ -2,23 +2,58 @@ import pyglet
 from pyglet import shapes
 from enum import Enum
 from math import floor
+import tkinter as Tkinter 
+from tkinter import font as tkFont
+import time
 
 class TapeUnit(Enum):
     MPH = 1
     DEGREE = 2
-    FEET = 3
+    FEET_ALT = 3
+    FEET_VERT_SPEED = 4
     
 class Orient(Enum):
     HORZ = 1
     VERT = 2
     
+class Align(Enum):
+    RIGHT = 1
+    LEFT = 2
+    CENTER = 3
+ 
+"""
+import tkinter as Tkinter 
+from tkinter import font as tkFont
+
+Tkinter.Frame().destroy()
+txt = tkFont.Font(family="Times New Roman", size=14)
+width = txt.measure("What the heck?")
+print(width)
+
+label = pyglet.text.Label(text,
+                          font_name ='Times New Roman',
+                          font_size = 28,
+                          x = 20, y = window.height//2, )
+"""
+Tkinter.Frame().destroy()
+def get_str_wd(string, size):
+    #tic = time.perf_counter()
+    txt = tkFont.Font(family="Times New Roman", size=size)
+    toc = time.perf_counter()
+    width = txt.measure(string)
+    #toc = time.perf_counter()
+    #print(f"get_str_wd in {toc - tic:0.4f} seconds")
+
+    return width
+    
 
 class Tape:
 
-    def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, origin_offset, tape_unit=TapeUnit.DEGREE, orient=Orient.HORZ):
+    def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, tape_unit=TapeUnit.DEGREE, orient=Orient.HORZ):
         self.x = x #postion of tape in window
         self.y = y
         self.orient = orient
+        self.align = align
         self.pixel_wd = pixel_wd
         self.pixel_ht = pixel_ht
         self.tick_count = tick_count
@@ -74,7 +109,7 @@ class Tape:
     def draw(self, current_val):
         if self.tape_unit == TapeUnit.DEGREE:
             heading_origin = self.get_90_origin(current_val)
-        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET_ALT or self.tape_unit == TapeUnit.FEET_VERT_SPEED:
             heading_origin = self.get_mph_origin(current_val)
         self.border_rect.draw()
         
@@ -83,10 +118,11 @@ class Tape:
                 
             nxt = self.get_tick_value(heading_origin, i, self.units_interval)
             print('nxt', nxt)
-            if nxt < 0:
+            if nxt < 0 and self.tape_unit != TapeUnit.FEET_VERT_SPEED:
                 continue
             self.tick_labels[i].text = self.get_value_str(nxt)
-            print('self.tick_labels[i].text ', self.tick_labels[i].text)
+            #self.tick_labels[i].text = str(nxt)
+            #print('self.tick_labels[i].text ', self.tick_labels[i].text)
         
             org_offset = self.angle_dif_right(heading_origin, nxt)
             print('****org_offset****', org_offset)
@@ -95,11 +131,15 @@ class Tape:
                 self.tick_labels[i].x = int(self.border_rect.x) + int(self.units2pix_scale*org_offset)
             else:
                 self.tick_labels[i].y = int(self.border_rect.y) + int(self.units2pix_scale*org_offset)
-                self.tick_labels[i].x = self.current_val_rect.x
+                if self.align == Align.LEFT:
+                    self.tick_labels[i].x = self.current_val_rect.x
+                else:
+                    self.tick_labels[i].x = self.border_rect.x
+                self.tick_labels[i].x = self.get_str_pos_in_rect(self.get_value_str(nxt), self.border_rect, Align.RIGHT, 37 )
                 self.tick_labels[i].anchor_x = 'left'
                 self.tick_labels[i].anchor_y = 'center'
                 
-            str_wd = self.get_str_wd(self.tick_labels[i].text)
+            str_wd = self.get_str_wd(self.tick_labels[i].text, 30)
             if self.orient == Orient.HORZ:
                 if self.tick_labels[i].x < self.border_rect.x + str_wd:
                     continue
@@ -124,14 +164,14 @@ class Tape:
             
         if self.tape_unit == TapeUnit.DEGREE:
             self.current_val_label.text = self.get_value_str(round(abs(current_val)))
-        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET_VERT_SPEED:
             self.current_val_label.x = self.current_val_rect.x
             if current_val < 100:
                 self.current_val_label.x += 25
             if current_val < 10:
                 self.current_val_label.x += 25
             self.current_val_label.text = str(current_val)
-        if self.tape_unit == TapeUnit.FEET:
+        if self.tape_unit == TapeUnit.FEET_ALT:
             self.current_val_label.x = self.current_val_rect.x
             if current_val < 1000:
                 self.current_val_label.x += 25
@@ -140,6 +180,7 @@ class Tape:
             if current_val < 10:
                 self.current_val_label.x += 25
             self.current_val_label.text = str(current_val)
+        self.current_val_label.x = self.get_str_pos_in_rect(str(current_val), self.current_val_rect, Align.RIGHT, 37 )
             
         self.current_val_rect.draw()
         self.current_val_label.draw()
@@ -167,19 +208,33 @@ class Tape:
             font_ht = 50
             if self.tape_unit == TapeUnit.MPH:
                 br_wd = self.pixel_ht*1.5
-            elif self.tape_unit == TapeUnit.FEET:
+            elif self.tape_unit == TapeUnit.FEET_ALT:
                 br_wd = self.pixel_ht*2
             br_ht = font_ht
-            x = self.x#+self.border_rect.width
+            if self.align == Align.LEFT:
+                x = self.x#+self.border_rect.width
+            else:
+                #x = self.x - self.border_rect.width
+                x = self.border_rect.x + self.border_rect.width - br_wd
             y = self.y+self.border_rect.height/2-br_ht/2
             
         
         return shapes.BorderedRectangle( x, y, br_wd, br_ht, border=10, color = (0, 0, 0), border_color = (255,255,255))
 
+    def get_str_pos_in_rect(self, string, rect, align, font_ht):
+        #if align == Align.LEFT:
+        if self.align == Align.LEFT:
+            return rect.x
+        
+        else:
+            wd = self.get_str_wd(string, font_ht)
+            return rect.x + rect.width -wd
+        
         
     
-    def get_str_wd(self, str):
-        return len(str)*8.5
+    def get_str_wd(self, str, font_ht):
+        return get_str_wd(str, font_ht)
+        #return len(str)*8.5
         
     def get_90_origin(self, a1):
         if a1 > 90:
@@ -200,13 +255,13 @@ class Tape:
     
             return tick_n_pos
         
-        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET_ALT or self.tape_unit == TapeUnit.FEET_VERT_SPEED:
     
             tick1_pos = self.round_down(origin, tick_interval)
             tick1_pos = tick1_pos+tick_interval
             tick_n_pos = tick1_pos + tick_interval*tick_number
 
-            return tick_n_pos
+        return tick_n_pos
 
 
     def round_down(self, num, divisor):
@@ -246,14 +301,21 @@ class Tape:
             else:
                 return str(value)+'°'
             
-        if self.tape_unit == TapeUnit.MPH:
+        if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET_VERT_SPEED:
             value = self.round_half_up(value, 1)
             value = int(value/10)
-            if value < 10:
+            """
+            if value < 10 and self.tape_unit != TapeUnit.FEET_VERT_SPEED:
                 return '  '+str(value)
+            if self.tape_unit == TapeUnit.FEET_VERT_SPEED:
+                if value >= 0:
+                    return ' '+str(value)
+                else:
+                    return str(value)
+            """
             return str(value)#+"m"
         
-        if self.tape_unit == TapeUnit.FEET:
+        if self.tape_unit == TapeUnit.FEET_ALT:
             value = self.round_half_up(value, 2)
             value = int(value/100)
             return str(value)#+"ft"
@@ -279,9 +341,15 @@ class Tape:
 
 if __name__ == '__main__':
     # unit test code
-    mock_angle = 5000
-    mock_delta = 2
-    mock_units = TapeUnit.FEET
+    #mock_angle = 5000
+    
+    #wd = get_str_wd('a long string a long string a long string ', 30)
+    #print('str wd ', wd)
+    #quit()
+    
+    mock_angle = 1000
+    mock_delta = -100
+    mock_units = TapeUnit.FEET_VERT_SPEED
     def on_draw():
         window.clear()
         #rect.draw()
@@ -315,7 +383,7 @@ if __name__ == '__main__':
                 mock_delta = 2
             print('mock_mph ',mock_angle)
             
-        if mock_units == TapeUnit.FEET:
+        if mock_units == TapeUnit.FEET_ALT:
             mock_angle = mock_angle + mock_delta
             if mock_angle > 8000:
                 mock_angle = 8000
@@ -323,7 +391,17 @@ if __name__ == '__main__':
             if mock_angle < 0:
                 mock_angle = 0
                 mock_delta = 2
-            print('mock_feet ',mock_angle)    
+            print('mock_feet ',mock_angle)
+            
+        if mock_units == TapeUnit.FEET_VERT_SPEED:
+            mock_angle = mock_angle + mock_delta
+            if mock_angle > 1000:
+                mock_angle = 1000
+                mock_delta = -100
+            if mock_angle < -1000:
+                mock_angle = 0
+                mock_delta = 100
+            print('mock_feet ',mock_angle) 
             
         pass
         
@@ -333,7 +411,8 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = Tape(50, 100, 500, 55, 6, 100, 0, tape_unit=TapeUnit.FEET, orient=Orient.VERT)
+    #tape = Tape(50, 100, 500, 55, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
     pyglet.clock.schedule_interval(mock_data, .5)
