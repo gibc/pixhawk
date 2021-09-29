@@ -14,7 +14,7 @@ import os
 
 #test save after reboot
 
-os.system('xrandr -o left')
+#os.system('xrandr -o left')
 
 pyglet.options['debug_gl']= False
 

@@ -32,11 +32,12 @@ class mavlinkmsg (Thread):
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
 
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
     
     def run(self):
         #return
@@ -107,11 +108,37 @@ class mavlinkmsg (Thread):
                         #print('groundspeed: ', groundspeed)
                         #print("")
                     #self.msglock.release()
-        
+                """
                 if msg.get_type() == 'EKF_STATUS_REPORT':
                     print("\n\n*****Got message: %s*****" % msg.get_type())
                     print("Message: %s" % msg)
                     print("")
+                    
+                if msg.get_type() == 'NAV_CONTROLLER_OUTPUT':
+                    print("\n\n*****Got message: %s*****" % msg.get_type())
+                    print("Message: %s" % msg)
+                    print("")
+                 """
+                
+                if msg.get_type() == 'ATTITUDE':
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    with self.msglock:
+                        #print("\n\n*****Got message: %s*****" % msg.get_type())
+                        #print("Message: %s" % msg)
+                        dic = msg.to_dict()
+                        roll = dic['roll']
+                        self.roll = math.degrees(roll)
+                        #print("roll: ", roll)
+            
+                        pitch = dic['pitch']
+                        self.pitch = math.degrees(pitch)
+                        #print("pitch: ", pitch)
+            
+                        yaw = dic['yaw']
+                        yaw = math.degrees(yaw)
+                        #print("yaw: ", yaw)
+                
                     
                 #time.sleep(.1)
             
