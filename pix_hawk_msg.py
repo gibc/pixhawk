@@ -15,10 +15,11 @@ import os
 
 
 class aharsData:
-    def __init__(self, roll, pitch, heading):
+    def __init__(self, roll, pitch, heading, altitude):
         self.roll = roll
         self.pitch = pitch
         self.heading = heading
+        self.altitude = altitude
 
 class mavlinkmsg (Thread):
     def __init__(self):
@@ -26,6 +27,7 @@ class mavlinkmsg (Thread):
         self.roll = 0
         self.pitch = 0
         self.heading = 0
+        self.altitude = 0
         self.msglock = Lock()
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
@@ -33,6 +35,7 @@ class mavlinkmsg (Thread):
 
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS3, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
@@ -56,12 +59,19 @@ class mavlinkmsg (Thread):
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
                     pass
+                
+                if msg.get_type() == 'AHRS3':
+                    with self.msglock:
+                        altitude = dic['altitude']
+                        self.altitude = 3.2808 * altitude
+                        print("altitude: ", self.altitude)
             
                 if msg.get_type() == 'AHRS2':
                     #self.msglock.acquire()
                     with self.msglock:
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
+                        """
                         dic = msg.to_dict()
                         roll = dic['roll']
                         self.roll = math.degrees(roll)
@@ -74,6 +84,10 @@ class mavlinkmsg (Thread):
                         yaw = dic['yaw']
                         yaw = math.degrees(yaw)
                         #print("yaw: ", yaw)
+                        """
+                        altitude = dic['altitude']
+                        self.altitude = 3.2808 * altitude
+                        print("altitude: ", self.altitude)
                         #print("")
                     #self.msglock.release()
             
@@ -106,6 +120,9 @@ class mavlinkmsg (Thread):
                         #print('climb: ', climb) #climb rate m/s
                         groundspeed = dic['groundspeed']*2.237 
                         #print('groundspeed: ', groundspeed)
+                        altitude = dic['alt']
+                        self.altitude = 3.2808 * altitude
+                        #print("altitude: ", self.altitude)
                         #print("")
                     #self.msglock.release()
                 """
@@ -155,7 +172,7 @@ class mavlinkmsg (Thread):
         #return inData
         if(self.msglock.acquire(blocking=False)):
         #if(False):
-            newData = aharsData(self.roll, self.pitch, self.heading)
+            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude)
             self.msglock.release()
             return newData
         else:
@@ -200,7 +217,7 @@ if __name__ == '__main__':
     msgthd = mavlinkmsg()
     msgthd.start()
 
-    ahdata = aharsData(-1,-1,-1)
+    ahdata = (-1,-1,-1,-1)
 
     while True:
         ahdata = msgthd.getAharsData(ahdata)

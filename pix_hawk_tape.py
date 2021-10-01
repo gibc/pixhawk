@@ -163,7 +163,7 @@ class Tape:
             #print('self.tick_labels[i].x: ', self.tick_labels[i].x)
             
         if self.tape_unit == TapeUnit.DEGREE:
-            self.current_val_label.text = self.get_value_str(round(abs(current_val)))
+            self.current_val_label.text = self.get_value_str((abs(current_val)))
         if self.tape_unit == TapeUnit.MPH or self.tape_unit == TapeUnit.FEET_VERT_SPEED:
             self.current_val_label.x = self.current_val_rect.x
             if current_val < 100:
@@ -179,7 +179,7 @@ class Tape:
                 self.current_val_label.x += 25
             if current_val < 10:
                 self.current_val_label.x += 25
-            self.current_val_label.text = str(current_val)
+            self.current_val_label.text = str(self.round_half_up(current_val,1))
         self.current_val_label.x = self.get_str_pos_in_rect(str(current_val), self.current_val_rect, Align.RIGHT, 37 )
             
         self.current_val_rect.draw()
@@ -192,9 +192,9 @@ class Tape:
             br_ht = self.pixel_wd
             br_wd = self.pixel_ht
             
-        rect = shapes.BorderedRectangle(self.x, self.y,  br_wd, br_ht, border=3, color = (0, 0, 255),
+        rect = shapes.BorderedRectangle(self.x, self.y,  br_wd, br_ht, border=3, color = (100, 100, 100),
                                             border_color = (255,255,255))
-        rect.opacity = 100
+        rect.opacity = 200
         #rect = shapes.Rectangle(self.x, self.y,  br_wd, br_ht, color = (0, 0, 255, 100))
         return rect
     
@@ -349,7 +349,7 @@ if __name__ == '__main__':
     
     mock_angle = 1000
     mock_delta = -100
-    mock_units = TapeUnit.FEET_VERT_SPEED
+    mock_units = TapeUnit.FEET_ALT
     def on_draw():
         window.clear()
         #rect.draw()
@@ -411,8 +411,8 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    #tape = Tape(50, 100, 500, 55, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
-    tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
+    tape = Tape(50, 100, 500, 55, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    #tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
     pyglet.clock.schedule_interval(mock_data, .5)

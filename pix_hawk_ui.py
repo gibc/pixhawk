@@ -6,6 +6,11 @@ for path in sys.path:
 sys.path.append('/home/pi/.local/lib/python3.7/site-packages')
 sys.path.append('/usr/lib/python3/dist-packages (3.4)')
 import pix_hawk_msg
+import pix_hawk_tape
+from pix_hawk_tape import Tape
+from pix_hawk_tape import Align
+from pix_hawk_tape import TapeUnit
+from pix_hawk_tape import Orient
 import pyglet
 from pyglet import clock
 from pyglet import shapes
@@ -204,7 +209,7 @@ def get_win_rect(window):
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd.start()
-    ahdata = pix_hawk_msg.aharsData(-1,-1,-1)
+    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1)
 
     window = pyglet.window.Window(fullscreen=True)
     #window = pyglet.window.Window(700,700)
@@ -238,6 +243,15 @@ try:
                           y=window.height // 2,
                           anchor_x='left',
                           anchor_y='center')
+    
+    altitude_label = pyglet.text.Label('alt: ',
+                          font_size=30,
+                          x=center_x-400,
+                          y=window.height // 2,
+                          anchor_x='left',
+                          anchor_y='center')
+    
+    tape = Tape(center_x-450, center_y-850/2, 850, 55, 6, 100, align=Align.LEFT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -406,9 +420,13 @@ def on_draw():
         roll_label.text = str(round(abs(ahdata.roll), 2)) 
         roll_label.draw()
     
-        pitch_label.text = str(round(ahdata.pitch, 2)) 
+        pitch_label.text = str(round(ahdata.pitch, 1)) 
         pitch_label.draw()
         
+        #altitude_label.text = str(round(ahdata.altitude,1))
+        #altitude_label.draw()
+        
+        tape.draw(round(ahdata.altitude,0))
         
         draw_pitch_ticks(pitch_tick_list, ahdata.roll, (center_x, center_y), pitch_5_y, 50, -pitch_y)
         pitch_batch.draw()
