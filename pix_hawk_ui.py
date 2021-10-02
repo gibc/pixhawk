@@ -93,12 +93,12 @@ def make_roll_tick(angle, length, start_x, start_y, center_x, center_y):
 
     #gline=shapes.Line(500, 500, 1000, 1000, 4, color = (255,255,255), batch=pitch_batch)
     if angle > 0:
-        roll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1], anchor_x='right',anchor_y='bottom', batch=pitch_batch)
+        roll_label_ = pyglet.text.Label(str(angle),font_size=40, x=pt[0], y=pt[1], anchor_x='right',anchor_y='bottom', batch=pitch_batch)
     elif angle == 0:
-        roll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1]-3, anchor_x='center',anchor_y='bottom', batch=pitch_batch)
+        roll_label_ = pyglet.text.Label(str(angle),font_size=40, x=pt[0], y=pt[1]-3, anchor_x='center',anchor_y='bottom', batch=pitch_batch)
     else:
         angle = abs(angle)
-        oll_label_ = pyglet.text.Label(str(angle),font_size=30, x=pt[0], y=pt[1], anchor_x='left',anchor_y='bottom', batch=pitch_batch)
+        oll_label_ = pyglet.text.Label(str(angle),font_size=40, x=pt[0], y=pt[1], anchor_x='left',anchor_y='bottom', batch=pitch_batch)
 
 def get_tick_angle(origin, tick_number, tick_interval):
     #print('origin', origin)
@@ -238,7 +238,7 @@ try:
     noise_line4 = shapes.Line(center_x+25, center_y , center_x, center_y-15, 2*width, color = (0,255,100), batch=pitch_batch)
     
     pitch_label = pyglet.text.Label('pitch: ',
-                          font_size=30,
+                          font_size=40,
                           x=center_x+105,
                           y=window.height // 2,
                           anchor_x='left',
@@ -268,11 +268,12 @@ try:
 #batch = pyglet.graphics.Batch()
     rect_ht = 2000
     rect_wd = 1500
-    top_rect = shapes.Rectangle(center_x, center_y, rect_wd, rect_ht,  color = (0, 0, 225))
+    top_rect = shapes.Rectangle(center_x, center_y, rect_wd, rect_ht,  color = (0, 0, 255))
     top_rect.anchor_x = rect_wd/2
     top_rect.anchor_y = 0
 
     bot_rect = shapes.Rectangle(center_x, center_y, rect_wd, rect_ht,  color = (139,69,19))
+    #bot_rect = shapes.Rectangle(center_x, center_y, rect_wd, rect_ht,  color = (0,0,0))
     bot_rect.anchor_x = rect_wd/2
     bot_rect.anchor_y = rect_ht
 
@@ -298,12 +299,12 @@ try:
     #compass_width = window.width-2*ah_win_wd
     compass_width = win_rect.width
     #roll_top = window.height - compass_height
-    roll_top = win_rect.height+win_rect.y - compass_height
+    roll_top = win_rect.height+win_rect.y - compass_height - 40
     tick_length = 40
     arc_radius = 300
     arc_center = roll_top - arc_radius
     
-    compass_rect = shapes.BorderedRectangle(center_x, roll_top+30,  compass_width, compass_height-30, border=10, color = (0, 0, 255),
+    compass_rect = shapes.BorderedRectangle(center_x, roll_top+70,  compass_width, compass_height-30, border=10, color = (0, 0, 255),
                                             border_color = (255,255,255), batch=pitch_batch)
     compass_rect.anchor_x = compass_rect.width/2
     
@@ -320,13 +321,13 @@ try:
     
       
     roll_arc = shapes.Arc(center_x, arc_center, arc_radius, angle=radians(120), start_angle=radians(30), batch=pitch_batch)
-    roll_line = shapes.Line(center_x, window.height-320, center_x, window.height-20, 6, color = (0,255,100))
+    roll_line = shapes.Line(center_x, window.height-320, center_x, window.height-20, 16, color = (0,255,100))
     #roll_triangle = shapes.Triangle(center_x, roll_top, center_x-20, roll_top-20, center_x+20, roll_top-20, color = (0,255,100))
     roll_label = pyglet.text.Label(' roll: ',
-                          font_size=30,
+                          font_size=40,
                           x=center_x,
                           #y=window.height-200,
-                          y=win_rect.y+win_rect.height-200,
+                          y=win_rect.y+win_rect.height-250,
                           anchor_x='center',
                           anchor_y='top')
 
@@ -337,13 +338,13 @@ try:
     heading_center_y = compass_rect.y+compass_rect.height/2
     
     #heading_label_rect = shapes.Rectangle(compass_rect.x, heading_center_y, 60, 40,  color = (0,0,0))
-    heading_label_rect = shapes.BorderedRectangle(compass_rect.x, heading_center_y, 125, 40, border=8, color = (0, 0, 0),
+    heading_label_rect = shapes.BorderedRectangle(compass_rect.x, heading_center_y, 125, 60, border=8, color = (0, 0, 0),
                                             border_color = (255,255,255))
     heading_label_rect.anchor_x = heading_label_rect.width/2
     heading_label_rect.anchor_y = heading_label_rect.height/2
     
     heading_label = pyglet.text.Label('heading: ',
-                          font_size=30,
+                          font_size=40,
                           x=compass_rect.x,
                           y=heading_center_y,
                           anchor_y='center', anchor_x='center')
@@ -417,7 +418,7 @@ def on_draw():
         bot_rect.position = (center_x, center_y-pitch_y)
         bot_rect.draw()
 
-        roll_label.text = str(round(abs(ahdata.roll), 2)) 
+        roll_label.text = str(round(abs(ahdata.roll), 1)) 
         roll_label.draw()
     
         pitch_label.text = str(round(ahdata.pitch, 1)) 
