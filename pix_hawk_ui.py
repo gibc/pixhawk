@@ -209,7 +209,7 @@ def get_win_rect(window):
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd.start()
-    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1)
+    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1)
 
     window = pyglet.window.Window(fullscreen=True)
     #window = pyglet.window.Window(700,700)
@@ -246,8 +246,29 @@ try:
     
     altitude_label = pyglet.text.Label('alt: ',
                           font_size=30,
-                          x=center_x-400,
+                          x=center_x-105,
                           y=window.height // 2,
+                          anchor_x='left',
+                          anchor_y='center')
+    
+    climb_label = pyglet.text.Label('climb: ',
+                          font_size=40,
+                          x=center_x,
+                          y=window.height * 1/4,
+                          anchor_x='left',
+                          anchor_y='center')
+    
+    gnd_speed_label = pyglet.text.Label('ground speed: ',
+                          font_size=40,
+                          x=center_x-140,
+                          y=window.height * 1/4 - 60,
+                          anchor_x='left',
+                          anchor_y='center')
+    
+    fix_type_label = pyglet.text.Label('gpx fix: ',
+                          font_size=40,
+                          x=center_x-43,
+                          y=window.height * 1/4 - 120,
                           anchor_x='left',
                           anchor_y='center')
     
@@ -421,8 +442,18 @@ def on_draw():
         roll_label.text = str(round(abs(ahdata.roll), 1)) 
         roll_label.draw()
     
-        pitch_label.text = str(round(ahdata.pitch, 1)) 
+        pitch_label.text = str(round(ahdata.pitch, 1))
+        #pitch_label.text = str(round(ahdata.climb, 1))
         pitch_label.draw()
+        
+        climb_label.text = 'climb: ' + str(round(ahdata.climb, 1))
+        climb_label.draw()
+        
+        gnd_speed_label.text = 'gnd speed: ' + str(round(ahdata.groundspeed, 1))
+        gnd_speed_label.draw()
+        
+        fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
+        fix_type_label.draw()
         
         #altitude_label.text = str(round(ahdata.altitude,1))
         #altitude_label.draw()
