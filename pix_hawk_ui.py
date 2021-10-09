@@ -273,6 +273,8 @@ try:
                           anchor_y='center')
     
     tape = Tape(center_x-450, center_y-850/2, 850, 55, 6, 100, align=Align.LEFT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    
+    gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -451,6 +453,7 @@ def on_draw():
         
         gnd_speed_label.text = 'gnd speed: ' + str(round(ahdata.groundspeed, 1))
         gnd_speed_label.draw()
+        gnd_speed_tape.draw(round(ahdata.groundspeed,0))
         
         fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
         fix_type_label.draw()
@@ -566,6 +569,10 @@ def update(dt):
     
 @window.event       
 def on_close():
+    global msgthd
+    msgthd.run_thread = False
+    msgthd.join()
+    
     os.system('xrandr -o normal')
     
     

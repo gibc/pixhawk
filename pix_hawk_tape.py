@@ -170,7 +170,8 @@ class Tape:
                 self.current_val_label.x += 25
             if current_val < 10:
                 self.current_val_label.x += 25
-            self.current_val_label.text = str(current_val)
+            #self.current_val_label.text = str(current_val)
+            self.current_val_label.text = str(self.round_half_up(current_val,1))
         if self.tape_unit == TapeUnit.FEET_ALT:
             self.current_val_label.x = self.current_val_rect.x
             if current_val < 1000:
@@ -207,7 +208,7 @@ class Tape:
         if self.orient == Orient.VERT:
             font_ht = 65
             if self.tape_unit == TapeUnit.MPH:
-                br_wd = self.pixel_ht*1.5
+                br_wd = self.pixel_ht*2.0
             elif self.tape_unit == TapeUnit.FEET_ALT:
                 br_wd = self.pixel_ht*2.5
             br_ht = font_ht
@@ -347,9 +348,9 @@ if __name__ == '__main__':
     #print('str wd ', wd)
     #quit()
     
-    mock_angle = 1000
-    mock_delta = -100
-    mock_units = TapeUnit.FEET_ALT
+    mock_angle = 0
+    mock_delta = 2
+    mock_units = TapeUnit.MPH
     def on_draw():
         window.clear()
         #rect.draw()
@@ -411,7 +412,7 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = Tape(50, 100, 500, 55, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    tape = Tape(50, 100, 500, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
     #tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)

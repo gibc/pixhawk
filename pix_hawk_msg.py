@@ -34,7 +34,13 @@ class mavlinkmsg (Thread):
         self.climb = 0
         self.groundspeed = 0
         self.fix_type = 0
+        self.buf_len = 10
+        self.alt_buf = list(range(0,self.buf_len))
+        self.alt_buf_idx = 0
+        self.climb_buf_time = 0
+        self.cur_alt = 0
         self.msglock = Lock()
+        self.run_thread = True
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
@@ -48,11 +54,69 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
+        
+    def get_climb_rate(self, alt):
+        #print('alt' , alt)
+        try:
+            alt_delta = alt - self.cur_alt
+            if abs(alt_delta) <= 5:
+                return 0
+            
+            print('alt_delta',alt_delta)
+            
+            self.cur_alt = alt
+            
+            ms_time = time.time() * 1000
+            #print('alt_buf', self.alt_buf)
+            ms_time = time.time() * 1000
+            ms_interval = ms_time - self.climb_buf_time
+            
+            self.climb_buf_time = ms_time
+            if ms_interval != 0:
+                rate = alt_delta / ms_interval # feet per millisecond          
+                rate = rate * 1000 # feet per second
+                rate = rate * 60 # feet per minute
+            #print('rate', rate)
+            else:
+                rate = 0        
+        
+            """
+            cur_alt = sum(self.alt_buf)/self.buf_len
+            #print('cur_alt' , cur_alt)
+            self.alt_buf[self.alt_buf_idx] = alt
+            self.alt_buf_idx += 1
+            if self.alt_buf_idx >= self.buf_len:
+                self.alt_buf_idx = 0
+            #print('self.alt_buf_idx', self.alt_buf_idx)
+            new_alt = sum(self.alt_buf)/self.buf_len
+            #print('new_alt' , new_alt)
+        
+            alt_delta = new_alt - cur_alt
+            #return alt_delta
+            #print('alt_delta' , alt_delta)
+                               
+            if ms_interval != 0:
+                rate = alt_delta / ms_interval # feet per millisecond          
+                rate = rate * 1000 # feet per second
+                rate = rate * 60 # feet per minute
+            #print('rate', rate)
+            else:
+                rate = 0
+           
+        #alt_delta_ave = sum(self.climb_buf)/10
+            #print('rate', rate)
+            """
+            print('rate', rate)
+            
+        except Exception as e:
+            print(str(e))
+        return rate
+        
     
     def run(self):
         #return
         print("started mavlinkmsg thread")
-        while True:
+        while self.run_thread:
             #time.sleep(.1)
             try:
                 msg = self.master.recv_match(blocking=True)
@@ -114,7 +178,7 @@ class mavlinkmsg (Thread):
                         #print("satellites_visible: ", satellites_visible)
                         fix_type = dic['fix_type']
                         self.fix_type = fix_type
-                        print("fix_type: ", fix_type)
+                        #print("fix_type: ", fix_type)
                         #print("")
             
                 if msg.get_type() == 'VFR_HUD':
@@ -135,8 +199,12 @@ class mavlinkmsg (Thread):
                         altitude = dic['alt']
                         self.altitude = 3.2808 * altitude
                         #print("altitude: ", self.altitude)
-                        climb = dic['climb']
-                        self.climb = climb * 196.85  # meters/sec to feet/mi
+                        
+                        #climb = dic['climb']
+                        #self.climb = climb * 196.85  # meters/sec to feet/mi
+                        self.climb = self.get_climb_rate(self.altitude)
+                        #print('climb: ', self.climb)
+                        
                         #print("climb: ", self.climb)
                         groundspeed = dic['groundspeed']
                         self.groundspeed = groundspeed * 2.23694  # meters/sec to mph
@@ -184,6 +252,7 @@ class mavlinkmsg (Thread):
             
             except:
                 pass
+        print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):
         #print("getAharsData()")
