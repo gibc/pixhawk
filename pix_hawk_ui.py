@@ -8,6 +8,7 @@ sys.path.append('/usr/lib/python3/dist-packages (3.4)')
 import pix_hawk_msg
 import pix_hawk_tape
 from pix_hawk_tape import Tape
+from pix_hawk_alt_tape import AltTape
 from pix_hawk_tape import Align
 from pix_hawk_tape import TapeUnit
 from pix_hawk_tape import Orient
@@ -272,7 +273,8 @@ try:
                           anchor_x='left',
                           anchor_y='center')
     
-    tape = Tape(center_x-450, center_y-850/2, 850, 55, 6, 100, align=Align.LEFT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    #tape = Tape(center_x-450, center_y-850/2, 850, 55, 6, 100, align=Align.LEFT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
+    tape = AltTape(center_x-450, center_y-810/2, 810, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
     
     gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
         
@@ -461,7 +463,8 @@ def on_draw():
         #altitude_label.text = str(round(ahdata.altitude,1))
         #altitude_label.draw()
         
-        tape.draw(round(ahdata.altitude,0))
+        #tape.draw(round(ahdata.altitude,0))
+        tape.draw(round(ahdata.altitude,0), (round(ahdata.climb, 1) ))
         
         draw_pitch_ticks(pitch_tick_list, ahdata.roll, (center_x, center_y), pitch_5_y, 50, -pitch_y)
         pitch_batch.draw()
