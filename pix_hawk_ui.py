@@ -12,6 +12,7 @@ from pix_hawk_alt_tape import AltTape
 from pix_hawk_tape import Align
 from pix_hawk_tape import TapeUnit
 from pix_hawk_tape import Orient
+from pix_hawk_speed_tape import SpeedTape
 import pyglet
 from pyglet import clock
 from pyglet import shapes
@@ -210,7 +211,7 @@ def get_win_rect(window):
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd.start()
-    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1)
+    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1)
 
     window = pyglet.window.Window(fullscreen=True)
     #window = pyglet.window.Window(700,700)
@@ -274,9 +275,10 @@ try:
                           anchor_y='center')
     
     #tape = Tape(center_x-450, center_y-850/2, 850, 55, 6, 100, align=Align.LEFT, tape_unit=TapeUnit.FEET_ALT, orient=Orient.VERT)
-    tape = AltTape(center_x-450, center_y-810/2, 810, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
+    tape = AltTape(center_x-450, center_y-790/2, 790, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
     
-    gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
+    #gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
+    air_speed_tape = SpeedTape(center_x+400, center_y-790/2, 790, 55, 6, 10, align=Align.LEFT, orient=Orient.VERT)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -455,7 +457,9 @@ def on_draw():
         
         gnd_speed_label.text = 'gnd speed: ' + str(round(ahdata.groundspeed, 1))
         gnd_speed_label.draw()
-        gnd_speed_tape.draw(round(ahdata.groundspeed,0))
+        #gnd_speed_tape.draw(round(ahdata.groundspeed,0))
+        
+        air_speed_tape.draw(round(ahdata.airspeed,0), round(ahdata.groundspeed,0))
         
         fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
         fix_type_label.draw()

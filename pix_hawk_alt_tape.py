@@ -12,7 +12,7 @@ class AltTape(Tape):
         
         
         self.climb_val_label = pyglet.text.Label('****',
-                          font_size=40,
+                          font_size=50,
                           x=self.current_val_rect.x,
                           y=self.border_rect.y+self.border_rect.height+1,
                           anchor_y='bottom', anchor_x='left')

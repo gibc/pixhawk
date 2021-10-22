@@ -15,13 +15,15 @@ import os
 
 
 class aharsData:
-    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, fix_type):
+    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type):
+        #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
         self.heading = heading
         self.altitude = altitude
         self.climb = climb
         self.groundspeed = groundspeed
+        self.airspeed = airspeed
         self.fix_type = fix_type
 
 class mavlinkmsg (Thread):
@@ -33,6 +35,7 @@ class mavlinkmsg (Thread):
         self.altitude = 0
         self.climb = 0
         self.groundspeed = 0
+        self.airspeed = 0
         self.fix_type = 0
         self.buf_len = 10
         self.alt_buf = list(range(0,self.buf_len))
@@ -41,6 +44,7 @@ class mavlinkmsg (Thread):
         self.cur_alt = 0
         self.msglock = Lock()
         self.run_thread = True
+        self.old_ave = 0
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
@@ -54,17 +58,25 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 5)
+        
+    def sm_climb(self, new_val, n):
+        new_av = self.old_ave * (n-1)/n + new_val/n
+        self.old_av = new_av
+        return new_av
+        
         
     def get_climb_rate(self, alt):
         #print('alt' , alt)
         try:
             alt_delta = alt - self.cur_alt
+            self.cur_alt = alt
             if abs(alt_delta) <= 5:
                 return 0
             
-            print('alt_delta',alt_delta)
+            #print('alt_delta',alt_delta)
             
-            self.cur_alt = alt
+            #self.cur_alt = alt
             
             ms_time = time.time() * 1000
             #print('alt_buf', self.alt_buf)
@@ -106,7 +118,7 @@ class mavlinkmsg (Thread):
         #alt_delta_ave = sum(self.climb_buf)/10
             #print('rate', rate)
             """
-            print('rate', rate)
+            #print('rate', rate)
             
         except Exception as e:
             print(str(e))
@@ -124,12 +136,24 @@ class mavlinkmsg (Thread):
                     continue
                 if msg.get_type() == 'BAD_DATA':
                     continue
+                # NOTE: I get this message if requestd!!
                 #print(msg.get_type())
                 #print("Message: %s" % msg)
-                if msg.get_type() == 'WIND':
+                #if msg.get_type() == 'WIND':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
-                    pass
+                    #pass
+                
+                if msg.get_type() == 'ADSB_VEHICLE':
+                    print("\n\n*****Got message: %s*****" % msg.get_type())
+                    print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    callsign = dic['callsign']
+                    print("callsign: ", callsign)
+                    adsb_altitude = .00328 * dic['altitude']
+                    print("adsb_altitude: ", adsb_altitude)
+                    ICAO_address = dic['ICAO_address']
+                    print("ICAO_address: ", ICAO_address)
                 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -190,7 +214,7 @@ class mavlinkmsg (Thread):
                         #print("heading: ", self.heading)
                         #alt = dic['alt']
                         #print("alt: ", alt*3.28084)
-                        airspeed = dic['airspeed']*2.237 
+                        self.airspeed = dic['airspeed']*2.237 
                         #print("airspeed: ", airspeed)#m/s
                         #self.climb = dic['climb']*2.237 
                         #print('climb: ', climb) #climb rate m/s
@@ -200,9 +224,12 @@ class mavlinkmsg (Thread):
                         self.altitude = 3.2808 * altitude
                         #print("altitude: ", self.altitude)
                         
-                        #climb = dic['climb']
-                        #self.climb = climb * 196.85  # meters/sec to feet/mi
-                        self.climb = self.get_climb_rate(self.altitude)
+                        climb = dic['climb']
+                        self.climb = round(climb * 196.85)  # meters/sec to feet/mi
+                        #self.climb = round(self.climb, -1)
+                        self.climb = self.sm_climb(self.climb, 5)
+                        self.climb = round(self.climb)
+                        #self.climb = self.get_climb_rate(self.altitude)
                         #print('climb: ', self.climb)
                         
                         #print("climb: ", self.climb)
@@ -259,7 +286,7 @@ class mavlinkmsg (Thread):
         #return inData
         if(self.msglock.acquire(blocking=False)):
         #if(False):
-            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.fix_type)
+            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type)
             self.msglock.release()
             return newData
         else:

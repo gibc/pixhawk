@@ -93,7 +93,7 @@ class Tape:
         #    self.current_val_rect = shapes.BorderedRectangle(self.x, y+self.border_rect.height/2-self.pixel_wd/2,  120, 50, border=10, color = (0, 0, 0),
         #                                    border_color = (255,255,255))
         self.current_val_label = pyglet.text.Label('****',
-                          font_size=40,
+                          font_size=50,
                           x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
                           anchor_y='bottom', anchor_x='left')
@@ -206,11 +206,11 @@ class Tape:
         y = self.y
         
         if self.orient == Orient.VERT:
-            font_ht = 65
+            font_ht = 73
             if self.tape_unit == TapeUnit.MPH:
-                br_wd = self.pixel_ht*2.0
+                br_wd = self.pixel_ht*2.4
             elif self.tape_unit == TapeUnit.FEET_ALT:
-                br_wd = self.pixel_ht*2.5
+                br_wd = self.pixel_ht*3.2
             br_ht = font_ht
             if self.align == Align.LEFT:
                 x = self.x#+self.border_rect.width

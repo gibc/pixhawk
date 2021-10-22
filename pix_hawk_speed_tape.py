@@ -8,17 +8,18 @@ from pix_hawk_tape import TapeUnit
 class SpeedTape(Tape):
 
     def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
-        super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=align, tape_unit=TapeUnit.FEET_ALT, orient=orient)
+        print("SpeedTape init")
+        super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=align, tape_unit=TapeUnit.MPH, orient=orient)
         
         
         self.grd_speed_val_label = pyglet.text.Label('****',
-                          font_size=40,
+                          font_size=50,
                           x=self.current_val_rect.x,
                           y=self.border_rect.y+self.border_rect.height+1,
                           anchor_y='bottom', anchor_x='left')
         
         self.grd_speed_val_rect = shapes.BorderedRectangle(self.grd_speed_val_label.x, self.grd_speed_val_label.y, self.current_val_rect.width,
-                                                       self.current_val_rect.height, border=10, color = (0, 0, 0),
+                                                       self.current_val_rect.height, border=10, color = (108,49,0),
                                                        border_color = (255,255,255))
         #self.pix2climb = self.border_rect.height/2 / 1000
         
@@ -27,7 +28,8 @@ class SpeedTape(Tape):
         
     def draw(self, air_speed, gnd_speed):
         super().draw(air_speed)
-        print('gnd_speed', str(gnd_speed))
+        #print('gnd_speed', str(gnd_speed))
+        gnd_speed = super().round_half_up(gnd_speed)
         self.grd_speed_val_label.text = str(gnd_speed)
         self.grd_speed_val_rect.draw()
         
@@ -55,8 +57,8 @@ if __name__ == '__main__':
     print('__main__')
     mock_speed = 0
     mock_speed_delta = 2
-    mock_gnd_speed = 0
-    mock_gnd_speed_delta = 4
+    mock_gnd_speed = 0.0
+    mock_gnd_speed_delta = 4.3
     def on_draw():
         window.clear()
         #rect.draw()
@@ -88,11 +90,11 @@ if __name__ == '__main__':
             
         mock_gnd_speed = mock_gnd_speed + mock_gnd_speed_delta
         if mock_gnd_speed > 150:
-            mock_gnd_speed = 150
-            mock_gnd_speed_delta = -4
+            mock_gnd_speed = 150.0
+            mock_gnd_speed_delta = -4.3
         if mock_gnd_speed < 0:
-            mock_gnd_speed = 0
-            mock_gnd_speed_delta = 4
+            mock_gnd_speed = 0.0
+            mock_gnd_speed_delta = 4.3
 
         
     window = pyglet.window.Window(1000,700)
@@ -101,7 +103,7 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = SpeedTape(150, 100, 500, 45, 6, 100, align=Align.LEFT, orient=Orient.VERT)
+    tape = SpeedTape(150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
     #tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
