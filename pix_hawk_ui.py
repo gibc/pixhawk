@@ -212,7 +212,7 @@ def get_win_rect(window):
 try:
     msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd.start()
-    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1)
+    ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
     window = pyglet.window.Window(fullscreen=True)
     #window = pyglet.window.Window(700,700)
@@ -281,7 +281,8 @@ try:
     #gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
     air_speed_tape = SpeedTape(center_x+400, center_y-790/2, 790, 55, 6, 10, align=Align.LEFT, orient=Orient.VERT)
     
-    wind = Wind(center_x-window.height/2, 0, 330, 80)
+    wind_msg = Wind(center_x-window.height/2, 0, 350, 80)
+    wind_calc = Wind(center_x+210, 0, 330, 80)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -467,7 +468,8 @@ def on_draw():
         fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
         fix_type_label.draw()
         
-        wind.draw(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track, 0, 0)
+        wind_msg.draw_msg(ahdata.wind_speed, ahdata.wind_dir)
+        wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track)
         
         #altitude_label.text = str(round(ahdata.altitude,1))
         #altitude_label.draw()

@@ -8,54 +8,55 @@ class Wind():
     
 
     def cart2pol(self, x, y):
-        print('cart2pol x', x)
-        print('cart2pol y', y)
+        #print('cart2pol x', x)
+        #print('cart2pol y', y)
         rho = np.sqrt(x**2 + y**2)
         #phi = np.arctan2(y, x)
         phi = np.arctan2(x, y)
         #print('cart2pol mag', rho)
         
         ang = np.degrees(phi)
-        print('cart2pol ang', ang)
+        #print('cart2pol ang', ang)
         """
         ang = ang - 90
         print('cart2pol ang', ang)
         if ang < 0:
             ang = 360 + ang
         """
-        print('cart2pol ang', ang)
-        print()
+        #print('cart2pol ang', ang)
+        #print()
         return(rho, ang)
 
     def pol2cart(self, rho, phi):
         #print('pol2cart rho', rho)
-        print('pol2cart ang degrees', phi)
+        #print('pol2cart ang degrees', phi)
         #convert to 90 origin going in
         #phi = phi + 90
         #if phi > 360:
         #    phi = phi - 360
-        print('pol2cart ang degrees', phi)
+        #print('pol2cart ang degrees', phi)
         phi = np.radians(phi)
         #print('pol2cart phi radians', phi)
         x = rho * np.cos(phi)
         y = rho * np.sin(phi)
         #x = rho * np.cos(phi)
         #y = rho * np.sin(phi)
-        print('pol2cart x', x)
-        print('pol2cart y', y)
-        print()
+        #print('pol2cart x', x)
+        #print('pol2cart y', y)
+        #print()
         return(x, y)
     
     def calulateWind(self, airspeed, heading, gndspeed, track):
         """
          air_vec + wind_vec = gnd_vec
          wind_vec = gnd_vec - air_vec
-        """
+        
         
         print('airspeed ', airspeed)
         print('heading ', heading)
         print('gndspeed ', gndspeed)
         print('track ', track)
+        """
         
         gnd_vec = self.pol2cart(gndspeed, track)
         air_vec = self.pol2cart(airspeed, heading,)
@@ -114,6 +115,24 @@ class Wind():
         print('wind ang', wind[0])
         print('wind speed', wind[1])
         print()
+        
+    def draw_msg(self, msg_wind_speed, msg_wind_dir):
+        self.wind_rect.draw()
+        self.wind_speed_label.text = str(int(round(msg_wind_speed))) + "@"
+        self.wind_speed_label.draw()
+        self.wind_dir_label.text = str(round(msg_wind_dir))
+        self.wind_dir_label.draw()
+    
+    def draw_calc(self, airspeed, heading, gnd_speed, gnd_track):
+        wind = self.calulateWind(airspeed, heading, gnd_speed, gnd_track)
+        #print('wind ang', wind[0])
+        #print('wind speed', wind[1])
+        
+        self.wind_rect.draw()
+        self.wind_speed_label.text = str(int(round(wind[1]))) + "@"
+        self.wind_speed_label.draw()
+        self.wind_dir_label.text = str(int(round(wind[0])))
+        self.wind_dir_label.draw()
         
         
 if __name__ == '__main__':

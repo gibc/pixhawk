@@ -15,7 +15,7 @@ import os
 
 
 class aharsData:
-    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type, gnd_track):
+    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type, gnd_track, wind_speed, wind_dir):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -26,6 +26,8 @@ class aharsData:
         self.airspeed = airspeed
         self.fix_type = fix_type
         self.gnd_track = gnd_track
+        self.wind_speed = wind_speed
+        self.wind_dir = wind_dir
 
 class mavlinkmsg (Thread):
     def __init__(self):
@@ -38,6 +40,8 @@ class mavlinkmsg (Thread):
         self.groundspeed = 0
         self.airspeed = 0
         self.fix_type = 0
+        self.wind_speed = 0
+        self.wind_dir = 0
         self.gnd_track = 0
         self.buf_len = 10
         self.alt_buf = list(range(0,self.buf_len))
@@ -142,8 +146,8 @@ class mavlinkmsg (Thread):
                 #print(msg.get_type())
                 #print("Message: %s" % msg)
                 if msg.get_type() == 'WIND':
-                    print("\n\n*****Got message: %s*****" % msg.get_type())
-                    print("Message: %s" % msg)
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
                     dic = msg.to_dict()
                     self.wind_dir = dic['direction']
                     self.wind_speed = dic['speed']
@@ -293,7 +297,7 @@ class mavlinkmsg (Thread):
         #return inData
         if(self.msglock.acquire(blocking=False)):
         #if(False):
-            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track)
+            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, self.wind_dir)
             self.msglock.release()
             return newData
         else:
