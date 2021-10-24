@@ -15,7 +15,7 @@ import os
 
 
 class aharsData:
-    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type):
+    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type, gnd_track):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -25,6 +25,7 @@ class aharsData:
         self.groundspeed = groundspeed
         self.airspeed = airspeed
         self.fix_type = fix_type
+        self.gnd_track = gnd_track
 
 class mavlinkmsg (Thread):
     def __init__(self):
@@ -37,6 +38,7 @@ class mavlinkmsg (Thread):
         self.groundspeed = 0
         self.airspeed = 0
         self.fix_type = 0
+        self.gnd_track = 0
         self.buf_len = 10
         self.alt_buf = list(range(0,self.buf_len))
         self.alt_buf_idx = 0
@@ -49,7 +51,7 @@ class mavlinkmsg (Thread):
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
 
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS3, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
@@ -139,14 +141,17 @@ class mavlinkmsg (Thread):
                 # NOTE: I get this message if requestd!!
                 #print(msg.get_type())
                 #print("Message: %s" % msg)
-                #if msg.get_type() == 'WIND':
-                    #print("\n\n*****Got message: %s*****" % msg.get_type())
-                    #print("Message: %s" % msg)
+                if msg.get_type() == 'WIND':
+                    print("\n\n*****Got message: %s*****" % msg.get_type())
+                    print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    self.wind_dir = dic['direction']
+                    self.wind_speed = dic['speed']
                     #pass
                 
                 if msg.get_type() == 'ADSB_VEHICLE':
-                    print("\n\n*****Got message: %s*****" % msg.get_type())
-                    print("Message: %s" % msg)
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
                     dic = msg.to_dict()
                     callsign = dic['callsign']
                     print("callsign: ", callsign)
@@ -189,8 +194,8 @@ class mavlinkmsg (Thread):
                 #if msg.get_type() == 'GPS_RAW_INT':
                 if msg.get_type() == 'GPS2_RAW':
                     with self.msglock:
-                    #print("\n\n*****Got message: %s*****" % msg.get_type())
-                    #print("Message: %s" % msg)
+                        #print("\n\n*****Got message: %s*****" % msg.get_type())
+                        #print("Message: %s" % msg)
                         dic = msg.to_dict()
                     #lat = dic['lat']
                     ##print("lat: ", lat)
@@ -202,6 +207,8 @@ class mavlinkmsg (Thread):
                         #print("satellites_visible: ", satellites_visible)
                         fix_type = dic['fix_type']
                         self.fix_type = fix_type
+                        
+                        self.gnd_track = dic['cog']
                         #print("fix_type: ", fix_type)
                         #print("")
             
@@ -286,7 +293,7 @@ class mavlinkmsg (Thread):
         #return inData
         if(self.msglock.acquire(blocking=False)):
         #if(False):
-            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type)
+            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track)
             self.msglock.release()
             return newData
         else:
