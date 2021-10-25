@@ -145,6 +145,9 @@ class mavlinkmsg (Thread):
                 # NOTE: I get this message if requestd!!
                 #print(msg.get_type())
                 #print("Message: %s" % msg)
+                """
+                NOTE!! this message is just a constant if 'wind sensor' not installed
+                """
                 if msg.get_type() == 'WIND':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
@@ -212,8 +215,8 @@ class mavlinkmsg (Thread):
                         fix_type = dic['fix_type']
                         self.fix_type = fix_type
                         
-                        self.gnd_track = dic['cog']
-                        #print("fix_type: ", fix_type)
+                        self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
+                        print("gnd_track: ", self.gnd_track)
                         #print("")
             
                 if msg.get_type() == 'VFR_HUD':

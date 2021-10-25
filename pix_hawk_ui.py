@@ -257,21 +257,21 @@ try:
     climb_label = pyglet.text.Label('climb: ',
                           font_size=40,
                           x=center_x,
-                          y=window.height * 1/4,
+                          y=window.height * 1/4+40,
                           anchor_x='left',
                           anchor_y='center')
     
-    gnd_speed_label = pyglet.text.Label('ground speed: ',
+    track_label = pyglet.text.Label('gps track: ',
                           font_size=40,
                           x=center_x-140,
-                          y=window.height * 1/4 - 60,
+                          y=window.height * 1/4 - 60+40,
                           anchor_x='left',
                           anchor_y='center')
     
     fix_type_label = pyglet.text.Label('gpx fix: ',
                           font_size=40,
                           x=center_x-43,
-                          y=window.height * 1/4 - 120,
+                          y=window.height * 1/4 - 120+40,
                           anchor_x='left',
                           anchor_y='center')
     
@@ -281,8 +281,8 @@ try:
     #gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
     air_speed_tape = SpeedTape(center_x+400, center_y-790/2, 790, 55, 6, 10, align=Align.LEFT, orient=Orient.VERT)
     
-    wind_msg = Wind(center_x-window.height/2, 0, 350, 80)
-    wind_calc = Wind(center_x+210, 0, 330, 80)
+    #wind_msg = Wind(center_x-window.height/2, 0, 350, 150)
+    wind_calc = Wind(center_x-120, 0, 350, 150)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -459,8 +459,8 @@ def on_draw():
         climb_label.text = 'climb: ' + str(round(ahdata.climb, 1))
         climb_label.draw()
         
-        gnd_speed_label.text = 'gnd speed: ' + str(round(ahdata.groundspeed, 1))
-        gnd_speed_label.draw()
+        track_label.text = 'gps track: ' + str(round(ahdata.gnd_track, 1))
+        track_label.draw()
         #gnd_speed_tape.draw(round(ahdata.groundspeed,0))
         
         air_speed_tape.draw(round(ahdata.airspeed,0), round(ahdata.groundspeed,0))
@@ -468,8 +468,8 @@ def on_draw():
         fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
         fix_type_label.draw()
         
-        wind_msg.draw_msg(ahdata.wind_speed, ahdata.wind_dir)
-        wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track)
+        #wind_msg.draw_msg(ahdata.wind_speed, ahdata.wind_dir, ahdata.heading)
+        wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track, ahdata.altitude)
         
         #altitude_label.text = str(round(ahdata.altitude,1))
         #altitude_label.draw()
