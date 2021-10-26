@@ -28,7 +28,7 @@ class AltTape(Tape):
     def draw(self, alt, climb):
         super().draw(alt)
         print('climb', str(climb))
-        self.climb_val_label.text = str(climb)
+        self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
         
         if climb > 1000:

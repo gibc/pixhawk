@@ -65,6 +65,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         
     def sm_climb(self, new_val, n):
         new_av = self.old_ave * (n-1)/n + new_val/n
@@ -155,6 +156,19 @@ class mavlinkmsg (Thread):
                     self.wind_dir = dic['direction']
                     self.wind_speed = dic['speed']
                     #pass
+                    
+                if msg.get_type() == 'GLOBAL_POSITION_INT':
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    vel_z = dic['vz'] #gnd speed Z cm/s (altitude, positive down)
+                    vel_z = vel_z * 1.9685  # to feet/min
+                    vel_z = -vel_z # to positive u
+                    print('vel_z ', vel_z)
+                    with self.msglock:                   
+                        self.climb = vel_z
+                        
+                    
                 
                 if msg.get_type() == 'ADSB_VEHICLE':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
@@ -216,7 +230,7 @@ class mavlinkmsg (Thread):
                         self.fix_type = fix_type
                         
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
-                        print("gnd_track: ", self.gnd_track)
+                        #print("gnd_track: ", self.gnd_track)
                         #print("")
             
                 if msg.get_type() == 'VFR_HUD':
@@ -238,6 +252,7 @@ class mavlinkmsg (Thread):
                         self.altitude = 3.2808 * altitude
                         #print("altitude: ", self.altitude)
                         
+                        """ switch to gps_int msg value
                         climb = dic['climb']
                         self.climb = round(climb * 196.85)  # meters/sec to feet/mi
                         #self.climb = round(self.climb, -1)
@@ -245,6 +260,7 @@ class mavlinkmsg (Thread):
                         self.climb = round(self.climb)
                         #self.climb = self.get_climb_rate(self.altitude)
                         #print('climb: ', self.climb)
+                        """
                         
                         #print("climb: ", self.climb)
                         groundspeed = dic['groundspeed']
