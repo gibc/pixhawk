@@ -220,6 +220,7 @@ try:
     center_x=window.width / 2
     center_y=window.height / 2
     
+    
     width = 2
     pitch_scale = center_y / 90.0
     pitch_5_y = int(pitch_scale * 5)
@@ -281,8 +282,8 @@ try:
     #gnd_speed_tape = Tape(center_x+400, center_y-850/2, 850, 55, 6, 10, align=Align.LEFT, tape_unit=TapeUnit.MPH, orient=Orient.VERT)
     air_speed_tape = SpeedTape(center_x+400, center_y-790/2, 790, 55, 6, 10, align=Align.LEFT, orient=Orient.VERT)
     
-    #wind_msg = Wind(center_x-window.height/2, 0, 350, 150)
-    wind_calc = Wind(center_x-120, 0, 350, 150)
+    #wind_calc = Wind(center_x-120, 0, 350, 150)
+    wind_calc = Wind(0, 0, 350, 150)
         
     N_image = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
     N_image.anchor_x = 10
@@ -468,8 +469,7 @@ def on_draw():
         fix_type_label.text = 'gps fix: ' + str(round(ahdata.fix_type, 1))
         fix_type_label.draw()
         
-        #wind_msg.draw_msg(ahdata.wind_speed, ahdata.wind_dir, ahdata.heading)
-        wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track, ahdata.altitude)
+        #wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track, ahdata.altitude)
         
         #altitude_label.text = str(round(ahdata.altitude,1))
         #altitude_label.draw()
@@ -539,8 +539,12 @@ def on_draw():
         
         
         clip_batch.draw()
+        wind_calc.draw_calc(ahdata.airspeed, ahdata.heading, ahdata.groundspeed, ahdata.gnd_track, ahdata.altitude)
+        #wind_calc.draw_calc(80, 274, 80, 292, 5200)
+        """
         left_clip_rect.draw()
         rgt_clip_rect.draw()
+        """
         
         #win_rect.draw()
         
