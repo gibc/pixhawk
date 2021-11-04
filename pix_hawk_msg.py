@@ -11,6 +11,7 @@ import math
 from threading import Thread, Lock
 import time
 import os
+import traceback
 
 #print(os.environ)
 
@@ -34,7 +35,9 @@ class mavlinkmsg (Thread):
     def __init__(self):
         Thread.__init__(self)
         self.roll = 0
+        self.roll_rad = 0
         self.pitch = 0
+        self.pitch_rad = 0
         self.heading = 0
         self.altitude = 0
         self.climb = 0
@@ -54,6 +57,19 @@ class mavlinkmsg (Thread):
         self.old_ave = 0
         self.old_xmag_average = 0
         self.old_ymag_average = 0
+        self.ymag_max = -1000
+        self.ymag_min = 1000
+        self.xmag_max = -1000
+        self.xmag_min = 1000
+
+        self.smothed_heading = 0
+
+        """for mag cal"""
+        self.xmag_list = []
+        self.ymag_list = []  
+        self.mag_list_count = 0
+        self.xmag_ave = 0
+        self.ymag_ave = 0
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
@@ -91,6 +107,17 @@ class mavlinkmsg (Thread):
         self.old_ymag_average = ymag_average
         return ymag_average
 
+    def heading_average(self, new_val, n):
+        diff = self.smothed_heading - new_val
+        heading_average = new_val
+        if abs(diff) < 10:
+            heading_average = self.smothed_heading * (n-1)/n + new_val/n
+            self.smothed_heading = heading_average
+        else:
+            self.smothed_heading = new_val
+
+        return heading_average
+
     def un_tilt_mag(self, magx, magy, magz):
 
         with self.msglock:
@@ -99,9 +126,14 @@ class mavlinkmsg (Thread):
             #print('pitch ', self.pitch)
             magx_corrected = magx * math.cos(self.pitch_rad) + magz * math.sin(self.pitch_rad)
 
-            magy_corrected = magx * math.sin(self.roll_rad) * math.sin(self.pitch_rad) +  \
-                         magy * math.cos(self.roll_rad) - \
-                         magz * math.sin(self.roll_rad) * math.cos(self.pitch_rad)
+            """NOTE: had to invert sign of roll to make this work"""
+            magy_corrected = magx * math.sin(-self.roll_rad) * math.sin(self.pitch_rad) +  \
+                         magy * math.cos(-self.roll_rad) - \
+                         magz * math.sin(-self.roll_rad) * math.cos(self.pitch_rad)
+            
+            """magy_corrected = magx * math.sin(self.pitch_rad)  +  \
+                         magy * math.sin(self.roll_rad)*math.sin(self.pitch_rad) - \
+                         magz * math.cos(self.roll_rad) * math.sin(self.pitch_rad)"""
 
         return (magx_corrected, magy_corrected)
         
@@ -210,16 +242,54 @@ class mavlinkmsg (Thread):
                      where back of unit is indicated direction
                     """
                     declination = 4.75
+                    xmag_av = -0.609
+                    ymag_av = -37.887
+
                     dic = msg.to_dict()
                     xmag = dic['xmag']
+                    xmag -= xmag_av
 
-                    xmag_ave = self.xmag_average(xmag, 500)
+                    """
+                    if xmag > self.xmag_max:
+                        self.xmag_max = xmag
+                    if xmag < self.xmag_min:
+                        self.xmag_min = xmag
+                    """    
+
+                    #xmag_ave = self.xmag_average(xmag, 500)
                     #print('xmag_ave ', xmag_ave)
                     
                     ymag = dic['ymag']
+                    ymag -= ymag_av
                     ymag = -ymag #invert for compass orientation
 
-                    ymag_ave = self.ymag_average(ymag, 500)
+                    """
+                    if ymag > self.ymag_max:
+                        self.ymag_max = ymag
+                    if ymag < self.ymag_min:
+                        self.ymag_min = ymag
+                    """
+                    if False:
+                        if self.mag_list_count < 1000:
+                            self.xmag_list.append(xmag)
+                            self.ymag_list.append(ymag)
+                            self.mag_list_count += 1
+                            print('mag_list_count ', self.mag_list_count)
+                        elif self.mag_list_count == 1000:
+                            self.xmag_ave = sum(self.xmag_list) / len(self.xmag_list)
+                            self.ymag_ave = sum(self.ymag_list) / len(self.ymag_list)
+                            print('xmag_av ', self.xmag_ave)
+                            print('ymag_av ', self.ymag_ave)
+                        else:
+                            print('xmag_av ', self.xmag_ave)
+                            print('ymag_av ', self.ymag_ave)
+
+                    #print('xmag {} ymag {}'.format(xmag,ymag))
+
+                    #print('minx {} maxx {} miny {} maxy {}'.format(self.xmag_min, self.xmag_max, self.ymag_min, self.ymag_max))
+                    #print('x_offset {} y_offset {}'.format((self.xmag_max+self.xmag_min)/2, (self.ymag_max+self.ymag_min/2)))
+
+                    #ymag_ave = self.ymag_average(ymag, 500)
                     #print('ymag_ave ', ymag_ave)
 
                     zmag = dic['zmag']
@@ -241,7 +311,21 @@ class mavlinkmsg (Thread):
                     heading = heading + declination
                     if heading > 360:
                         heading = heading - 360
+                    #print('roll ', self.roll)
+
+                    """handle jump from 360 to 0"""
+                    diff = heading - self.heading
+                    #if diff < 10 and diff > -10:
+                        #heading = self.heading_average(heading, 5)
+                    #else:
+                        #self.heading_average = heading
+
+                    heading = self.heading_average(heading, 5)
+                        
                     print('\nheading ', heading)
+
+                    """switched from vfr_hud"""
+                    self.heading = heading 
                     
                 
                 if msg.get_type() == 'RAW_IMU':
@@ -260,6 +344,18 @@ class mavlinkmsg (Thread):
                     zmag = dic['zmag']
                     #zmag = zmag - self.COMPASS_OFS_Z
                     #print('zmag ', zmag)
+
+                    if self.mag_list_count < 1000:
+                        self.xmag_list.append(xmag)
+                        self.ymag_list.append(ymag)
+                        self.mag_list_count += 1
+                        print('mag_list_count ', self.mag_list_count)
+                    else:
+                        xmag_av = self.xmag_list(sum) / len(self.xmag_list)
+                        ymag_av = self.ymag_list(sum) / len(self.ymag_list)
+                        print('xmag_av ', xmag_av)
+                        print('ymag_av ', ymag_av)
+
                     
                     #heading = math.degrees(math.atan(ymag/xmag))
                     # from ardupilot example
@@ -275,7 +371,7 @@ class mavlinkmsg (Thread):
                         print('heading > 360')
                         heading = 360 - heading
                     """
-                    """
+                    
                     if ymag > 0:
                         heading = 90 - math.degrees(math.atan(ymag/xmag))
                     if ymag < 0:
@@ -285,7 +381,7 @@ class mavlinkmsg (Thread):
                             heading = 180
                         if xmag > 0:
                             heading = 0
-                    """
+                    
                     #if heading > 360:
                     #    heading = heading - 360
                     #if heading < 0:
@@ -387,7 +483,7 @@ class mavlinkmsg (Thread):
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         dic = msg.to_dict()
-                        self.heading = dic['heading']
+                        """self.heading = dic['heading'] switched to DYI compass"""
                         #print("heading: ", self.heading)
                         #alt = dic['alt']
                         #print("alt: ", alt*3.28084)
@@ -456,8 +552,9 @@ class mavlinkmsg (Thread):
             #print("Message: %s" % msg)
             #print("")
             
-            except:
-                pass
+            except Exception:
+                traceback.print_exc()
+    
         print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):
