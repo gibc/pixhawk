@@ -5,6 +5,7 @@
 #Can also filter within recv_match command - see "Read all parameters" example
 #"""
 # Import mavutil
+from re import X
 from pymavlink import mavutil
 import math
 from threading import Thread, Lock
@@ -51,11 +52,16 @@ class mavlinkmsg (Thread):
         self.msglock = Lock()
         self.run_thread = True
         self.old_ave = 0
+        self.old_xmag_average = 0
+        self.old_ymag_average = 0
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
         #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
+        self.master.param_fetch_one('COMPASS_OFS_X')
+        self.master.param_fetch_one("COMPASS_OFS_Y")
+        self.master.param_fetch_one("COMPASS_OFS_Z")
 
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_WIND, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS3, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
@@ -64,14 +70,40 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 5)
+        
         
     def sm_climb(self, new_val, n):
         new_av = self.old_ave * (n-1)/n + new_val/n
         self.old_av = new_av
         return new_av
+
+    def xmag_average(self, new_val, n):
+        xmag_average = self.old_xmag_average * (n-1)/n + new_val/n
+        self.old_xmag_average = xmag_average
+        return xmag_average
+
+    def ymag_average(self, new_val, n):
+        ymag_average = self.old_ymag_average * (n-1)/n + new_val/n
+        self.old_ymag_average = ymag_average
+        return ymag_average
+
+    def un_tilt_mag(self, magx, magy, magz):
+
+        with self.msglock:
         
+            #print('roll ', self.roll)
+            #print('pitch ', self.pitch)
+            magx_corrected = magx * math.cos(self.pitch_rad) + magz * math.sin(self.pitch_rad)
+
+            magy_corrected = magx * math.sin(self.roll_rad) * math.sin(self.pitch_rad) +  \
+                         magy * math.cos(self.roll_rad) - \
+                         magz * math.sin(self.roll_rad) * math.cos(self.pitch_rad)
+
+        return (magx_corrected, magy_corrected)
         
     def get_climb_rate(self, alt):
         #print('alt' , alt)
@@ -143,6 +175,123 @@ class mavlinkmsg (Thread):
                     continue
                 if msg.get_type() == 'BAD_DATA':
                     continue
+                
+                #print(msg.get_type)
+                
+                if msg.get_type() == 'PARAM_VALUE':
+                    
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    param_id = dic['param_id']
+                    #print('param_id ', param_id)
+                    
+                    
+                    param_value = dic['param_value']
+                    #print('param_value ', param_value)
+                    
+                    if param_id == 'COMPASS_OFS_X':
+                        self.COMPASS_OFS_X = param_value = dic['param_value']
+                        print('self.COMPASS_OFS_X ', self.COMPASS_OFS_X)
+                        
+                    if param_id == 'COMPASS_OFS_Y':
+                        self.COMPASS_OFS_Y = param_value = dic['param_value']
+                        print('self.COMPASS_OFS_Y ', self.COMPASS_OFS_Y)
+                        
+                    if param_id == 'COMPASS_OFS_Z':
+                        self.COMPASS_OFS_Z = param_value = dic['param_value']
+                        print('self.COMPASS_OFS_Z ', self.COMPASS_OFS_Z)
+                    
+                if msg.get_type() == 'SCALED_IMU':   
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    """
+                     this gives reasonable results for vertically oriented compass
+                     where back of unit is indicated direction
+                    """
+                    declination = 4.75
+                    dic = msg.to_dict()
+                    xmag = dic['xmag']
+
+                    xmag_ave = self.xmag_average(xmag, 500)
+                    #print('xmag_ave ', xmag_ave)
+                    
+                    ymag = dic['ymag']
+                    ymag = -ymag #invert for compass orientation
+
+                    ymag_ave = self.ymag_average(ymag, 500)
+                    #print('ymag_ave ', ymag_ave)
+
+                    zmag = dic['zmag']
+
+                    corr_mags = self.un_tilt_mag(xmag, ymag, zmag)
+                    xmag = corr_mags[0]
+                    ymag = corr_mags[1]
+                    
+                    heading = math.degrees(math.atan(xmag/ymag))
+                    if ymag > 0:
+                        heading = 90 - heading
+                    else:
+                        heading = 270 - heading
+                    if ymag == 0:
+                        if xmag < 0:
+                            heading = 180
+                        else:
+                            heading = 0
+                    heading = heading + declination
+                    if heading > 360:
+                        heading = heading - 360
+                    print('\nheading ', heading)
+                    
+                
+                if msg.get_type() == 'RAW_IMU':
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    
+                    xmag = dic['xmag']
+                    #xmag = xmag - self.COMPASS_OFS_X
+                    #print('xmag ', xmag)
+                    
+                    ymag = dic['ymag']
+                    #ymag = ymag - self.COMPASS_OFS_Y
+                    #print('ymag ', ymag)
+                    
+                    zmag = dic['zmag']
+                    #zmag = zmag - self.COMPASS_OFS_Z
+                    #print('zmag ', zmag)
+                    
+                    #heading = math.degrees(math.atan(ymag/xmag))
+                    # from ardupilot example
+                    heading = math.degrees(math.atan(-ymag/xmag))
+                    if heading < 0:
+                        heading += 360
+                    """
+                    heading = heading - 90
+                    if heading < 0:
+                        print('heading < 0')
+                        heading = 360 - heading
+                    if heading > 360:
+                        print('heading > 360')
+                        heading = 360 - heading
+                    """
+                    """
+                    if ymag > 0:
+                        heading = 90 - math.degrees(math.atan(ymag/xmag))
+                    if ymag < 0:
+                        heading = 270 - math.degrees(math.atan(ymag/xmag))
+                    if ymag == 0:
+                        if xmag < 0:
+                            heading = 180
+                        if xmag > 0:
+                            heading = 0
+                    """
+                    #if heading > 360:
+                    #    heading = heading - 360
+                    #if heading < 0:
+                    #    heading = 360 + heading
+                    print('\nheading ', heading)
+                    
                 # NOTE: I get this message if requestd!!
                 #print(msg.get_type())
                 #print("Message: %s" % msg)
@@ -164,7 +313,7 @@ class mavlinkmsg (Thread):
                     vel_z = dic['vz'] #gnd speed Z cm/s (altitude, positive down)
                     vel_z = vel_z * 1.9685  # to feet/min
                     vel_z = -vel_z # to positive u
-                    print('vel_z ', vel_z)
+                    #print('vel_z ', vel_z)
                     with self.msglock:                   
                         self.climb = vel_z
                         
@@ -287,13 +436,13 @@ class mavlinkmsg (Thread):
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         dic = msg.to_dict()
-                        roll = dic['roll']
-                        self.roll = math.degrees(roll)
-                        #print("roll: ", roll)
+                        self.roll_rad = dic['roll']
+                        self.roll = math.degrees(self.roll_rad)
+                        #print("roll: ", self.roll)
             
-                        pitch = dic['pitch']
-                        self.pitch = math.degrees(pitch)
-                        #print("pitch: ", pitch)
+                        self.pitch_rad = dic['pitch']
+                        self.pitch = math.degrees(self.pitch_rad)
+                        #print("pitch: ", self.pitch)
             
                         yaw = dic['yaw']
                         yaw = math.degrees(yaw)

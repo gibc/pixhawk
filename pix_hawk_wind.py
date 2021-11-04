@@ -209,6 +209,10 @@ class Wind():
         alt_adj = alt_adj + 1 # alt adj factor > 1
         #print('alt_adj ',alt_adj)
         airspeed = airspeed * alt_adj
+        heading_dif = heading - track
+        self.true_airspeed_label.text = 'tas ' + str(int(round(airspeed))) + ' c-t ' + str(int(round(heading_dif)))
+        heading_dif = heading - track
+        self.true_airspeed_label.draw()
         #print('airspeed ',airspeed)
         
         #print('\nget gnd comps')
@@ -381,6 +385,8 @@ class Wind():
                           anchor_y='center', anchor_x='left')
         
         self.head_wind_label = pyglet.text.Label('wind_dir',
+                                                 width=200,
+                                                 multiline=True,
                           font_size=50,
                           x=self.wind_rect.x,
                           y=self.wind_rect.y+self.ht/4,
@@ -390,6 +396,15 @@ class Wind():
                           x=self.wind_rect.x+180,
                           y=self.wind_rect.y+self.ht/4,
                           anchor_y='center', anchor_x='left')
+        
+        
+        self.true_airspeed_label = pyglet.text.Label('True',
+                          font_size=50,
+                          x=self.wind_rect.x,
+                          y=self.wind_rect.y+self.ht+50,
+                          anchor_y='center', anchor_x='left')
+        
+        
         self.x_arrow_line = pyglet.shapes.Line(self.wind_rect.x,
                                               self.wind_rect.y+20,
                                               self.wind_rect.x+self.wind_rect.width,
