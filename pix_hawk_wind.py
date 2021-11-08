@@ -611,6 +611,13 @@ if __name__ == '__main__':
         
     #window = pyglet.window.Window(1900,1000,fullscreen=True)
     window = pyglet.window.Window(900,400)
+
+    def key_press(symbol, modifiers):
+        print("key press")
+        exit()
+
+
+    window.on_key_press = key_press
     
     window.on_draw = on_draw
     

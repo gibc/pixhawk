@@ -24,6 +24,8 @@ import os
 
 #os.system('xrandr -o left')
 
+
+
 pyglet.options['debug_gl']= False
 
 pitch_batch = pyglet.graphics.Batch()
@@ -210,12 +212,15 @@ def get_win_rect(window):
     return win_rect
         
 try:
-    msgthd = pix_hawk_msg.mavlinkmsg()
-    msgthd.start()
+    #msgthd = pix_hawk_msg.mavlinkmsg()
+    msgthd = pix_hawk_msg.mavlinkmsg.get_instance()
+    #msgthd.start()
     ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
     window = pyglet.window.Window(fullscreen=True)
+    
     #window = pyglet.window.Window(700,700)
+    window.activate()
     win_rect = get_win_rect(window)
     center_x=window.width / 2
     center_y=window.height / 2
@@ -421,7 +426,6 @@ except Exception as e:
     ex_stop(e)
 
 
-
 def on_draw():
     global ahdata
     global draw_back
@@ -550,10 +554,12 @@ def on_draw():
         
     except Exception as e:
         ex_stop(e)
- 
+
+"""
 @window.event
 def on_key_press(symbol, modifiers):
     pyglet.image.get_buffer_manager().get_color_buffer().save('screenshot1.png')   
+"""
     
 def on_draw1():
     global ahdata
@@ -593,9 +599,14 @@ def on_close():
     
     os.system('xrandr -o normal')
     
-    
 
+#def on_key_press(symbol, modifiers):
+    #print("key press")
+    #raise Exception('kill it')
+
+#window.on_key_press = on_key_press
 window.on_draw = on_draw
+
 #window1.on_draw = on_draw1
  
 pyglet.clock.schedule_interval(update, .1)

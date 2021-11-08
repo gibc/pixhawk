@@ -6,6 +6,7 @@
 #"""
 # Import mavutil
 from re import X
+import re
 from pymavlink import mavutil
 import math
 from threading import Thread, Lock
@@ -13,11 +14,11 @@ import time
 import os
 import traceback
 
-#print(os.environ)
-
+#from pynput import keyboard
 
 class aharsData:
-    def __init__(self, roll, pitch, heading, altitude, climb, groundspeed, airspeed, fix_type, gnd_track, wind_speed, wind_dir):
+    def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
+                fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -30,8 +31,13 @@ class aharsData:
         self.gnd_track = gnd_track
         self.wind_speed = wind_speed
         self.wind_dir = wind_dir
+        self.xmag = xmag
+        self.ymag = ymag
+        self.zmag = zmag
 
 class mavlinkmsg (Thread):
+    _instance = None
+
     def __init__(self):
         Thread.__init__(self)
         self.roll = 0
@@ -61,8 +67,16 @@ class mavlinkmsg (Thread):
         self.ymag_min = 1000
         self.xmag_max = -1000
         self.xmag_min = 1000
+        self.xmag = -1
+        self.ymag = -1
+        self.zmag = -1
 
         self.smothed_heading = 0
+
+        #self.cur_key = 0
+        #self.listener = keyboard.Listener(on_press = self.on_press, suppress=True)
+        #self.listener.start()
+        #self.listener.join()
 
         """for mag cal"""
         self.xmag_list = []
@@ -91,7 +105,20 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 5)
         
-        
+    """ 
+    def on_press(self, key):
+        self.cur_key = key.char
+        print('got key: ', key.char)
+    """ 
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance == None:
+            _instance = mavlinkmsg()
+            _instance.start()
+        return _instance
+
+    
     def sm_climb(self, new_val, n):
         new_av = self.old_ave * (n-1)/n + new_val/n
         self.old_av = new_av
@@ -247,6 +274,7 @@ class mavlinkmsg (Thread):
 
                     dic = msg.to_dict()
                     xmag = dic['xmag']
+                    self.xmag  = xmag
                     xmag -= xmag_av
 
                     """
@@ -260,8 +288,11 @@ class mavlinkmsg (Thread):
                     #print('xmag_ave ', xmag_ave)
                     
                     ymag = dic['ymag']
+                    self.ymag = ymag
                     ymag -= ymag_av
                     ymag = -ymag #invert for compass orientation
+
+                    self.zmag = dic['zmag']
 
                     """
                     if ymag > self.ymag_max:
@@ -322,7 +353,7 @@ class mavlinkmsg (Thread):
 
                     heading = self.heading_average(heading, 5)
                         
-                    print('\nheading ', heading)
+                    #print('heading ', heading)
 
                     """switched from vfr_hud"""
                     self.heading = heading 
@@ -562,7 +593,9 @@ class mavlinkmsg (Thread):
         #return inData
         if(self.msglock.acquire(blocking=False)):
         #if(False):
-            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, self.wind_dir)
+            newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, 
+                self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, 
+                self.wind_dir, self.xmag, self.ymag, self.zmag)
             self.msglock.release()
             return newData
         else:
