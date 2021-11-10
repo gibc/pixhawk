@@ -86,7 +86,7 @@ class mavlinkmsg (Thread):
         self.ymag_ave = 0
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
-        #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00')
+        #self.master.close()
         self.master.param_fetch_one('COMPASS_OFS_X')
         self.master.param_fetch_one("COMPASS_OFS_Y")
         self.master.param_fetch_one("COMPASS_OFS_Z")
@@ -459,6 +459,7 @@ class mavlinkmsg (Thread):
                 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
+                        dic = msg.to_dict()
                         altitude = dic['altitude']
                         self.altitude = 3.2808 * altitude
                         print("altitude: ", self.altitude)
@@ -466,6 +467,7 @@ class mavlinkmsg (Thread):
                 if msg.get_type() == 'AHRS2':
                     #self.msglock.acquire()
                     with self.msglock:
+                        dic = msg.to_dict()
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         """
@@ -585,7 +587,8 @@ class mavlinkmsg (Thread):
             
             except Exception:
                 traceback.print_exc()
-    
+                
+        self.master.close()
         print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):

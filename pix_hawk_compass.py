@@ -2,6 +2,7 @@
 from pix_hawk_msg import mavlinkmsg
 from pix_hawk_msg import aharsData
 from pix_hawk_util import KeyBoard
+from threading import Thread, Lock
 import time
 # curses
 
@@ -16,12 +17,17 @@ class Compass():
         
 
     def get_mag_data(self):
+        print('\npress any key to START compass data collection.')
+        key = self.key_board.wait_key(30)
+        if key == None:
+            return
+
         count = 0
-        #while count < 100 and self.key_board.get_key() == None:
-        while count < 100 and self.key_board.get_key() == None:
+        print('\npress any key to STOP compass data collection.')
+        while count < 10000  and self.key_board.get_key() == None:
             count += 1
             self.ahd = self.msg_thread.getAharsData(self.ahd)
-            print('count ', count)
+            print('\ncount ', count)
             print('xmag ', self.ahd.xmag)
             if not self.ahd.xmag == -1 and not self.ahd.ymag == -1 and not self.ahd.zmag == -1:
                 self.xmag_list.append(self.ahd.xmag)
@@ -43,6 +49,10 @@ class Compass():
 
 
 if __name__ == '__main__':
-    cps = Compass()
+    cps = Compass()  
     cps.get_mag_data()
-    #akey = input('press any key to continue')
+    cps.msg_thread.run_thread = False
+    Thread.join (cps.msg_thread) 
+    KeyBoard.stop()
+    Thread.join(cps.key_board)
+    exit(0)      

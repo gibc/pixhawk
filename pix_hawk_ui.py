@@ -1,4 +1,8 @@
 #-*- coding:UTF-8 -*-
+"""NOTE!!!!
+this script started from
+/etc/xdg/lxsession/LXDE-pi/autostart
+"""
 import sys
 print(sys.path)
 for path in sys.path:
@@ -14,6 +18,8 @@ from pix_hawk_tape import TapeUnit
 from pix_hawk_tape import Orient
 from pix_hawk_speed_tape import SpeedTape
 from pix_hawk_wind import Wind
+from pix_hawk_compass import Compass
+from pix_hawk_util import KeyBoard
 import pyglet
 from pyglet import clock
 from pyglet import shapes
@@ -24,7 +30,10 @@ import os
 
 #os.system('xrandr -o left')
 
-
+#kbd = KeyBoard()
+#ky = kbd.wait_key(5)
+#cps_obj = Compass()
+#cps_obj.get_mag_data()
 
 pyglet.options['debug_gl']= False
 
