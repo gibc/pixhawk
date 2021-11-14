@@ -6,6 +6,57 @@ import termios
 import sys
 import select
 import tty
+from math import sin, cos, radians, fmod
+import numpy as np
+
+class Math():
+
+    @classmethod
+    def rotate_point(cls, point, angle, center_point=(0, 0)):
+        """Rotates a point around center_point(origin by default)
+        Angle is in degrees.
+        Rotation is counter-clockwise
+        """
+        #print('angle ', angle)
+        #angle_rad = radians(angle % 360)
+        angle_rad = radians(angle)
+        #print('angle_rad ', angle_rad)
+        # Shift the point so that center_point becomes the origin
+        new_point = (point[0] - center_point[0], point[1] - center_point[1])
+        new_point = (new_point[0] * cos(angle_rad) - new_point[1] * sin(angle_rad),
+                    new_point[0] * sin(angle_rad) + new_point[1] * cos(angle_rad))
+        # Reverse the shifting we have done
+        new_point = (new_point[0] + center_point[0], new_point[1] + center_point[1])
+        return new_point
+    
+    @classmethod
+    def rotate_line(cls, point1, point2, angle, center_point=(0, 0)):
+        """Rotates a line around center_point(origin by default)
+        Angle is in degrees.
+        Rotation is counter-clockwise
+        """
+        r_point1 = cls.rotate_point(point1, angle, center_point)
+        r_point2 = cls.rotate_point(point2, angle, center_point)
+        return (r_point1, r_point2)
+
+    @classmethod
+    def cart2pol(cls, x, y):
+        
+        rho = np.sqrt(x**2 + y**2)
+        phi = np.arctan2(x, y)
+        ang = np.degrees(phi)
+        
+        return(rho, ang)
+
+    @classmethod
+    def pol2cart(cla, rho, phi):
+        
+        phi = np.radians(phi)
+        x = rho * np.cos(phi)
+        y = rho * np.sin(phi)
+        
+        return(x, y)
+
 
 
 class KeyBoard(Thread):
@@ -56,14 +107,18 @@ class KeyBoard(Thread):
     
     def wait_key(self, timeout = 10):
         self.time_out = False
-        timer = Timer(timeout, self.end_fun)
-        timer.start()
+        timer = None
+        if timeout > 0:
+            timer = Timer(timeout, self.end_fun)
+            timer.start()
+        
         #key = None
         while self.time_out == False:
             print('.', end='', flush=True)
             key = self.get_key()
             if key != None:
-                timer.cancel()
+                if timer!= None:
+                    timer.cancel()
                 return key
             time.sleep(.05)
         return None

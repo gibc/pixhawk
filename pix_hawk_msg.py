@@ -18,7 +18,8 @@ import traceback
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
-                fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1):
+                fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1,
+                xacc=-1, yacc=-1, zacc=-1):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -34,9 +35,15 @@ class aharsData:
         self.xmag = xmag
         self.ymag = ymag
         self.zmag = zmag
+        self.xacc = xacc
+        self.yacc = yacc
+        self.zacc = zacc
 
 class mavlinkmsg (Thread):
     _instance = None
+    _instance_count = 0
+    _run_thread = True
+
 
     def __init__(self):
         Thread.__init__(self)
@@ -70,6 +77,9 @@ class mavlinkmsg (Thread):
         self.xmag = -1
         self.ymag = -1
         self.zmag = -1
+        self.xacc = -1
+        self.yacc = -1
+        self.zacc = -1
 
         self.smothed_heading = 0
 
@@ -114,10 +124,19 @@ class mavlinkmsg (Thread):
     @classmethod
     def get_instance(cls):
         if cls._instance == None:
-            _instance = mavlinkmsg()
-            _instance.start()
-        return _instance
-
+            cls._instance = mavlinkmsg()
+            cls._run_thread = True
+            cls._instance.start()
+        cls._instance_count += 1
+        return cls._instance
+    
+    @classmethod
+    def put_instance(cls):
+        cls._instance_count -= 1
+        if cls._instance_count <= 0:
+            cls._run_thread = False
+            cls._instance = None
+        
     
     def sm_climb(self, new_val, n):
         new_av = self.old_ave * (n-1)/n + new_val/n
@@ -226,7 +245,7 @@ class mavlinkmsg (Thread):
     def run(self):
         #return
         print("started mavlinkmsg thread")
-        while self.run_thread:
+        while mavlinkmsg._run_thread:
             #time.sleep(.1)
             try:
                 msg = self.master.recv_match(blocking=True)
@@ -260,10 +279,15 @@ class mavlinkmsg (Thread):
                     if param_id == 'COMPASS_OFS_Z':
                         self.COMPASS_OFS_Z = param_value = dic['param_value']
                         print('self.COMPASS_OFS_Z ', self.COMPASS_OFS_Z)
-                    
+                
+                # gib - form comments and Fixes #1179 say mag values a mgause (milli gause)
                 if msg.get_type() == 'SCALED_IMU':   
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
+                    dic = msg.to_dict()
+                    self.xacc = dic['xacc']
+                    self.yacc = dic['yacc']
+                    self.zacc = dic['zacc']
                     """
                      this gives reasonable results for vertically oriented compass
                      where back of unit is indicated direction
@@ -598,7 +622,7 @@ class mavlinkmsg (Thread):
         #if(False):
             newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, 
                 self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, 
-                self.wind_dir, self.xmag, self.ymag, self.zmag)
+                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc)
             self.msglock.release()
             return newData
         else:

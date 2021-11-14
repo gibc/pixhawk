@@ -35,6 +35,8 @@ import os
 #cps_obj = Compass()
 #cps_obj.get_mag_data()
 
+os.system("xterm -geometry 225x75+20+20 -e 'python3 /home/pi/PhidgetInsurments/pix_hawk_compass.py'")
+
 pyglet.options['debug_gl']= False
 
 pitch_batch = pyglet.graphics.Batch()
@@ -603,8 +605,10 @@ def update(dt):
 @window.event       
 def on_close():
     global msgthd
-    msgthd.run_thread = False
-    msgthd.join()
+    #msgthd.run_thread = False
+    pix_hawk_msg.mavlinkmsg.put_instance()
+    if not pix_hawk_msg.mavlinkmsg._run_thread:
+        msgthd.join()
     
     os.system('xrandr -o normal')
     
