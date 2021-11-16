@@ -13,6 +13,7 @@ from threading import Thread, Lock
 import time
 import os
 import traceback
+from pix_hawk_compass_ops import CompassOps
 
 #from pynput import keyboard
 
@@ -38,6 +39,7 @@ class aharsData:
         self.xacc = xacc
         self.yacc = yacc
         self.zacc = zacc
+        
 
 class mavlinkmsg (Thread):
     _instance = None
@@ -47,6 +49,7 @@ class mavlinkmsg (Thread):
 
     def __init__(self):
         Thread.__init__(self)
+        self.compass_ops = CompassOps('mag_params/home_param.txt')
         self.roll = 0
         self.roll_rad = 0
         self.pitch = 0
@@ -113,7 +116,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 10)
         
     """ 
     def on_press(self, key):
@@ -284,6 +287,7 @@ class mavlinkmsg (Thread):
                 if msg.get_type() == 'SCALED_IMU':   
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
+                    
                     dic = msg.to_dict()
                     self.xacc = dic['xacc']
                     self.yacc = dic['yacc']
@@ -318,6 +322,8 @@ class mavlinkmsg (Thread):
 
                     self.zmag = dic['zmag']
 
+                    
+
                     """
                     if ymag > self.ymag_max:
                         self.ymag_max = ymag
@@ -349,7 +355,12 @@ class mavlinkmsg (Thread):
 
                     zmag = dic['zmag']
 
-                    corr_mags = self.un_tilt_mag(xmag, ymag, zmag)
+                    heading = self.compass_ops._get_heading(self.xmag,self.ymag,self.zmag, self.pitch, self.roll)
+                    #heading = self.compass_ops._get_heading(self.ymag,self.xmag,self.zmag, self.pitch, self.roll)
+                    self.heading = heading 
+                    
+
+                    """corr_mags = self.un_tilt_mag(xmag, ymag, zmag)
                     xmag = corr_mags[0]
                     ymag = corr_mags[1]
                     
@@ -368,7 +379,7 @@ class mavlinkmsg (Thread):
                         heading = heading - 360
                     #print('roll ', self.roll)
 
-                    """handle jump from 360 to 0"""
+                    
                     diff = heading - self.heading
                     #if diff < 10 and diff > -10:
                         #heading = self.heading_average(heading, 5)
@@ -379,8 +390,8 @@ class mavlinkmsg (Thread):
                         
                     #print('heading ', heading)
 
-                    """switched from vfr_hud"""
-                    self.heading = heading 
+                    
+                    self.heading = heading """
                     
                 
                 if msg.get_type() == 'RAW_IMU':
@@ -671,13 +682,14 @@ if __name__ == '__main__':
 
     while True:
         ahdata = msgthd.getAharsData(ahdata)
+        #print('msgthd.heading ', msgthd.heading)
     
         #print("roll: ", ahdata.roll)
         #print("pitch: ", ahdata.pitch)
         #print("heading: ", ahdata.heading)
         #print("")
         
-    time.sleep(.1)
+        time.sleep(.1)
 
 """
 while True:
