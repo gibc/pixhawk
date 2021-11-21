@@ -5,17 +5,19 @@
 #Can also filter within recv_match command - see "Read all parameters" example
 #"""
 # Import mavutil
+from posixpath import join
 from re import X
 import re
 from pymavlink import mavutil
+#from pymavlink import mavextra
+
 import math
 from threading import Thread, Lock
 import time
 import os
 import traceback
 from pix_hawk_compass_ops import CompassOps
-
-#from pynput import keyboard
+import mavextra
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -49,7 +51,12 @@ class mavlinkmsg (Thread):
 
     def __init__(self):
         Thread.__init__(self)
-        self.compass_ops = CompassOps('mag_params/home_param.txt')
+        #self.compass_ops = CompassOps('mag_params/home_params.txt')
+        self.compass_ops = CompassOps('mag_params/new_keik_params.txt')
+        self.ATTITUDE = None
+        self.RAW_IMU = None
+        self.declination = None
+        self.SENSOR_OFFSETS = None
         self.roll = 0
         self.roll_rad = 0
         self.pitch = 0
@@ -73,6 +80,7 @@ class mavlinkmsg (Thread):
         self.old_ave = 0
         self.old_xmag_average = 0
         self.old_ymag_average = 0
+        self.old_zmag_average = 0
         self.ymag_max = -1000
         self.ymag_min = 1000
         self.xmag_max = -1000
@@ -112,11 +120,12 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, 2)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 20)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 20)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 10)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, 10)
         
     """ 
     def on_press(self, key):
@@ -155,6 +164,11 @@ class mavlinkmsg (Thread):
         ymag_average = self.old_ymag_average * (n-1)/n + new_val/n
         self.old_ymag_average = ymag_average
         return ymag_average
+
+    def zmag_average(self, new_val, n):
+        zmag_average = self.old_zmag_average * (n-1)/n + new_val/n
+        self.old_zmag_average = zmag_average
+        return zmag_average
 
     def heading_average(self, new_val, n):
         diff = self.smothed_heading - new_val
@@ -258,6 +272,9 @@ class mavlinkmsg (Thread):
                     continue
                 
                 #print(msg.get_type)
+
+                if msg.get_type() == 'SENSOR_OFFSETS':
+                    self.SENSOR_OFFSETS = msg
                 
                 if msg.get_type() == 'PARAM_VALUE':
                     
@@ -287,147 +304,89 @@ class mavlinkmsg (Thread):
                 if msg.get_type() == 'SCALED_IMU':   
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
+
+                    
                     
                     dic = msg.to_dict()
+
                     self.xacc = dic['xacc']
                     self.yacc = dic['yacc']
                     self.zacc = dic['zacc']
-                    """
-                     this gives reasonable results for vertically oriented compass
-                     where back of unit is indicated direction
-                    """
+                    
                     declination = 4.75
-                    xmag_av = -0.609
-                    ymag_av = -37.887
+                    
 
-                    dic = msg.to_dict()
+                   
                     xmag = dic['xmag']
                     self.xmag  = xmag
-                    xmag -= xmag_av
-
-                    """
-                    if xmag > self.xmag_max:
-                        self.xmag_max = xmag
-                    if xmag < self.xmag_min:
-                        self.xmag_min = xmag
-                    """    
-
-                    #xmag_ave = self.xmag_average(xmag, 500)
-                    #print('xmag_ave ', xmag_ave)
+                    #xmag += 19
+                    xmag_ave = int(self.xmag_average(xmag, 1000))
+                    
                     
                     ymag = dic['ymag']
                     self.ymag = ymag
-                    ymag -= ymag_av
-                    ymag = -ymag #invert for compass orientation
-
-                    self.zmag = dic['zmag']
-
+                    #ymag -= 30
+                    ymag_ave = int(self.ymag_average(ymag, 1000))
                     
-
-                    """
-                    if ymag > self.ymag_max:
-                        self.ymag_max = ymag
-                    if ymag < self.ymag_min:
-                        self.ymag_min = ymag
-                    """
-                    if False:
-                        if self.mag_list_count < 1000:
-                            self.xmag_list.append(xmag)
-                            self.ymag_list.append(ymag)
-                            self.mag_list_count += 1
-                            print('mag_list_count ', self.mag_list_count)
-                        elif self.mag_list_count == 1000:
-                            self.xmag_ave = sum(self.xmag_list) / len(self.xmag_list)
-                            self.ymag_ave = sum(self.ymag_list) / len(self.ymag_list)
-                            print('xmag_av ', self.xmag_ave)
-                            print('ymag_av ', self.ymag_ave)
-                        else:
-                            print('xmag_av ', self.xmag_ave)
-                            print('ymag_av ', self.ymag_ave)
-
-                    #print('xmag {} ymag {}'.format(xmag,ymag))
-
-                    #print('minx {} maxx {} miny {} maxy {}'.format(self.xmag_min, self.xmag_max, self.ymag_min, self.ymag_max))
-                    #print('x_offset {} y_offset {}'.format((self.xmag_max+self.xmag_min)/2, (self.ymag_max+self.ymag_min/2)))
-
-                    #ymag_ave = self.ymag_average(ymag, 500)
-                    #print('ymag_ave ', ymag_ave)
-
                     zmag = dic['zmag']
+                    self.zmag = zmag
+                    #zmag -=120
+                    zmag_ave = int(self.zmag_average(zmag, 1000))
+                    
+                    self.mag_list_count = self.mag_list_count + 1
 
+                    #print('xmag {0:03d} ymag {1:03d} zmag {2:03d}'.format(self.xmag,self.ymag,self.zmag))
+                    #print('xmag_av {0:03d} ymag_av {1:03d} zmag_av {2:03d} count {3:03d}'.format(xmag_ave,ymag_ave,zmag_ave, 
+                    #    int(self.mag_list_count)))
+
+            
                     heading = self.compass_ops._get_heading(self.xmag,self.ymag,self.zmag, self.pitch, self.roll)
                     #heading = self.compass_ops._get_heading(self.ymag,self.xmag,self.zmag, self.pitch, self.roll)
-                    self.heading = heading 
+                    #self.heading = heading 
                     
-
-                    """corr_mags = self.un_tilt_mag(xmag, ymag, zmag)
-                    xmag = corr_mags[0]
-                    ymag = corr_mags[1]
-                    
-                    heading = math.degrees(math.atan(xmag/ymag))
-                    if ymag > 0:
-                        heading = 90 - heading
-                    else:
-                        heading = 270 - heading
-                    if ymag == 0:
-                        if xmag < 0:
-                            heading = 180
-                        else:
-                            heading = 0
-                    heading = heading + declination
-                    if heading > 360:
-                        heading = heading - 360
-                    #print('roll ', self.roll)
-
-                    
-                    diff = heading - self.heading
-                    #if diff < 10 and diff > -10:
-                        #heading = self.heading_average(heading, 5)
-                    #else:
-                        #self.heading_average = heading
-
-                    heading = self.heading_average(heading, 5)
-                        
-                    #print('heading ', heading)
-
-                    
-                    self.heading = heading """
-                    
-                
+ 
                 if msg.get_type() == 'RAW_IMU':
+
+                    
+
+                    #print('xmag_ave ', mavextra.lowpass(msg.xmag, 'xmag_ave', .999))
+                    #print('ymag_ave ', mavextra.lowpass(msg.ymag, 'ymag_ave', .999))
+                    #print('zmag_ave ', mavextra.lowpass(msg.zmag, 'zmag_ave', .999))
+
+                    self.RAW_IMU = msg
+
+                    if self.ATTITUDE != None:
+                        #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, self.SENSOR_OFFSETS, (0,0,0), s_factor=.97)
+                        heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
+
+                        
+                        self.heading = heading
+
+                        print('heading ',heading)
+
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
-                    dic = msg.to_dict()
+
+                    """dic = msg.to_dict()
                     
                     xmag = dic['xmag']
-                    #xmag = xmag - self.COMPASS_OFS_X
-                    #print('xmag ', xmag)
+                    
                     
                     ymag = dic['ymag']
-                    #ymag = ymag - self.COMPASS_OFS_Y
-                    #print('ymag ', ymag)
                     
-                    zmag = dic['zmag']
-                    #zmag = zmag - self.COMPASS_OFS_Z
-                    #print('zmag ', zmag)
+                    
+                    zmag = dic['zmag']"""
+                    
 
-                    if self.mag_list_count < 1000:
-                        self.xmag_list.append(xmag)
-                        self.ymag_list.append(ymag)
-                        self.mag_list_count += 1
-                        print('mag_list_count ', self.mag_list_count)
-                    else:
-                        xmag_av = self.xmag_list(sum) / len(self.xmag_list)
-                        ymag_av = self.ymag_list(sum) / len(self.ymag_list)
-                        print('xmag_av ', xmag_av)
-                        print('ymag_av ', ymag_av)
+                    
 
                     
                     #heading = math.degrees(math.atan(ymag/xmag))
                     # from ardupilot example
-                    heading = math.degrees(math.atan(-ymag/xmag))
+                    """heading = math.degrees(math.atan(-ymag/xmag))
                     if heading < 0:
-                        heading += 360
+                        heading += 360"""
+
                     """
                     heading = heading - 90
                     if heading < 0:
@@ -438,7 +397,7 @@ class mavlinkmsg (Thread):
                         heading = 360 - heading
                     """
                     
-                    if ymag > 0:
+                    """if ymag > 0:
                         heading = 90 - math.degrees(math.atan(ymag/xmag))
                     if ymag < 0:
                         heading = 270 - math.degrees(math.atan(ymag/xmag))
@@ -446,13 +405,13 @@ class mavlinkmsg (Thread):
                         if xmag < 0:
                             heading = 180
                         if xmag > 0:
-                            heading = 0
+                            heading = 0"""
                     
                     #if heading > 360:
                     #    heading = heading - 360
                     #if heading < 0:
                     #    heading = 360 + heading
-                    print('\nheading ', heading)
+                    #print('\nheading ', heading)
                     
                 # NOTE: I get this message if requestd!!
                 #print(msg.get_type())
@@ -471,6 +430,9 @@ class mavlinkmsg (Thread):
                 if msg.get_type() == 'GLOBAL_POSITION_INT':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
+
+                    
+
                     dic = msg.to_dict()
                     vel_z = dic['vz'] #gnd speed Z cm/s (altitude, positive down)
                     vel_z = vel_z * 1.9685  # to feet/min
@@ -527,16 +489,19 @@ class mavlinkmsg (Thread):
             
                 #if msg.get_type() == 'GPS_RAW_INT':
                 if msg.get_type() == 'GPS2_RAW':
+                    
                     with self.msglock:
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         dic = msg.to_dict()
-                    #lat = dic['lat']
-                    ##print("lat: ", lat)
-                    # lon = dic['lon']
-                    #print("lon: ", lon)
-                    #alt = dic['alt']
-                    #print("alt: ", alt*.00328084)
+                        lat = dic['lat']/10000000
+                    
+                        lon = dic['lon']/10000000
+                        mag_data = mavextra.get_mag_field_ef(lat, lon)
+                    
+                        self.declination = mag_data[0]
+                    
+                    
                         satellites_visible = dic['satellites_visible']
                         #print("satellites_visible: ", satellites_visible)
                         fix_type = dic['fix_type']
@@ -594,6 +559,15 @@ class mavlinkmsg (Thread):
                  """
                 
                 if msg.get_type() == 'ATTITUDE':
+
+                    self.ATTITUDE = msg
+                    if self.RAW_IMU != None:
+                        #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, self.SENSOR_OFFSETS, (0,0,0), s_factor=.97)
+                        
+                        heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
+
+                        self.heading = heading
+
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
                     with self.msglock:
@@ -621,6 +595,8 @@ class mavlinkmsg (Thread):
             #print("")
             
             except Exception:
+                self.master.close()
+                self.put_instance()
                 traceback.print_exc()
                 
         self.master.close()
@@ -678,10 +654,12 @@ if __name__ == '__main__':
     msgthd = mavlinkmsg()
     msgthd.start()
 
-    ahdata = (-1,-1,-1,-1)
+    try:
+        
+        ahdata = (-1,-1,-1,-1)
 
-    while True:
-        ahdata = msgthd.getAharsData(ahdata)
+        while msgthd._run_thread:
+            ahdata = msgthd.getAharsData(ahdata)
         #print('msgthd.heading ', msgthd.heading)
     
         #print("roll: ", ahdata.roll)
@@ -689,82 +667,13 @@ if __name__ == '__main__':
         #print("heading: ", ahdata.heading)
         #print("")
         
-        time.sleep(.1)
+            time.sleep(.1)
 
-"""
-while True:
-    try:
-        msg = master.recv_match()
-        if not msg:
-            continue
-        if msg.get_type() == 'BAD_DATA':
-            continue
-        #print(msg.get_type())
-        #print("Message: %s" % msg)
-        if msg.get_type() == 'WIND':
-            print("\n\n*****Got message: %s*****" % msg.get_type())
-            print("Message: %s" % msg)
-            
-        if msg.get_type() == 'AHRS2':
-            print("\n\n*****Got message: %s*****" % msg.get_type())
-            print("Message: %s" % msg)
-            dic = msg.to_dict()
-            roll = dic['roll']
-            roll = math.degrees(roll)
-            print("roll: ", roll)
-            
-            pitch = dic['pitch']
-            pitch = math.degrees(pitch)
-            print("pitch: ", pitch)
-            
-            yaw = dic['yaw']
-            yaw = math.degrees(yaw)
-            print("yaw: ", yaw)
-            print("")
-            
-        if msg.get_type() == 'GPS2_RAW':
-            print("\n\n*****Got message: %s*****" % msg.get_type())
-            print("Message: %s" % msg)
-            dic = msg.to_dict()
-            lat = dic['lat']
-            print("lat: ", lat)
-            lon = dic['lon']
-            print("lon: ", lon)
-            alt = dic['alt']
-            print("alt: ", alt*.00328084)
-            satellites_visible = dic['satellites_visible']
-            print("satellites_visible: ", satellites_visible)
-            print("")
-            
-        if msg.get_type() == 'VFR_HUD':
-            print("\n\n*****Got message: %s*****" % msg.get_type())
-            print("Message: %s" % msg)
-            dic = msg.to_dict()
-            heading = dic['heading']
-            print("heading: ", heading)
-            alt = dic['alt']
-            print("alt: ", alt*3.28084)
-            airspeed = dic['airspeed']*2.237 
-            print("airspeed: ", airspeed)#m/s
-            climb = dic['climb']*2.237 
-            print('climb: ', climb) #climb rate m/s
-            groundspeed = dic['groundspeed']*2.237 
-            print('groundspeed: ', groundspeed)
-            print("")
-        
-        if msg.get_type() == 'EKF_STATUS_REPORT':
-            print("\n\n*****Got message: %s*****" % msg.get_type())
-            print("Message: %s" % msg)
-            print("")
-            
-        #AOA if msg.get_type() == 11020:
-            #print("\n\n*****Got message: %s*****" % msg.get_type())
-            #print("Message: %s" % msg)
-            #print("")
-            
-            
-            
-        
+        mavlinkmsg.put_instance()
+        msgthd.join()
+
     except:
-        pass
-"""
+        mavlinkmsg.put_instance()
+        msgthd.join()
+
+

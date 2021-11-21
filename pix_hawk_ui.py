@@ -2,6 +2,7 @@
 """NOTE!!!!
 this script started from
 /etc/xdg/lxsession/LXDE-pi/autostart
+xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
 """
 import sys
 print(sys.path)
@@ -25,6 +26,7 @@ from pyglet import clock
 from pyglet import shapes
 from math import sin, cos, radians, fmod
 import os
+import time
 
 #test save after reboot
 
@@ -35,7 +37,7 @@ import os
 #cps_obj = Compass()
 #cps_obj.get_mag_data()
 
-os.system("xterm -geometry 225x75+20+20 -e 'python3 /home/pi/PhidgetInsurments/pix_hawk_compass.py'")
+#os.system("xterm -geometry 225x75+20+20 -e 'python3 /home/pi/PhidgetInsurments/pix_hawk_compass.py'")
 
 pyglet.options['debug_gl']= False
 
@@ -225,6 +227,7 @@ def get_win_rect(window):
 try:
     #msgthd = pix_hawk_msg.mavlinkmsg()
     msgthd = pix_hawk_msg.mavlinkmsg.get_instance()
+    #time.sleep(2)
     #msgthd.start()
     ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 

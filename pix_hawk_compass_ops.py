@@ -1,10 +1,12 @@
-from math import radians
+from math import degrees, radians
 import os
 import numpy as np
 import math
 from pix_hawk_util import KeyBoard, Math
 import matplotlib.pyplot as plt
 import traceback
+from pymavlink import mavextra
+
 
 class CompassOps():
     def __init__(self, param_file):
@@ -31,7 +33,19 @@ class CompassOps():
         self.zacc_array = None
         self.old_xmag_average = 0
         self.old_ymag_average = 0
+        self.x_off = 213.2369
+        self.y_off = 64.89973
+        self.z_off = -77.64152
+        self.odi_x = .009991191
+        self.odi_y = -.001523452
+        self.odi_z = -.001132937
 
+        self.dia_x = .9923397
+        self.dia_y =  1.02942
+        self.dia_z = .967738553
+        self.iron_matrix = np.array([[self.dia_x,self.odi_x,self.odi_y],
+                                    [self.odi_x,self.dia_y,self.odi_z],
+                                    [self.odi_y,self.odi_z,self.dia_z]])
 
         self.get_params()
 
@@ -53,6 +67,11 @@ class CompassOps():
                 if item[0].strip(' ,') == 'angle':
                     self.e_angle = float(item[1].strip(' ,'))
             print('loaded params from {0}'.format(self.param_file))
+            print('self.e_center_x', self.e_center_x)
+            print('self.e_center_y', self.e_center_y)
+            print('self.e_height', self.e_height)
+            print('self.e_width', self.e_width)
+            print('self.e_angle ', self.e_angle )
         else: 
             raise Exception('compass parameter file not found')
 
@@ -86,24 +105,46 @@ class CompassOps():
         else:
             raise Exception('compass data files not found')"""
     
+    def iron_correct(self,magx,magy,magz):
+        magx = magx - self.x_off
+        magy = magy - self.y_off
+        magz = magz - self.z_off
+
+        data = np.array([magx,magy,magz])
+        data_c = np.dot(data,self.iron_matrix)
+        magxc = data_c[0]
+        magyc = data_c[1]
+        magzc = data_c[2]
+    
+        return data_c
+    
     def _get_heading(self, xmag, ymag, zmag, pitch, roll):
         
         #TBD: add un tilt, add declination
         xmag = self.xmag_average(xmag, 10)
         ymag = self.ymag_average(ymag, 10)
+        #zmag = self.zmag_average(zmag, 10)
+
+        xmag = xmag - self.x_off
+        ymag = ymag - self.y_off
 
         #un_tilt_pt = self.un_tilt_mag(xmag,ymag,zmag, pitch, roll)
-        un_tilt_pt = self.berryl_tilt(xmag,ymag,zmag, pitch, roll, 2)
-        xmag = un_tilt_pt[0]
-        ymag = un_tilt_pt[1]
+        #un_tilt_pt = self.berryl_tilt(xmag,ymag,zmag, pitch, roll, 2)
+        #xmag = un_tilt_pt[0]
+        #ymag = un_tilt_pt[1]
 
-        fpt = self.fix_point((xmag,ymag))
-        xmag = fpt[0]
-        ymag = fpt[1]
+        #pt_c = self.iron_correct(xmag,ymag,zmag)
+        #xmag = pt_c[0]
+        #ymag = pt_c[1]
 
-        heading = self.mag2heading(fpt[0], fpt[1])
+        #fpt = self.fix_point((xmag,ymag))
+        #xmag = fpt[0]
+        #ymag = fpt[1]
+
+        #heading = self.mag2heading(fpt[0], fpt[1])
+        heading = self.point2yaw(xmag,ymag,zmag)
         #print('heading {0} xmag {1} ymag {2} zmag {3} pitch {4} roll {5}'.format(int(heading), xmag,ymag,zmag,pitch,roll))
-        print('heading {0} xmag {1} ymag {2} '.format(int(heading), int(xmag),int(ymag),zmag,pitch,roll))
+        #print('heading {0} xmag {1} ymag {2} '.format(int(heading), int(xmag),int(ymag),zmag,pitch,roll))
         return heading
 
     def mag2heading(self, xmag, ymag):
@@ -130,6 +171,8 @@ class CompassOps():
         
         #declination = 4.75
         heading -= 8.75
+        if heading < 0:
+            heading = 360 + heading
 
         return heading
 
@@ -159,7 +202,56 @@ class CompassOps():
         npt = Math.pol2cart(mag, ang)
 
         return (npt[0], npt[1])
+
+    def run_test_data(self, data_file):
+        self.load_test_data(data_file)
+        test_pts = np.vstack((self.xmag_array,self.ymag_array,self.zmag_array)).T
+        for pt in test_pts:
+            pt = pt
+            #ptc = self.iron_correct(pt[0],pt[1],pt[2])
+            ptc = self.fix_point((pt[0],pt[1]))
+            
+
+            magxc = ptc[0]
+            magyc = ptc[1]
+            #magzc = ptc[2]
+            magzc = pt[2]
+            heading2 = self.point2yaw(magxc, magyc, magzc)
+            
+            ut_pt = self.berryl_tilt(magxc,magyc,magzc,30,0)
+
+            heading = self.mag2heading(ut_pt[0], ut_pt[1])
+
+            print ('heading {0} haeding2 {1}'.format( heading, heading2))
+
+
     
+    def load_test_data(self, data_file):
+
+        data_file = open(data_file, 'r')
+        data = data_file.readlines()
+        items = None
+        self.xmag_list = []
+        self.ymag_list = []
+        self.zmag_list = []
+        for line in data:
+            items = line.split()
+            self.xmag_list.append(float(items[1].strip(' ,')))
+            self.ymag_list.append(float(items[2].strip(' ,')))
+            self.zmag_list.append(float(items[3].strip(' ,')))
+
+            self.xacc_list.append(float(items[4].strip(' ,')))
+            self.yacc_list.append(float(items[5].strip(' ,')))
+            self.zacc_list.append(float(items[6].strip(' ,')))
+        
+        self.xmag_array = np.array(self.xmag_list)
+        self.ymag_array = np.array(self.ymag_list)
+        self.zmag_array = np.array(self.zmag_list)
+        
+        self.xacc_array = np.array(self.xacc_list)
+        self.yacc_array = np.array(self.yacc_list)
+        self.zacc_array = np.array(self.zacc_list)
+
     def estimate_ellipe(self, x, y):
         from ellipse_fit import LsqEllipse
 
@@ -257,14 +349,24 @@ class CompassOps():
         except Exception:
             traceback.print_exc()
 
-    def berryl_tilt(self, MAGx, MAGy, MAGz, pitch, roll, BerryIMUversion =1 ):
+    def point2yaw(self, xmag, ymag, zmag):
+        
+        yaw = np.arctan2(ymag,xmag)
+        yaw = degrees(yaw)
+        if yaw > 0:
+            yaw = 360 - yaw
+        else:
+            yaw = 0 - yaw
+        return yaw
+
+    def berryl_tilt(self, MAGx, MAGy, MAGz, pitch, roll, BerryIMUversion =2 ):
 
         #Calculate the new tilt compensated values
         #The compass and accelerometer are orientated differently on the the BerryIMUv1, v2 and v3.
         #This needs to be taken into consideration when performing the calculations
 
         #X compensation
-        print('pitch {0} roll {1}'.format(pitch, roll))
+        #print('pitch {0} roll {1}'.format(pitch, roll))
         
         pitch = radians(pitch)
         """NOTE: had to invert sign of roll to make this work"""
@@ -394,6 +496,7 @@ class CompassOps():
 
 
 if __name__ == '__main__':
-    cps = CompassOps('mag_params/home_param.txt')
-    #cps.test('/home/pi/PhidgetInsurments/mag_data/mag_data_4.txt') 
-    #cps.save_cal_params('/home/pi/PhidgetInsurments/mag_data/cal_data.txt', '/home/pi/PhidgetInsurments/mag_params/new_keik_params.txt')   
+    cps = CompassOps('mag_params/new_keik_params.txt')
+    #cps.test('/home/pi/PhidgetInsurments/mag_data_save/keik_cal_data.txt') 
+    #cps.save_cal_params('/home/pi/PhidgetInsurments/mag_data_save/home_cal_data.txt', '/home/pi/PhidgetInsurments/mag_params/home_params.txt')   
+    cps.run_test_data('/home/pi/PhidgetInsurments/mag_data_save/keik_cal_data.txt') 
