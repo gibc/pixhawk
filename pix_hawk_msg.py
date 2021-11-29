@@ -275,8 +275,11 @@ class mavlinkmsg (Thread):
 
                 if msg.get_type() == 'SENSOR_OFFSETS':
                     self.SENSOR_OFFSETS = msg
+                    print('self.SENSOR_OFFSET X', self.SENSOR_OFFSETS.mag_ofs_x)
+                    print('self.SENSOR_OFFSET Y', self.SENSOR_OFFSETS.mag_ofs_y)
+                    print('self.SENSOR_OFFSET Z', self.SENSOR_OFFSETS.mag_ofs_z)
                 
-                if msg.get_type() == 'PARAM_VALUE':
+                """if msg.get_type() == 'PARAM_VALUE':
                     
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
@@ -298,7 +301,7 @@ class mavlinkmsg (Thread):
                         
                     if param_id == 'COMPASS_OFS_Z':
                         self.COMPASS_OFS_Z = param_value = dic['param_value']
-                        print('self.COMPASS_OFS_Z ', self.COMPASS_OFS_Z)
+                        print('self.COMPASS_OFS_Z ', self.COMPASS_OFS_Z)"""
                 
                 # gib - form comments and Fixes #1179 say mag values a mgause (milli gause)
                 if msg.get_type() == 'SCALED_IMU':   

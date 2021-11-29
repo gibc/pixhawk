@@ -67,9 +67,12 @@ def mag_heading(RAW_IMU, ATTITUDE, declination=None, SENSOR_OFFSETS=None, ofs=No
     mag_y = RAW_IMU.ymag
     mag_z = RAW_IMU.zmag
     if SENSOR_OFFSETS is not None and ofs is not None:
-        mag_x += ofs[0] - SENSOR_OFFSETS.mag_ofs_x
-        mag_y += ofs[1] - SENSOR_OFFSETS.mag_ofs_y
-        mag_z += ofs[2] - SENSOR_OFFSETS.mag_ofs_z
+        #mag_x += ofs[0] - SENSOR_OFFSETS.mag_ofs_x
+        #mag_y += ofs[1] - SENSOR_OFFSETS.mag_ofs_y
+        #mag_z += ofs[2] - SENSOR_OFFSETS.mag_ofs_z
+        mag_x -= SENSOR_OFFSETS.mag_ofs_x
+        mag_y -= SENSOR_OFFSETS.mag_ofs_y
+        mag_z -= SENSOR_OFFSETS.mag_ofs_z
 
     # go via a DCM matrix to match the APM calculation
     dcm_matrix = rotation(ATTITUDE)
