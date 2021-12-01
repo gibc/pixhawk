@@ -1,3 +1,4 @@
+#from _typeshed import Self
 from math import trunc
 from Phidget22.Phidget import *
 from Phidget22.Devices.Accelerometer import *
@@ -6,6 +7,7 @@ from Phidget22.Devices.Magnetometer import *
 from Phidget22.Devices.Spatial import *
 
 import time
+import math
 
 from threading import Thread, Lock
 
@@ -35,6 +37,44 @@ def onSpatialData(self, acceleration, angularRate, magneticField, timestamp):
 	#print("Timestamp: " + str(timestamp))
 	#print("----------")
 
+def onAlgorithmData(self, quaternion, timestamp):
+    #print("Quaternion: " + str(quaternion))
+    #print("Timestamp " + str(timestamp))
+    ea = euler_from_quaternion(quaternion[0],quaternion[1],quaternion[2],quaternion[3])
+    #print("roll " + str(ea[0]))
+    #print("pith " + str(ea[1]))
+    #print("yaw " + str(ea[2]))
+    print('roll {0} pitch {1} yaw {2}'.format(ea[0], ea[1], ea[2]))
+
+def euler_from_quaternion(x, y, z, w):
+    #print('call euler_from_quaternion')
+    """
+    Convert a quaternion into euler angles (roll, pitch, yaw)
+    roll is rotation around x in radians (counterclockwise)
+    pitch is rotation around y in radians (counterclockwise)
+    yaw is rotation around z in radians (counterclockwise)
+    """
+    global roll_x
+    global pitch_y
+    global yaw_z
+    t0 = +2.0 * (w * x + y * z)
+    t1 = +1.0 - 2.0 * (x * x + y * y)
+    roll_x = math.atan2(t0, t1)
+     
+    t2 = +2.0 * (w * y - z * x)
+    t2 = +1.0 if t2 > +1.0 else t2
+    t2 = -1.0 if t2 < -1.0 else t2
+    pitch_y = math.asin(t2)
+     
+    t3 = +2.0 * (w * z + x * y)
+    t4 = +1.0 - 2.0 * (y * y + z * z)
+    yaw = math.atan2(t3, t4)
+    #setyaw(yaw)
+    PhidgetThread._instance.set_yaw(math.degrees(yaw))
+    #print('yaw_z1', 
+    return math.degrees(roll_x), math.degrees(pitch_y), math.degrees(yaw) # in radians
+ 
+
 class PhidgetMag:
 
     def __init__(self, xmag, ymag, zmag):
@@ -62,8 +102,10 @@ class PhidgetThread (Thread):
         self.gyroscope0.setOnAngularRateUpdateHandler(onAngularRateUpdate)
         self.magnetometer0.setOnMagneticFieldChangeHandler(onMagneticFieldChange)
         self.spatial0.setOnSpatialDataHandler(onSpatialData)
+        self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)
 
         self.phidgetMag = PhidgetMag(-1,-1,-1)
+        self.yaw = 0
         self.msglock = Lock()
 
     def run(self):
@@ -84,6 +126,23 @@ class PhidgetThread (Thread):
         self.spatial0.close()
         print("ended PhidgetThread thread")
 
+    def set_yaw(self, yaw):
+        #yaw -= 7
+        if yaw < 0:
+            yaw = 360 + yaw
+        yaw += 7
+        if yaw > 360:
+            yaw = yaw - 360
+        with self.msglock:
+            self.yaw = yaw
+
+    def get_yaw(self):
+        with self.msglock: 
+            yaw = self.yaw
+        return yaw
+
+
+
     def setMagFeild(self, field):
         with self.msglock:
             #print('called setMagFeild')
@@ -94,6 +153,8 @@ class PhidgetThread (Thread):
         with self.msglock:
             field = self.phidgetMag
         
+        print('called getMagFeild')
+        print("MagneticField: \t"+ str(field.xmag) + "  |  " + str(field.ymag)+ "  |  "+ str(field.zmag))
         return field
             
     
@@ -119,10 +180,23 @@ if __name__ == '__main__':
     pdthd = PhidgetThread.get_instance()
     count = 0
     while count < 30:
-        field = pdthd.getMagFeild()
+        yaw = pdthd.get_yaw()
+        print('eulor yaw: ', yaw)
+        
+        """field = pdthd.getMagFeild()
         print('magx {0}, magy {1}, magz {2}'.format(field.xmag, field.ymag, field.zmag))
-        time.sleep(.1)
-        count += 1
+        h = math.atan2(field.xmag, field.ymag)
+        h = math.degrees(h)
+        if h < 0:
+            h = 360 + h
+
+        h += 7
+        if h > 360:
+            h = h - 360
+
+        print('heading ', h)"""
+        time.sleep(.05)
+        #count += 1
     
     pdthd.put_instance()
 

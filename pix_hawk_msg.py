@@ -6,7 +6,7 @@
 #"""
 # Import mavutil
 from posixpath import join
-from re import X
+from re import S, X
 import re
 from pymavlink import mavutil
 #from pymavlink import mavextra
@@ -18,6 +18,8 @@ import os
 import traceback
 from pix_hawk_compass_ops import CompassOps
 import mavextra
+from PhidgetThread import PhidgetThread
+from PhidgetThread import PhidgetMag
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -52,6 +54,7 @@ class mavlinkmsg (Thread):
     def __init__(self):
         Thread.__init__(self)
         #self.compass_ops = CompassOps('mag_params/home_params.txt')
+        self.phigetThread = PhidgetThread.get_instance()
         self.compass_ops = CompassOps('mag_params/new_keik_params.txt')
         self.ATTITUDE = None
         self.RAW_IMU = None
@@ -352,20 +355,31 @@ class mavlinkmsg (Thread):
 
                     
 
-                    #print('xmag_ave ', mavextra.lowpass(msg.xmag, 'xmag_ave', .999))
-                    #print('ymag_ave ', mavextra.lowpass(msg.ymag, 'ymag_ave', .999))
-                    #print('zmag_ave ', mavextra.lowpass(msg.zmag, 'zmag_ave', .999))
+                    
+
+                    #phidgetMags = self.phigetThread.getMagFeild()
+                    #msg.xmag = phidgetMags.xmag * 100
+                    #msg.ymag = phidgetMags.ymag * 100
+                    #msg.zmag = phidgetMags.zmag * 100
+        
+        
 
                     self.RAW_IMU = msg
 
+                    
+                    
+
                     if self.ATTITUDE != None:
                         #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, self.SENSOR_OFFSETS, (0,0,0), s_factor=.97)
-                        heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
+                        #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
+
+                        yaw = self.phigetThread.get_yaw()
 
                         
-                        self.heading = heading
+                        #self.heading = heading
+                        self.heading = yaw
 
-                        print('heading ',heading)
+                        print('heading ',self.heading)
 
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
@@ -567,9 +581,10 @@ class mavlinkmsg (Thread):
                     if self.RAW_IMU != None:
                         #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, self.SENSOR_OFFSETS, (0,0,0), s_factor=.97)
                         
-                        heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
+                        #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
 
-                        self.heading = heading
+                        #self.heading = heading
+                        pass
 
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
@@ -599,10 +614,13 @@ class mavlinkmsg (Thread):
             
             except Exception:
                 self.master.close()
+                self.phigetThread.put_instance()
                 self.put_instance()
+                
                 traceback.print_exc()
                 
         self.master.close()
+        self.phigetThread.put_instance()
         print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):
@@ -672,10 +690,12 @@ if __name__ == '__main__':
         
             time.sleep(.1)
 
+        mavlinkmsg.phigetThread.put_instance()
         mavlinkmsg.put_instance()
         msgthd.join()
 
     except:
+        mavlinkmsg.phigetThread.put_instance()
         mavlinkmsg.put_instance()
         msgthd.join()
 

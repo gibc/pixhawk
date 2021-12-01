@@ -28,7 +28,7 @@ def getyaw():
     return yaw
 
 def yaw2deg(yaw):
-    yawd = math.degrees(yaw)
+    yawd = math.degrees(yaw) + 7
     if yawd < 0:
         yawd = 360+yawd
     return int(yawd)
