@@ -57,6 +57,23 @@ class Math():
         
         return(x, y)
 
+    @classmethod
+    def angle_sum_right(a1, a2):
+        #print('get_sum_right', a1, a2)
+        sum = a1+a2
+        if sum < 360:
+            return sum
+        else:
+            return sum - 360
+
+    @classmethod
+    def angle_dif_right(a1, a2):
+        if a2 > a1:
+            return a2 - a1
+        else:
+            to360 = 360 - a1
+            return to360 + a2
+
 
 
 class KeyBoard(Thread):
