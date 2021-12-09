@@ -1,3 +1,4 @@
+from re import A, S
 import pyglet
 from pyglet import shapes
 from enum import Enum
@@ -141,10 +142,11 @@ class Tape:
                 
             str_wd = self.get_str_wd(self.tick_labels[i].text, 30)
             if self.orient == Orient.HORZ:
-                if self.tick_labels[i].x < self.border_rect.x + str_wd:
+                if self.tick_labels[i].x + str_wd/4 < self.border_rect.x: #+ str_wd:
                     continue
-                if self.tick_labels[i].x > self.border_rect.x+self.border_rect.width - str_wd:
+                if self.tick_labels[i].x - str_wd/4 > self.border_rect.x+self.border_rect.width: #- str_wd:
                     continue
+                pass
             else:
                 if self.tick_labels[i].y < self.border_rect.y:
                     continue
@@ -181,7 +183,11 @@ class Tape:
             if current_val < 10:
                 self.current_val_label.x += 25
             self.current_val_label.text = str(self.round_half_up(current_val,1))
-        self.current_val_label.x = self.get_str_pos_in_rect(str(current_val), self.current_val_rect, Align.RIGHT, 37 )
+        #if self.tape_unit == TapeUnit.DEGREE:
+        #    self.current_val_label.x = self.self.current_val_rect.x
+
+        #self.current_val_label.x = self.get_str_pos_in_rect(str(current_val), self.current_val_rect, Align.RIGHT, 37 )
+        self.current_val_label.x = self.get_str_pos_in_rect(self.current_val_label.text, self.current_val_rect, Align.RIGHT, 37 )
             
         self.current_val_rect.draw()
         self.current_val_label.draw()
@@ -226,6 +232,15 @@ class Tape:
         #if align == Align.LEFT:
         if self.align == Align.LEFT:
             return rect.x
+
+        if self.tape_unit == TapeUnit.DEGREE:
+            wd = self.get_str_wd(string, font_ht)
+           
+            if "<" not in string:
+                wd *= 1.65
+            else:
+                wd *= 1.75
+            return rect.x + rect.width/2 - wd/2
         
         else:
             wd = self.get_str_wd(string, font_ht)
