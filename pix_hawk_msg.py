@@ -54,6 +54,7 @@ class mavlinkmsg (Thread):
     def __init__(self):
         Thread.__init__(self)
         #self.compass_ops = CompassOps('mag_params/home_params.txt')
+        #if start_compass_thread:
         self.phigetThread = PhidgetThread.get_instance()
         self.compass_ops = CompassOps('mag_params/new_keik_params.txt')
         self.ATTITUDE = None
@@ -372,8 +373,10 @@ class mavlinkmsg (Thread):
                     if self.ATTITUDE != None:
                         #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, self.SENSOR_OFFSETS, (0,0,0), s_factor=.97)
                         #heading = mavextra.mag_heading(self.RAW_IMU,self.ATTITUDE, self.declination, s_factor=.97)
-
-                        yaw = self.phigetThread.get_yaw()
+                        if self.phigetThread != None:
+                            yaw = self.phigetThread.get_yaw()
+                        else:
+                            yaw = 0
 
                         
                         #self.heading = heading

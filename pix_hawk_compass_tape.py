@@ -8,20 +8,29 @@ from pix_hawk_tape import TapeUnit
 
 class CompassTape(Tape):
 
-    def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
+    def __init__(self, pyglet_window, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
         print("CompassTape init")
         super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.CENTER, tape_unit=TapeUnit.DEGREE, orient=Orient.HORZ)
+
+        # locate tape at upper left conner of parent window
+        self.current_val_rect.height = self.current_val_rect.height+12
+        self.current_val_rect.width = self.current_val_rect.width+48
+
+        self.border_rect.height = self.current_val_rect.height
+        self.border_rect.width = pyglet_window.width/2
+
+        self.border_rect.x = pyglet_window._x
+        self.border_rect.y = pyglet_window._y + pyglet_window.height - self.border_rect.height
+
+
+        self.current_val_rect.x = self.border_rect.x  + self.border_rect.width/2 - self.current_val_rect.width/2
+        self.current_val_rect.y = self.border_rect.y
 
         self.current_val_label = pyglet.text.Label('****',
                           font_size=50,
                           x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
                           anchor_y='bottom', anchor_x='left')
-
-        self.current_val_rect.height = self.current_val_rect.height+12
-        self.current_val_rect.width = self.current_val_rect.width+48
-
-        self.current_val_rect.x = self.border_rect.x  + self.border_rect.width/2 - self.current_val_rect.width/2
 
         self.tick_labels = []        
         for i in range(tick_count):
@@ -87,7 +96,7 @@ if __name__ == '__main__':
     center_y = window.height/2
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
-    tape = CompassTape(150, 200, 800, 65, 6, 30, align=Align.LEFT, orient=Orient.VERT)
+    tape = CompassTape(window, 150, 200, 800, 65, 6, 30, align=Align.LEFT, orient=Orient.VERT)
     #tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)

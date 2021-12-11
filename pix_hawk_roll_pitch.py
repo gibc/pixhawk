@@ -15,7 +15,7 @@ class RollGague():
         self.roll_tick_labels = []
         self.roll_tick_lines = []
         
-        self.center_x=self.pyglet_window.width/2
+        self.center_x=self.pyglet_window.width/4
         self.center_y=self.pyglet_window.height/2
         self.horz_y = self.center_y
         self.roll_top = self.pyglet_window.height - self.compass_height
@@ -39,7 +39,7 @@ class RollGague():
                           anchor_x='left',
                           anchor_y='center')
 
-        self.horz_rect_size = 1000                  
+        self.horz_rect_size = pyglet_window.width * 1.5              
 
         self.top_rect = shapes.Rectangle(self.center_x, self.center_y, self.horz_rect_size, self.horz_rect_size,  color = (0, 0, 255))
         self.top_rect.anchor_x = self.horz_rect_size/2

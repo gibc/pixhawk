@@ -104,6 +104,11 @@ class PhidgetThread (Thread):
         self.spatial0.setOnSpatialDataHandler(onSpatialData)
         self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)
 
+        self.accelerometer0.openWaitForAttachment(1000)
+        self.gyroscope0.openWaitForAttachment(1000)
+        self.magnetometer0.openWaitForAttachment(1000)
+        self.spatial0.openWaitForAttachment(1000)
+
         self.phidgetMag = PhidgetMag(-1,-1,-1)
         self.yaw = 0
         self.msglock = Lock()
@@ -111,13 +116,17 @@ class PhidgetThread (Thread):
     def run(self):
         #return
         print("started PhidgetThread thread")
-        self.accelerometer0.openWaitForAttachment(5000)
-        self.gyroscope0.openWaitForAttachment(5000)
-        self.magnetometer0.openWaitForAttachment(5000)
-        self.spatial0.openWaitForAttachment(5000)
+        try:
+            #self.accelerometer0.openWaitForAttachment(5000)
+            #self.gyroscope0.openWaitForAttachment(5000)
+            #self.magnetometer0.openWaitForAttachment(5000)
+            #self.spatial0.openWaitForAttachment(5000)
 
-        while PhidgetThread._run_thread:
-            time.sleep(1)
+            while PhidgetThread._run_thread:
+                time.sleep(1)
+
+        except:
+            PhidgetThread.put_instance()
             
 
         self.accelerometer0.close()
@@ -160,17 +169,22 @@ class PhidgetThread (Thread):
     
     @classmethod
     def get_instance(cls):
-        if cls._instance == None:
-            cls._instance = PhidgetThread()
-            cls._run_thread = True
-            cls._instance.start()
-        cls._instance_count += 1
-        return cls._instance
+        try:
+            if cls._instance == None:
+                cls._instance = PhidgetThread()
+                cls._run_thread = True
+                cls._instance.start()
+            cls._instance_count += 1
+            return cls._instance
+        except:
+            cls.put_instance()
+            return None
     
     @classmethod
     def put_instance(cls):
         cls._instance_count -= 1
         if cls._instance_count <= 0:
+            cls._instance_count = 0
             cls._run_thread = False
             cls._instance = None
         
