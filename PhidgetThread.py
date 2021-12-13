@@ -12,7 +12,8 @@ import math
 from threading import Thread, Lock
 
 def onMagneticFieldChange(self, magneticField, timestamp):
-    PhidgetThread._instance.setMagFeild(magneticField)
+    if PhidgetThread._instance != None:
+        PhidgetThread._instance.setMagFeild(magneticField)
     #print("MagneticField: \t"+ str(magneticField[0])+ "  |  "+ str(magneticField[1])+ "  |  "+ str(magneticField[2]))
     #print("Timestamp: " + str(timestamp))
     #print("----------")
@@ -70,7 +71,8 @@ def euler_from_quaternion(x, y, z, w):
     t4 = +1.0 - 2.0 * (y * y + z * z)
     yaw = math.atan2(t3, t4)
     #setyaw(yaw)
-    PhidgetThread._instance.set_yaw(math.degrees(yaw))
+    if PhidgetThread._instance != None:
+        PhidgetThread._instance.set_yaw(math.degrees(yaw))
     #print('yaw_z1', 
     return math.degrees(roll_x), math.degrees(pitch_y), math.degrees(yaw) # in radians
  

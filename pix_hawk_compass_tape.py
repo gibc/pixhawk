@@ -43,7 +43,10 @@ class CompassTape(Tape):
         self.border_rect.color = (0,0,255)
     
 
-    def drawX(self, heading):
+    def draw(self, heading):
+        heading = super().round_half_up(heading, decimals=1)
+        super().draw(heading)
+        return
 
         heading_origin = self.get_90_origin(heading)
 

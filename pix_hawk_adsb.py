@@ -1,3 +1,5 @@
+import pyglet
+from pyglet import shapes
 
 class AdsbDict():
     def __init__(self):
@@ -27,9 +29,6 @@ class AdsbDict():
             return None
         
     
-            
-        
-
 class AdsbVehicle():
     def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading):
         self.icao = icao
@@ -40,6 +39,18 @@ class AdsbVehicle():
         self.h_speed = h_speed
         self.v_speed = v_speed
         self.heading = heading
+
+class AdsbWindow():
+    def __init__(self, pyglet_window, compass_width):
+        x_pos = pyglet_window._x + compass_width
+        wd = pyglet_window.width - compass_width
+        self.border_rect = shapes.BorderedRectangle(x_pos, pyglet_window._x, wd, pyglet_window.height,
+                                                    border=10, color = (0,0, 0),  border_color = (255,255,255))
+
+    def draw(self):
+        self.border_rect.draw()
+
+
 
 if __name__ == '__main__':
     # unit test code
@@ -65,4 +76,27 @@ if __name__ == '__main__':
     print(adsbDict.getVehicle(adsb1.icao).call_sign)
     
     print(len(adsbDict.dict))
+
+   
+    window = pyglet.window.Window(1000,700)
+
+    adsbwin = AdsbWindow(window, 1000/2)
+    
+    def on_draw():
+        window.clear()
+        #rect.draw()
+        adsbwin.draw()
+    
+    def update(dt):
+        x=0
+        #print("dt: ", dt)
+
+    window.on_draw = on_draw
+
+    pyglet.clock.schedule_interval(update, .1)
+    
+    pyglet.app.run()
+
+
+    
     
