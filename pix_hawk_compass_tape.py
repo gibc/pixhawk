@@ -41,6 +41,10 @@ class CompassTape(Tape):
                           anchor_y='bottom', anchor_x='center'))
 
         self.border_rect.color = (0,0,255)
+
+        self.tick_pixels = self.border_rect.width/self.tick_count
+        self.units2pix_scale = self.tick_pixels/self.units_interval
+ 
     
 
     def draw(self, heading):
@@ -87,11 +91,14 @@ if __name__ == '__main__':
     mock_heading = 0
     def mock_data(dt):
         global mock_heading
+        #mock_heading = 0
+        #return
+
         mock_heading += 1
         if(mock_heading >360):
             mock_heading = 0
 
-        pass
+    
 
     window = pyglet.window.Window(1000,700)
     window.on_draw = on_draw
