@@ -92,7 +92,7 @@ if __name__ == '__main__':
     def mock_data(dt):
         global mock_heading
         #mock_heading = 0
-        #return
+        return
 
         mock_heading += 1
         if(mock_heading >360):
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
     
 
-    window = pyglet.window.Window(1000,700)
+    window = pyglet.window.Window(1500,700)
     window.on_draw = on_draw
     center_x = window.width/2
     center_y = window.height/2

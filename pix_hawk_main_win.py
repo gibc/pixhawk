@@ -9,6 +9,7 @@ from pix_hawk_alt_tape import AltTapeLeft
 from pix_hawk_speed_tape import SpeedTapeRight
 from pix_hawk_adsb import AdsbWindow
 from PhidgetThread import PhidgetThread
+from pix_hawk_gps import GPS_Window
 import traceback
 
 class MainWindow():
@@ -33,6 +34,8 @@ class MainWindow():
 
         self.adsb_window = AdsbWindow(self.main_window, self.compass_tape.border_rect.width)
 
+        self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width)
+
         self.phidget_thread = PhidgetThread.get_instance()
 
         self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
@@ -48,14 +51,21 @@ class MainWindow():
         # draw all controls on top of roll gague to overaly top and bot rects
         self.roll_gague.draw(self.ahdata.roll, self.ahdata.pitch)
 
-        yaw = self.phidget_thread.get_yaw()
+        if self.phidget_thread != None:
+            yaw = self.phidget_thread.get_yaw()
+        else:
+            yaw = 0
         self.compass_tape.draw(yaw)
 
         self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb)
 
         self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)
 
+        self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
+
         self.adsb_window.draw()
+
+        
 
     def ex_stop(self):
         print("\033c", end="")
@@ -84,7 +94,7 @@ if __name__ == '__main__':
     # unit test code
 
     try:
-        mw = MainWindow(1500,700, full_screen=False)
+        mw = MainWindow(1500,700, full_screen=True)
 
         pyglet.clock.schedule_interval(mw.update, .1)
 

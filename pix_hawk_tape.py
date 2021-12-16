@@ -201,7 +201,7 @@ class Tape:
             
         rect = shapes.BorderedRectangle(self.x, self.y,  br_wd, br_ht, border=3, color = (100, 100, 100),
                                             border_color = (255,255,255))
-        rect.opacity = 200
+        rect.opacity = 100
         #rect = shapes.Rectangle(self.x, self.y,  br_wd, br_ht, color = (0, 0, 255, 100))
         return rect
     

@@ -24,7 +24,7 @@ from PhidgetThread import PhidgetMag
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
                 fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1,
-                xacc=-1, yacc=-1, zacc=-1):
+                xacc=-1, yacc=-1, zacc=-1, gps_alt=-1):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -43,6 +43,7 @@ class aharsData:
         self.xacc = xacc
         self.yacc = yacc
         self.zacc = zacc
+        self.gps_alt = gps_alt
         
 
 class mavlinkmsg (Thread):
@@ -95,6 +96,7 @@ class mavlinkmsg (Thread):
         self.xacc = -1
         self.yacc = -1
         self.zacc = -1
+        self.gps_alt = -1
 
         self.smothed_heading = 0
 
@@ -528,6 +530,10 @@ class mavlinkmsg (Thread):
                         self.fix_type = fix_type
                         
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
+
+                        self.gps_alt = dic['alt'] * 0.00328084
+                        
+                        
                         #print("gnd_track: ", self.gnd_track)
                         #print("")
             
@@ -633,7 +639,7 @@ class mavlinkmsg (Thread):
         #if(False):
             newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, 
                 self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, 
-                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc)
+                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc, self.gps_alt)
             self.msglock.release()
             return newData
         else:
