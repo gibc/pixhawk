@@ -115,7 +115,8 @@ class Tape:
         self.border_rect.draw()
         
         
-        for i in range (self.tick_count):
+        #for i in range (self.tick_count): allow deived class to override tick count to all commpass to have 7 tick lables
+        for i in range (len(self.tick_labels)):
                 
             nxt = self.get_tick_value(heading_origin, i, self.units_interval)
             print('nxt', nxt)
@@ -129,6 +130,7 @@ class Tape:
             print('****org_offset****', org_offset)
             
             if self.orient == Orient.HORZ:
+                org_offset -= 30 # shift origin to the left to allow 7 tick lables
                 self.tick_labels[i].x = int(self.border_rect.x) + int(self.units2pix_scale*org_offset)
             else:
                 self.tick_labels[i].y = int(self.border_rect.y) + int(self.units2pix_scale*org_offset)
@@ -253,10 +255,12 @@ class Tape:
         #return len(str)*8.5
         
     def get_90_origin(self, a1):
-        if a1 > 90:
-            return a1 - 90
+        #of = 90
+        of = 120
+        if a1 > of:
+            return a1 - of
         else:
-            return 360+(a1-90)
+            return 360+(a1-of)
         
     def get_mph_origin(self, cur_val):
         return cur_val - self.origin_offset
