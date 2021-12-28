@@ -210,7 +210,7 @@ class Wind():
         #print('alt_adj ',alt_adj)
         airspeed = airspeed * alt_adj
         heading_dif = heading - track
-        self.true_airspeed_label.text = 'tas ' + str(int(round(airspeed))) + ' c-t ' + str(int(round(heading_dif)))
+        self.true_airspeed_label.text = 'Wnd:tas ' + str(int(round(airspeed))) #+ ' c-t ' + str(int(round(heading_dif)))
         heading_dif = heading - track
         self.true_airspeed_label.draw()
         #print('airspeed ',airspeed)
@@ -371,8 +371,9 @@ class Wind():
         
         
         self.wind_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
-                                                       self.ht, border=10, color = (0,0,0),
+                                                       self.ht, border=5, color=(100,100,100),
                                                        border_color = (255,255,255))
+        self.wind_rect.opacity = 100                                              
         self.wind_speed_label = pyglet.text.Label('wind speed',
                           font_size=50,
                           x=self.wind_rect.x+200+20,
@@ -401,7 +402,8 @@ class Wind():
         self.true_airspeed_label = pyglet.text.Label('True',
                           font_size=50,
                           x=self.wind_rect.x,
-                          y=self.wind_rect.y+self.ht+50,
+                          y=self.wind_rect.y+self.ht+30,
+                          color=(255,255,0,255),
                           anchor_y='center', anchor_x='left')
         
         
@@ -484,6 +486,13 @@ class Wind():
         """
         
         self.set_wind_comps_text(heading, wind[1], wind[0])
+
+class WindChild(Wind):
+
+    def __init__(self, window, compass_width, x, y, wd, ht):
+        x = window._x + compass_width/2
+        y = window._y + window.height/2 - 2*ht
+        super().__init__(x, y, wd, ht)
         
         
 if __name__ == '__main__':
@@ -610,7 +619,7 @@ if __name__ == '__main__':
 
         
     #window = pyglet.window.Window(1900,1000,fullscreen=True)
-    window = pyglet.window.Window(900,400)
+    window = pyglet.window.Window(900,700)
 
     def key_press(symbol, modifiers):
         print("key press")
@@ -624,7 +633,8 @@ if __name__ == '__main__':
     center_x = window.width/2
     center_y = window.height/2
     
-    wind = Wind(0, 100, 350, 160)
+    #wind = Wind(0, 100, 350, 160)
+    wind = WindChild(window, 500, 0, 100, 350, 160)
     rect = shapes.BorderedRectangle(0,0, window.width, window.height, border=10, color = (0, 0, 0),
                                             border_color = (255,255,255))
     

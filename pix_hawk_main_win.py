@@ -1,3 +1,4 @@
+from re import S
 import pyglet
 from pyglet import clock
 import pix_hawk_msg
@@ -10,6 +11,7 @@ from pix_hawk_speed_tape import SpeedTapeRight
 from pix_hawk_adsb import AdsbWindow
 from PhidgetThread import PhidgetThread
 from pix_hawk_gps import GPS_Window
+from pix_hawk_wind import WindChild
 import traceback
 
 class MainWindow():
@@ -35,6 +37,8 @@ class MainWindow():
         self.adsb_window = AdsbWindow(self.main_window, self.compass_tape.border_rect.width)
 
         self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width)
+
+        self.wind_gague = WindChild(self.main_window, self.compass_tape.border_rect.width, 0, 0, 350, 160)
 
         self.phidget_thread = PhidgetThread.get_instance()
 
@@ -62,6 +66,9 @@ class MainWindow():
         self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)
 
         self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
+
+        #draw_calc(self, airspeed, heading, gnd_speed, gnd_track, altitude):
+        self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
 
         self.adsb_window.draw()
 

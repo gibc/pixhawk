@@ -10,7 +10,6 @@ class CompassTape(Tape):
 
     def __init__(self, pyglet_window, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
         print("CompassTape init")
-        #tick_count += 1 # TAKE OUT
         super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.CENTER, tape_unit=TapeUnit.DEGREE, orient=Orient.HORZ)
 
         # locate tape at upper left conner of parent window
