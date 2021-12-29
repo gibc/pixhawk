@@ -9,8 +9,8 @@ class GPS_Window():
         y_pos = pyglet_window._y
         
         self.border_rect = shapes.BorderedRectangle(x_pos, y_pos, rect_width, rect_ht,
-                                                    border=5, color = (100, 100, 100),  border_color = (255,255,255))
-        self.border_rect.opacity = 100
+                                                    border=5, color = (0, 0, 0),  border_color = (255,255,255))
+        self.border_rect.opacity = 255
 
         label_width = 150
 

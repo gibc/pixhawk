@@ -371,9 +371,9 @@ class Wind():
         
         
         self.wind_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
-                                                       self.ht, border=5, color=(100,100,100),
+                                                       self.ht, border=5, color=(0,0,0),
                                                        border_color = (255,255,255))
-        self.wind_rect.opacity = 100                                              
+        self.wind_rect.opacity = 255                                              
         self.wind_speed_label = pyglet.text.Label('wind speed',
                           font_size=50,
                           x=self.wind_rect.x+200+20,

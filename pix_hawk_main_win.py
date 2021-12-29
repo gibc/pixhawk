@@ -1,4 +1,10 @@
-from re import S
+
+"""NOTE!!!!
+this script started from
+/etc/xdg/lxsession/LXDE-pi/autostart
+xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
+"""
+#from re import S
 import pyglet
 from pyglet import clock
 import pix_hawk_msg

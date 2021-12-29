@@ -8,6 +8,7 @@ import select
 import tty
 from math import sin, cos, radians, fmod
 import numpy as np
+import math
 
 class Math():
 
@@ -73,6 +74,8 @@ class Math():
         else:
             to360 = 360 - a1
             return to360 + a2
+
+    
 
 
 
