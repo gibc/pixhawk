@@ -1,4 +1,5 @@
 from re import A, M
+from threading import Event
 from tkinter.constants import W
 import pyglet
 from pyglet import clock
@@ -15,8 +16,8 @@ class Aoa():
     def __init__(self, window, compass_width, wd, ht, stripe_count):
         self.wd = wd
         self.ht = ht
-        self.x = window._x + compass_width/2
-        self.y = window._y + window.height/2
+        self.x = window._x + compass_width/8
+        self.y = window._y + window.height * (.2)
         self.stripe_ht = ht/stripe_count
 
         self.border_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
@@ -49,26 +50,49 @@ class Aoa():
     def round_half_up(self, n, decimals=0):
         multiplier = 10 ** decimals
         ret = floor(n*multiplier + 0.5) / multiplier
+        if decimals == 0:
+            ret = int(ret)
         return ret
         
     def draw(self, airspeed_, climb, pitch):
-        pix_per_degree = self.border_rect.height/10
+        try:
+            #if airspeed_ == 0 or climb == 0 or pitch == 0:
+            #    self.border_rect.draw() 
+            #    return
+            if airspeed_ < 30:
+                airspeed_  = 30
+            if climb == 0:
+                climb = .1
+            if pitch == 0:
+                pitch = .1
+
+            pix_per_degree = self.border_rect.height/10
         # convert mph to feet per min
-        airspeed = airspeed_ * 88
-        air_sin = climb/airspeed
-        air_angle = math.asin(air_sin)
-        air_angle = math.degrees(air_angle)
-        aoax = pitch - air_angle
-        aoa_pix = aoax*pix_per_degree
+            airspeed = airspeed_ * 88
+            air_sin = climb/airspeed
+            if abs(air_sin) > 1:
+                air_sin = 0
+            air_angle = math.asin(air_sin)
+            air_angle = math.degrees(air_angle)
+            aoax = pitch - air_angle
+            aoa_pix = aoax*pix_per_degree
+
+            if aoax < 0:
+                aoax = 0
     
-        self.aoa_label.text = str(self.round_half_up(aoax,1)) +':'+str(airspeed_)+':'+str(climb)+':'+str(pitch)
-        #self.border_rect.draw()
-        for i in range(0,len(self.stripe_rects)):
-            rect = self.stripe_rects[i]
-            if i*self.stripe_ht <= aoa_pix:
-                rect.draw()
-            #rect.draw()
-        self.aoa_label.draw()
+            self.aoa_label.text = str(self.round_half_up(aoax,1)) #+':'+str(airspeed_)+':'+str(climb)+':'+str(pitch)
+            self.stripe_rects[0].draw()
+            for i in range(0,len(self.stripe_rects)):
+                rect = self.stripe_rects[i]
+                if i*self.stripe_ht <= aoa_pix:
+                    rect.draw()
+            
+            self.aoa_label.draw()
+
+        except Exception as ex:
+            self.border_rect.draw()
+            self.aoa_label.text = str(ex)
+            self.aoa_label.draw()
 
 if __name__ == '__main__':
 

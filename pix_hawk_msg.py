@@ -629,7 +629,8 @@ class mavlinkmsg (Thread):
                 traceback.print_exc()
                 
         self.master.close()
-        self.phigetThread.put_instance()
+        if self.phigetThread != None:
+            self.phigetThread.put_instance()
         print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):
