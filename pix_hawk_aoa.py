@@ -1,4 +1,4 @@
-from re import A
+from re import A, M
 from tkinter.constants import W
 import pyglet
 from pyglet import clock
@@ -6,6 +6,7 @@ from pyglet import shapes
 import math
 from math import floor
 import traceback
+from pix_hawk_test import MockVar
 #from pix_hawk_util import Math
 
 
@@ -50,17 +51,17 @@ class Aoa():
         ret = floor(n*multiplier + 0.5) / multiplier
         return ret
         
-    def draw(self, airspeed, climb, pitch):
+    def draw(self, airspeed_, climb, pitch):
         pix_per_degree = self.border_rect.height/10
         # convert mph to feet per min
-        airspeed = airspeed * 88
+        airspeed = airspeed_ * 88
         air_sin = climb/airspeed
         air_angle = math.asin(air_sin)
         air_angle = math.degrees(air_angle)
         aoax = pitch - air_angle
         aoa_pix = aoax*pix_per_degree
     
-        self.aoa_label.text = str(self.round_half_up(aoax,1))
+        self.aoa_label.text = str(self.round_half_up(aoax,1)) +':'+str(airspeed_)+':'+str(climb)+':'+str(pitch)
         #self.border_rect.draw()
         for i in range(0,len(self.stripe_rects)):
             rect = self.stripe_rects[i]
@@ -79,15 +80,22 @@ if __name__ == '__main__':
 
     def on_draw():
         window.clear()
-        #rect.draw()
-        aoa_gague.draw(80, 100, 5)
+        aoa_gague.draw(speed.current, climb.current, pitch.current)
     
     def update(dt):
         x=0
         #print("dt: ", dt)
 
+    def mock_data(dt):
+        pitch.inc_var()
+
     window.on_draw = on_draw
 
+    speed = MockVar(50,150,10)
+    climb = MockVar(-1000,1000, 100, speed)
+    pitch = MockVar(-15,+15, 1, climb)
+
     pyglet.clock.schedule_interval(update, .1)
+    pyglet.clock.schedule_interval(mock_data, .1)
     
     pyglet.app.run()
