@@ -18,14 +18,16 @@ import math
 import pyaudio
 import matplotlib.pyplot as plt
 
+import time
+
 strattime = 0
 endtime = 5
 sampelrate = 48000
-time = np.arange(strattime, endtime, 1/sampelrate)
+time_ = np.arange(strattime, endtime, 1/sampelrate)
 theta = 0
 freq = 440
 amp = .25
-sinewave = amp * np.sin(2 * np.pi * freq * time + theta)
+sinewave = amp * np.sin(2 * np.pi * freq * time_ + theta)
 plt.plot(sinewave)
 plt.show()
 
@@ -44,7 +46,7 @@ t = arange(0, T * sample_rate, T)
 
 # generate sine wave notes
 A_note = np.sin(A_freq * t * 2 * np.pi)
-sinewave = amp * np.sin(2 * np.pi * 1000 * time)
+sinewave = amp * np.sin(2 * np.pi * 1000 * time_)
 
 
 Csh_note = np.sin(Csh_freq * t * 2 * np.pi)
@@ -57,19 +59,34 @@ audio *= 32767 / np.max(np.abs(audio))
 # convert to 16-bit data
 audio = audio.astype(np.int16)
 
+data = sinewave.astype(np.float32).tobytes()
+def call_back(in_data, fm_cnt, time_info, status_flag):
+    print('fm_cnt: ', fm_cnt)
+    return(data, pyaudio.paContinue)
+    
+
 p = pyaudio.PyAudio()
 
 stream = p.open(format=pyaudio.paFloat32,
                          channels=1,
                          rate=sample_rate,
                          output=True,
-                         output_device_index=2
+                         output_device_index=2,
+                         frames_per_buffer=16*2048,
+                         stream_callback=call_back
                          )
 # Assuming you have a numpy array called samples
-data = sinewave.astype(np.float32).tobytes()
-stream.write(data)
+#data = sinewave.astype(np.float32).tobytes()
+#stream.write(data)
+stream.start_stream()
+
+time.sleep(2)
+
+stream.stop_stream()
+
 stream.close()
 p.terminate()
+
 
 # start playback
 #play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
