@@ -113,6 +113,10 @@ class MainWindow():
             if not PhidgetThread._run_thread:
                 self.phidget_thread.join()
 
+        if self.aoa_gague != None:
+            self.aoa_gague.close()
+
+
         pyglet.app.exit()
         quit() #exit the python interpretor
 

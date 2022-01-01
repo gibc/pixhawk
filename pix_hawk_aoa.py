@@ -8,6 +8,7 @@ import math
 from math import floor
 import traceback
 from pix_hawk_test import MockVar
+from pix_hawk_sound import SoundThread
 #from pix_hawk_util import Math
 
 
@@ -19,7 +20,9 @@ class Aoa():
         self.x = window._x + compass_width/8
         self.y = window._y + window.height * (.2)
         self.stripe_ht = ht/stripe_count
-
+        self.sound = SoundThread.get_instance()
+        self.stall_aoa_range = 8
+        self.stall_aoa_start = 8
         self.border_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
                                                        self.ht, border=0, color=(0,0,0),
                                                        border_color = (255,255,255))
@@ -46,6 +49,8 @@ class Aoa():
             rect.anchor_x = rect.width/2
             #rect.anchor_y = 'bottom'
             self.stripe_rects.append(rect)
+
+    
 
     def round_half_up(self, n, decimals=0):
         multiplier = 10 ** decimals
@@ -79,6 +84,8 @@ class Aoa():
 
             if aoax < 0:
                 aoax = 0
+
+            self.set_tone(aoax)
     
             self.aoa_label.text = str(self.round_half_up(aoax,1)) #+':'+str(airspeed_)+':'+str(climb)+':'+str(pitch)
             self.stripe_rects[0].draw()
@@ -93,6 +100,20 @@ class Aoa():
             self.border_rect.draw()
             self.aoa_label.text = str(ex)
             self.aoa_label.draw()
+
+    def set_tone(self, aoa):
+        if(self.sound != None):
+            if aoa >= self.stall_aoa_start:
+                volume = (aoa - self.stall_aoa_start) / self.stall_aoa_range
+                if volume > 1:
+                    volume = 1
+                self.sound.start_tone(volume)
+            else:
+                self.sound.stop_tone()
+
+    def close(self):
+        if self.sound != None:
+            SoundThread.put_instance()
 
 if __name__ == '__main__':
 
