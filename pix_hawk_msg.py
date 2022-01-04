@@ -20,6 +20,7 @@ from pix_hawk_compass_ops import CompassOps
 import mavextra
 from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
+from pix_hawk_adsb import AdsbDict, AdsbVehicle
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -57,6 +58,7 @@ class mavlinkmsg (Thread):
         #self.compass_ops = CompassOps('mag_params/home_params.txt')
         #if start_compass_thread:
         self.phigetThread = PhidgetThread.get_instance()
+        self.adsb_dic = AdsbDict.get_instance()
         self.compass_ops = CompassOps('mag_params/new_keik_params.txt')
         self.ATTITUDE = None
         self.RAW_IMU = None
@@ -127,7 +129,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 20)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 20)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 10)
@@ -471,10 +473,18 @@ class mavlinkmsg (Thread):
                     dic = msg.to_dict()
                     callsign = dic['callsign']
                     print("callsign: ", callsign)
+                    adsb_heading = dic['heading']
+                    hor_velocity = dic['hor_velocity']
+                    ver_velocity = dic['ver_velocity']
+                    lat = dic['lat']
+                    lon = dic['lon']
                     adsb_altitude = .00328 * dic['altitude']
                     print("adsb_altitude: ", adsb_altitude)
                     ICAO_address = dic['ICAO_address']
                     print("ICAO_address: ", ICAO_address)
+                    #def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading):
+                    vh = AdsbVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+                    self.adsb_dic.updateVehicle(vh)
                 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -624,6 +634,8 @@ class mavlinkmsg (Thread):
             except Exception:
                 self.master.close()
                 self.phigetThread.put_instance()
+                if self.adsb_dic != None:
+                    self.adsb_dic.put_instance()
                 self.put_instance()
                 
                 traceback.print_exc()
@@ -631,6 +643,8 @@ class mavlinkmsg (Thread):
         self.master.close()
         if self.phigetThread != None:
             self.phigetThread.put_instance()
+        if self.adsb_dic != None:
+            self.adsb_dic.put_instance()
         print("stopped mavlinkmsg thread")
             
     def getAharsData(self, inData):
