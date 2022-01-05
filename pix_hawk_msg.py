@@ -25,7 +25,7 @@ from pix_hawk_adsb import AdsbDict, AdsbVehicle
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
                 fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1,
-                xacc=-1, yacc=-1, zacc=-1, gps_alt=-1):
+                xacc=-1, yacc=-1, zacc=-1, gps_alt=-1, lat=-1, lon=-1):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -36,6 +36,8 @@ class aharsData:
         self.airspeed = airspeed
         self.fix_type = fix_type
         self.gnd_track = gnd_track
+        self.lat = lat
+        self.lon = lon
         self.wind_speed = wind_speed
         self.wind_dir = wind_dir
         self.xmag = xmag
@@ -59,6 +61,7 @@ class mavlinkmsg (Thread):
         #if start_compass_thread:
         self.phigetThread = PhidgetThread.get_instance()
         self.adsb_dic = AdsbDict.get_instance()
+        self.vh = None
         self.compass_ops = CompassOps('mag_params/new_keik_params.txt')
         self.ATTITUDE = None
         self.RAW_IMU = None
@@ -74,6 +77,8 @@ class mavlinkmsg (Thread):
         self.groundspeed = 0
         self.airspeed = 0
         self.fix_type = 0
+        self.lat = 0
+        self.lon = 0
         self.wind_speed = 0
         self.wind_dir = 0
         self.gnd_track = 0
@@ -471,20 +476,22 @@ class mavlinkmsg (Thread):
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
                     dic = msg.to_dict()
-                    callsign = dic['callsign']
+                    callsign = str(dic['callsign'])
                     print("callsign: ", callsign)
-                    adsb_heading = dic['heading']
+                    adsb_heading = dic['heading'] / 100 # to degrees from hundreth?
                     hor_velocity = dic['hor_velocity']
                     ver_velocity = dic['ver_velocity']
-                    lat = dic['lat']
-                    lon = dic['lon']
+                    lat = dic['lat']/10000000
+                    lon = dic['lon']/10000000
                     adsb_altitude = .00328 * dic['altitude']
                     print("adsb_altitude: ", adsb_altitude)
-                    ICAO_address = dic['ICAO_address']
+                    ICAO_address = str(dic['ICAO_address'])
                     print("ICAO_address: ", ICAO_address)
                     #def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading):
-                    vh = AdsbVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-                    self.adsb_dic.updateVehicle(vh)
+                    #self.vh = AdsbVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+                    #if not str(ICAO_address) in self.adsb_dic.dict:
+                    #    self.vh = AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+                    self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
                 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -526,10 +533,10 @@ class mavlinkmsg (Thread):
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         dic = msg.to_dict()
-                        lat = dic['lat']/10000000
+                        self.lat = dic['lat']/10000000
                     
-                        lon = dic['lon']/10000000
-                        mag_data = mavextra.get_mag_field_ef(lat, lon)
+                        self.lon = dic['lon']/10000000
+                        mag_data = mavextra.get_mag_field_ef(self.lat, self.lon)
                     
                         self.declination = mag_data[0]
                     
@@ -542,10 +549,12 @@ class mavlinkmsg (Thread):
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
 
                         self.gps_alt = dic['alt'] * 0.00328084
+
+                        vel = dic['vel']
                         
                         
-                        #print("gnd_track: ", self.gnd_track)
-                        #print("")
+                        
+                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track)
             
                 if msg.get_type() == 'VFR_HUD':
                     with self.msglock:
@@ -654,7 +663,7 @@ class mavlinkmsg (Thread):
         #if(False):
             newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, 
                 self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, 
-                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc, self.gps_alt)
+                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc, self.gps_alt, self.lat, self.lon)
             self.msglock.release()
             return newData
         else:

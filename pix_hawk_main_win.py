@@ -32,6 +32,8 @@ class MainWindow():
             self.on_draw = self.main_window.event(self.on_draw)
             self.main_window.on_close = self.on_close
 
+            self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
+
             self.ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
             self.compass_tape = CompassTape(self.main_window, 150, 200, 800, 65, 6, 30, align=Align.LEFT, orient=Orient.VERT)
@@ -43,7 +45,7 @@ class MainWindow():
             self.speed_tape = SpeedTapeRight(self.main_window, self.compass_tape.border_rect.height, self.compass_tape.border_rect.width, 
                 150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
 
-            self.adsb_window = AdsbWindow(self.main_window, self.compass_tape.border_rect.width)
+            self.adsb_window = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width)
 
             self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width)
 
@@ -53,7 +55,7 @@ class MainWindow():
 
             self.phidget_thread = PhidgetThread.get_instance()
 
-            self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
+            #self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
 
         except Exception:
             self.ex_stop()
