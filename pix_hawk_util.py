@@ -13,6 +13,24 @@ import math
 class Math():
 
     @classmethod
+    def get_bearing(cls, lat1, long1, lat2, long2):
+        #if(abs(lat1 - lat2) < .00001 or abs(long1 - long2) < .00001):
+            #return -1
+        dLon = (long2 - long1)
+        x = math.cos(math.radians(lat2)) * math.sin(math.radians(dLon))
+        y = math.cos(math.radians(lat1)) * math.sin(math.radians(lat2)) - math.sin(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.cos(math.radians(dLon))
+        brng = np.arctan2(x,y)
+        brng = np.degrees(brng)
+
+        brng = (brng + 360) % 360
+        #brng -=90
+        #if brng < 0:
+        #    brng = 360 - brng
+
+        return brng
+
+
+    @classmethod
     def rotate_point(cls, point, angle, center_point=(0, 0)):
         """Rotates a point around center_point(origin by default)
         Angle is in degrees.

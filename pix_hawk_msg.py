@@ -8,6 +8,7 @@
 from posixpath import join
 from re import S, X
 import re
+from numpy import float32
 from pymavlink import mavutil
 #from pymavlink import mavextra
 
@@ -134,7 +135,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 20)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 20)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 20)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 10)
@@ -475,10 +476,36 @@ class mavlinkmsg (Thread):
                 if msg.get_type() == 'ADSB_VEHICLE':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
+                    """
+                    1	ADSB_FLAGS_VALID_COORDS	
+                    2	ADSB_FLAGS_VALID_ALTITUDE	
+                    4	ADSB_FLAGS_VALID_HEADING	
+                    8	ADSB_FLAGS_VALID_VELOCITY	
+                    16	ADSB_FLAGS_VALID_CALLSIGN	
+                    32	ADSB_FLAGS_VALID_SQUAWK	
+                    64	ADSB_FLAGS_SIMULATED	
+                    128	ADSB_FLAGS_VERTICAL_VELOCITY_VALID	
+                    256	ADSB_FLAGS_BARO_VALID	
+                    32768	ADSB_FLAGS_SOURCE_UAT
+                    """	
                     dic = msg.to_dict()
+
+                    flags = dic['flags']
+
+                    fstr = "{0:b}".format(flags)
+
+                    cord_valid = flags & 1 == 1
+                    call_sign_valid = flags & 10 == 10
+                    heading_valid = flags & 4 == 4
+
                     callsign = str(dic['callsign'])
                     print("callsign: ", callsign)
                     adsb_heading = dic['heading'] / 100 # to degrees from hundreth?
+                    #adsb_heading -= 90
+                    #if adsb_heading < 0:
+                    #    adsb_heading = 360 + adsb_heading
+                    adsb_heading = int(adsb_heading)
+                    
                     hor_velocity = dic['hor_velocity']
                     ver_velocity = dic['ver_velocity']
                     lat = dic['lat']/10000000
@@ -491,8 +518,13 @@ class mavlinkmsg (Thread):
                     #self.vh = AdsbVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
                     #if not str(ICAO_address) in self.adsb_dic.dict:
                     #    self.vh = AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-                    self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-                
+                    if cord_valid and heading_valid and call_sign_valid:
+                        self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                            adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
+                    else:
+                        self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                            adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
+                        print("bad adsb message **************************")
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
                         dic = msg.to_dict()
@@ -553,8 +585,13 @@ class mavlinkmsg (Thread):
                         vel = dic['vel']
                         
                         
-                        
-                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, 180, True) #self.gnd_track)
+                        """
+                        self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt, 0, 0, 90) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt, 0, 0, 180) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234c', "TOP", self.lat, self.lon+.05, self.gps_alt, 0, 0, 270) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234d', "BOT", self.lat, self.lon-.05, self.gps_alt, 0, 0, 360) #self.gnd_track)
+                        """
             
                 if msg.get_type() == 'VFR_HUD':
                     with self.msglock:

@@ -1,11 +1,46 @@
-from re import A, M, S
+from re import A, L, M, S
 import pyglet
 from pyglet import shapes
 from threading import Lock, Thread
 import time
 import math
+from mavextra import gps_offset
 from pix_hawk_util import Math
 import numpy
+
+"""
+1	ADSB_FLAGS_VALID_COORDS	
+2	ADSB_FLAGS_VALID_ALTITUDE	
+4	ADSB_FLAGS_VALID_HEADING	
+8	ADSB_FLAGS_VALID_VELOCITY	
+16	ADSB_FLAGS_VALID_CALLSIGN	
+32	ADSB_FLAGS_VALID_SQUAWK	
+64	ADSB_FLAGS_SIMULATED	
+128	ADSB_FLAGS_VERTICAL_VELOCITY_VALID	
+256	ADSB_FLAGS_BARO_VALID	
+32768	ADSB_FLAGS_SOURCE_UAT	
+
+
+ADSB_VEHICLE ( #246 )
+[Message] The location and information of an ADSB vehicle
+
+Field Name	Type	Units	Values	Description
+ICAO_address	uint32_t			ICAO address
+lat	int32_t	degE7		Latitude
+lon	int32_t	degE7		Longitude
+altitude_type	uint8_t		ADSB_ALTITUDE_TYPE	ADSB altitude type.
+altitude	int32_t	mm		Altitude(ASL)
+heading	uint16_t	cdeg		Course over ground
+hor_velocity	uint16_t	cm/s		The horizontal velocity
+ver_velocity	int16_t	cm/s		The vertical velocity. Positive is up
+callsign	char[9]			The callsign, 8+null
+emitter_type	uint8_t		ADSB_EMITTER_TYPE	ADSB emitter type.
+tslc	uint8_t	s		Time since last communication in seconds
+flags	uint16_t		ADSB_FLAGS	Bitmap to indicate various statuses including valid data fields
+squawk	uint16_t			Squawk code
+
+"""
+
 
 class AdsbDict():
     _instance = None
@@ -48,12 +83,28 @@ class AdsbDict():
                 self.dict[str(vehicle.icao)] = vehicle
     
     #AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-    def updateVehicle(self, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading):
+    def updateVehicle(self, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid):
         with self.lock:
             if not icao in self.dict:
+                if not all_valid:
+                    return
                 self.dict[str(icao)] = AdsbVehicle(icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
                 self.dict[str(icao)].time = time.time()
             else:
+                #heading = Math.get_bearing(self.dict[str(icao)].lat, self.dict[str(icao)].lon, lat, lon)
+                #heading = Math.get_bearing(lat, lon, self.dict[str(icao)].lat, self.dict[str(icao)].lon)
+                #if heading < 0:
+                    #heading = adsb_heading
+                #print('lat lon heading ********', heading)
+                if not all_valid:
+                    self.dict[str(icao)].retry_count -= 1
+                    if self.dict[str(icao)].retry_count <= 0:
+                        del self.dict[str(icao)]
+                        return
+
+                if icao != 'myicao1234':
+                    self.dict[str(icao)].update_tail(lat,lon)
+                self.dict[str(icao)].retry_count = 3
                 self.dict[str(icao)].icao = icao
                 self.dict[str(icao)].call_sign = callsign
                 self.dict[str(icao)].lat = lat
@@ -62,6 +113,7 @@ class AdsbDict():
                 self.dict[str(icao)].h_speed = hor_velocity
                 self.dict[str(icao)].v_speed = ver_velocity
                 self.dict[str(icao)].heading = adsb_heading
+                #self.dict[str(icao)].heading = int(heading)
                 self.dict[str(icao)].time = time.time()
             
     def getVehicle(self, icao):
@@ -101,23 +153,60 @@ class AdsbVehicle():
         self.heading = heading
         self.time = time.time()
         self.vh_label2 = None
+        self.fuse_line = None
+        self.wing_line = None
+        self.retry_count = 3
+        self.tail_list = []
         
-    def draw(self, x_pos, y_pos, gps_alt, gps_track):
+
+    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite):
         
         try:
             if self.vh_label2 == None:
                 self.vh_label2 = pyglet.text.Label('****',
-                          font_size=30,
+                          font_size=20,
                           x=0,
                           y=0,
                           anchor_y='bottom', anchor_x='center')
+            if self.fuse_line == None:
+                self.fuse_line = shapes.Line(0,    30, 0,   -30, 3, color = (0, 255, 0))
+            if self.wing_line == None:
+                self.wing_line = shapes.Line(20,    10, -20,   10,  3, color = (255, 0, 0))
+            
             self.vh_label2.x = x_pos
             self.vh_label2.y = y_pos
             lsrt = str(self.icao)
-            self.vh_label2.text = self.call_sign
+            alt_dif = int(self.altitude/1000 - gps_alt / 1000)
+            self.vh_label2.text = str(alt_dif)  #+ ':' + self.call_sign #str(self.heading) + ':' + self.call_sign
+            #self.vh_label2.draw()
+            #self.fuse_line.anchor_x = x_pos
+            #self.fuse_line.anchor_y = y_pos
+            #self.fuse_line.draw()
+
+            self.wing_line.position = (20+x_pos, 10+y_pos, -20+x_pos, 10+y_pos)
+            #self.wing_line.position = self.get_line_pos(self.wing_line.position, x_pos, y_pos)
+            #self.wing_line.draw()
+            sprite.scale = 1
+            sprite.rotation = self.heading
+            sprite.position = x_pos, y_pos
+            #sprite.draw()
             self.vh_label2.draw()
+            line = shapes.Line(x_pos, y_pos, x_pos+8, y_pos+8, 10, color=(255,0,0))
+            line.draw()
         except Exception as ex:
             print(ex)
+
+    def get_line_pos(self, line_pos, x_pos, y_pos):
+        x = (line_pos[0] + x_pos)
+        y = (line_pos[1] + y_pos)
+        x2 = (line_pos[2] + x_pos)
+        y2 = (line_pos[3] + y_pos)
+        return x,y,x2,y2
+
+    def update_tail(self, lat, lon):
+        self.tail_list.insert(0, (lat,lon))
+        if len(self.tail_list) > 20:
+            self.tail_list.pop()
         
 
 class AdsbWindow():
@@ -145,6 +234,10 @@ class AdsbWindow():
         self.win_max_miles = 1.5
         self.win_x_org = x_pos + self.border_rect.width / 2
         self.win_y_org = pyglet_window._y + self.border_rect.height / 2
+        self.arrow_image = pyglet.image.load('/home/pi/Downloads/_arrow.jpg')
+        self.arrow_image.anchor_x = int(50/2)
+        self.arrow_image.anchor_y = int(100/2)
+        self.arrow_sprite = pyglet.sprite.Sprite(self.arrow_image, x=150, y=150)
 
     def latlon_distance(self, lat1, lon1, lat2, lon2):
         origin = (lat1,lon1)
@@ -169,9 +262,34 @@ class AdsbWindow():
         brng = numpy.arctan2(x,y)
         brng = numpy.degrees(brng)
 
+        brng = (brng + 360) % 360
+
         return brng
 
+    def get_pixel_pos(self, N423DS, lat, lon, gps_lat, gps_lon):
 
+        angle = Math.get_bearing(N423DS.lat, N423DS.lon, lat, lon)
+
+        dist = self.latlon_distance(N423DS.lat, N423DS.lon, lat, lon)
+
+        xy = Math.pol2cart(dist, angle)
+
+        x_miles = (lon-gps_lon) * self.miles_per_degree_lon
+        x_pos = x_miles/self.win_max_miles * self.border_rect.width + self.win_x_org
+
+        y_miles = (lat - gps_lat) * self.miles_per_degree_lat
+        y_pos = y_miles/self.win_max_miles
+        y_pos = y_pos * self.border_rect.height + self.win_y_org
+
+               
+
+        pix_mile_x = .75/4 * self.border_rect.width/2
+        pix_mile_y = .75/4* self.border_rect.height/2
+
+        x_pos = pix_mile_x*xy[0]+self.border_rect.x+self.border_rect.width/2
+        y_pos = pix_mile_y*xy[1]+self.border_rect.y+self.border_rect.height/2
+
+        return (x_pos, y_pos)
 
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
         self.border_rect.draw()
@@ -189,16 +307,17 @@ class AdsbWindow():
                 vh = self.adsb_dic.dict[key]
                 dist = self.latlon_distance(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
                 #vh = self.adsb_dic.getVehicle(key)
-                if time.time() - vh.time > 30:
+                if time.time() - vh.time > 10:
                     del_list.append(vh.icao)
                     continue
 
                 dist = self.latlon_distance(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
                 print('distance', dist)
-                if dist > 10:
+                if dist > 5:
                    continue
 
-                angle = self.get_bearing(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
+                """#angle = self.get_bearing(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
+                angle = Math.get_bearing(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
 
                 xy = Math.pol2cart(dist, angle)
 
@@ -209,18 +328,26 @@ class AdsbWindow():
                 y_pos = y_miles/self.win_max_miles
                 y_pos = y_pos * self.border_rect.height + self.win_y_org
 
-                #sico = str(vh.icao)
-                #self.vh_icao.text = sico
-                #self.vh_icao.draw()
-
                 pix_mile_x = .75/4 * self.border_rect.width/2
                 pix_mile_y = .75/4* self.border_rect.height/2
 
                 x_pos = pix_mile_x*xy[0]+self.border_rect.x+self.border_rect.width/2
                 y_pos = pix_mile_y*xy[1]+self.border_rect.y+self.border_rect.height/2
+                """
+
+                x_pos, y_pos = self.get_pixel_pos(N423DS, vh.lat, vh.lon, gps_lat, gps_lon)
 
 
-                vh.draw(x_pos, y_pos, gps_alt, gps_track)
+                #vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite)
+
+                for pos in vh.tail_list:
+                    xy = self.get_pixel_pos(N423DS, pos[0], pos[1], gps_lat, gps_lon)
+                    #dot = shapes.Circle(xy[0], xy[0], 20, color=(255,0,0))
+                    line = shapes.Line(xy[0], xy[1], xy[0]+5, xy[1]+5, 5, color=(0,255,0))
+                    #dot.draw()
+                    line.draw()
+                
+                vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite)
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
@@ -264,7 +391,7 @@ if __name__ == '__main__':
     #print(len(adsbDict.dict))
 
    
-    window = pyglet.window.Window(1000,700)
+    window = pyglet.window.Window(1200,700)
 
     adsbwin = AdsbWindow(msg_thread.adsb_dic, window, 1000/2)
     
