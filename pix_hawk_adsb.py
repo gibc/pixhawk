@@ -159,7 +159,7 @@ class AdsbVehicle():
         self.tail_list = []
         
 
-    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite):
+    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance):
         
         try:
             if self.vh_label2 == None:
@@ -176,7 +176,7 @@ class AdsbVehicle():
             self.vh_label2.x = x_pos
             self.vh_label2.y = y_pos
             lsrt = str(self.icao)
-            alt_dif = int(self.altitude/1000 - gps_alt / 1000)
+            alt_dif = int(self.altitude/100 - gps_alt / 100)
             self.vh_label2.text = str(alt_dif)  #+ ':' + self.call_sign #str(self.heading) + ':' + self.call_sign
             #self.vh_label2.draw()
             #self.fuse_line.anchor_x = x_pos
@@ -190,9 +190,27 @@ class AdsbVehicle():
             sprite.rotation = self.heading
             sprite.position = x_pos, y_pos
             #sprite.draw()
+            
+            #line = shapes.Line(x_pos, y_pos, x_pos+8, y_pos+8, 10, color=(255,0,0))
+            #line.draw()
+            radious = (50 - 2*abs(alt_dif))
+            if radious < 15:
+                radious = 15
+            circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
+            if abs(alt_dif) < 15:
+                if alt_dif >= 0:
+                    circle.color=(255,0,0)
+                else:
+                    circle.color =(255,255,0)
+            circle.opacity = (125)
+            circle.anchor_x=0
+            circle.anchor_y=0
+            if distance > 4:
+                circle.radius = 15
+                circle.color = (0,255,255)
+            circle.draw()
             self.vh_label2.draw()
-            line = shapes.Line(x_pos, y_pos, x_pos+8, y_pos+8, 10, color=(255,0,0))
-            line.draw()
+
         except Exception as ex:
             print(ex)
 
@@ -269,6 +287,9 @@ class AdsbWindow():
     def get_pixel_pos(self, N423DS, lat, lon, gps_lat, gps_lon):
 
         angle = Math.get_bearing(N423DS.lat, N423DS.lon, lat, lon)
+        angle += N423DS.heading
+        if angle > 360:
+            angle = angle - 360
 
         dist = self.latlon_distance(N423DS.lat, N423DS.lon, lat, lon)
 
@@ -347,7 +368,7 @@ class AdsbWindow():
                     #dot.draw()
                     line.draw()
                 
-                vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite)
+                vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist)
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]

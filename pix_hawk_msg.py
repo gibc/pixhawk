@@ -8,7 +8,7 @@
 from posixpath import join
 from re import S, X
 import re
-from numpy import float32
+from numpy import float32, true_divide
 from pymavlink import mavutil
 #from pymavlink import mavextra
 
@@ -525,6 +525,7 @@ class mavlinkmsg (Thread):
                         self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
                             adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
                         print("bad adsb message **************************")
+
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
                         dic = msg.to_dict()
@@ -585,12 +586,12 @@ class mavlinkmsg (Thread):
                         vel = dic['vel']
                         
                         
-                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, 180, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
                         """
-                        self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt, 0, 0, 90) #self.gnd_track)
-                        self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt, 0, 0, 180) #self.gnd_track)
-                        self.adsb_dic.updateVehicle('myicao1234c', "TOP", self.lat, self.lon+.05, self.gps_alt, 0, 0, 270) #self.gnd_track)
-                        self.adsb_dic.updateVehicle('myicao1234d', "BOT", self.lat, self.lon-.05, self.gps_alt, 0, 0, 360) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt-500, 0, 0, 180, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234c', "TOP", self.lat, self.lon+.05, self.gps_alt+1600, 0, 0, 270, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle('myicao1234d', "BOT", self.lat, self.lon-.05, self.gps_alt-1600, 0, 0, 360, True) #self.gnd_track)
                         """
             
                 if msg.get_type() == 'VFR_HUD':

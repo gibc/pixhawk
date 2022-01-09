@@ -90,7 +90,7 @@ class MainWindow():
 
             self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
 
-            self.adsb_window.draw()
+            #self.adsb_window.draw()
 
         except Exception:
             self.ex_stop()
