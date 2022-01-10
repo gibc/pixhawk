@@ -22,6 +22,7 @@ import mavextra
 from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
+import pix_hawk_config
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -487,7 +488,10 @@ class mavlinkmsg (Thread):
                     128	ADSB_FLAGS_VERTICAL_VELOCITY_VALID	
                     256	ADSB_FLAGS_BARO_VALID	
                     32768	ADSB_FLAGS_SOURCE_UAT
+
+                    Mode S code A50720  in hex for N423DS
                     """	
+
                     dic = msg.to_dict()
 
                     flags = dic['flags']
@@ -584,9 +588,11 @@ class mavlinkmsg (Thread):
                         self.gps_alt = dic['alt'] * 0.00328084
 
                         vel = dic['vel']
+
+                        my_icao = pix_hawk_config.icao
                         
                         
-                        self.adsb_dic.updateVehicle('myicao1234', "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, 0, True) #self.gnd_track)
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)
                         self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt-500, 0, 0, 180, True) #self.gnd_track)

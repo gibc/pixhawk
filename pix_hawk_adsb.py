@@ -4,9 +4,12 @@ from pyglet import shapes
 from threading import Lock, Thread
 import time
 import math
+
+from pyglet.graphics import draw
 from mavextra import gps_offset
 from pix_hawk_util import Math
 import numpy
+import pix_hawk_config
 
 """
 1	ADSB_FLAGS_VALID_COORDS	
@@ -102,7 +105,8 @@ class AdsbDict():
                         del self.dict[str(icao)]
                         return
 
-                if icao != 'myicao1234':
+                #if icao != 'myicao1234':
+                if icao != pix_hawk_config.icao:
                     self.dict[str(icao)].update_tail(lat,lon)
                 self.dict[str(icao)].retry_count = 3
                 self.dict[str(icao)].icao = icao
@@ -159,7 +163,7 @@ class AdsbVehicle():
         self.tail_list = []
         
 
-    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance):
+    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance, adsb_window):
         
         try:
             if self.vh_label2 == None:
@@ -193,23 +197,52 @@ class AdsbVehicle():
             
             #line = shapes.Line(x_pos, y_pos, x_pos+8, y_pos+8, 10, color=(255,0,0))
             #line.draw()
-            radious = (50 - 2*abs(alt_dif))
-            if radious < 15:
-                radious = 15
-            circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
-            if abs(alt_dif) < 15:
-                if alt_dif >= 0:
-                    circle.color=(255,0,0)
-                else:
-                    circle.color =(255,255,0)
-            circle.opacity = (125)
-            circle.anchor_x=0
-            circle.anchor_y=0
-            if distance > 4:
-                circle.radius = 15
-                circle.color = (0,255,255)
-            circle.draw()
-            self.vh_label2.draw()
+            #if self.icao != 'myicao1234':
+            if self.icao != pix_hawk_config.icao:
+                radious = (50 - 2*abs(alt_dif))
+                if radious < 15:
+                    radious = 15
+                circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
+                if abs(alt_dif) < 15:
+                    if alt_dif >= 0:
+                        circle.color=(255,0,0)
+                    else:
+                        circle.color =(255,255,0)
+                circle.opacity = (125)
+                circle.anchor_x=0
+                circle.anchor_y=0
+                if distance > 4:
+                    circle.radius = 15
+                    circle.color = (0,255,255)
+                circle.draw()
+                self.vh_label2.draw()
+
+            else:
+                radious = adsb_window.get_pix_mile_y() * 3
+                circle = shapes.Circle(x_pos, y_pos, radious, color=(200,200,200))
+                circle.opacity = (50)
+                circle.anchor_x=0
+                circle.anchor_y=0
+                sprite.scale = .8
+                rot = self.heading #- 180
+                if rot < 360:
+                    rot = 360 - rot
+                sprite.rotation = 0
+                sprite.position = x_pos, y_pos
+                #sprite.color = (255,255,0)
+                sprite.draw()
+
+                circle2 = shapes.Circle(x_pos, y_pos, 7, color=(0,255,255))
+                circle2.anchor_x=0
+                circle2.anchor_y=0
+                circle2.draw()
+
+                circle.draw()
+
+
+
+            #circle.draw()
+            #self.vh_label2.draw()
 
         except Exception as ex:
             print(ex)
@@ -256,7 +289,12 @@ class AdsbWindow():
         self.arrow_image.anchor_x = int(50/2)
         self.arrow_image.anchor_y = int(100/2)
         self.arrow_sprite = pyglet.sprite.Sprite(self.arrow_image, x=150, y=150)
-
+        
+        self.N_img = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
+        self.N_sprite = pyglet.sprite.Sprite(self.N_img, 0,0)
+        self.N_sprite.anchor_x = 0
+        self.N_sprite.ahchor_y = 0
+        
     def latlon_distance(self, lat1, lon1, lat2, lon2):
         origin = (lat1,lon1)
         destination = (lat2,lon2)
@@ -269,7 +307,7 @@ class AdsbWindow():
 
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
 
-        d = (radius * c) / 1.609344 # convet to mph
+        d = (radius * c) / 1.609344 # convet to miles
 
         return d
 
@@ -312,9 +350,41 @@ class AdsbWindow():
 
         return (x_pos, y_pos)
 
+    def get_pix_mile_x(self):
+        return .75/4 * self.border_rect.width/2
+
+    def get_pix_mile_y(self):
+        return .75/4* self.border_rect.height/2
+
+        
+
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
+        
+
         self.border_rect.draw()
-        self.vh_label.text = 'plane count ' + str(len(self.adsb_dic.dict))
+
+        self.N_sprite.position = (self.border_rect.x + self.border_rect.width - 60, self.border_rect.y + self.border_rect.height-110)
+        self.N_sprite.scale = 1.5
+        #self.N_sprite.draw()
+
+        self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
+        N423DS = self.adsb_dic.dict[pix_hawk_config.icao]
+        rot = N423DS.heading
+        if rot < 360:
+            rot = 360 - rot
+        self.arrow_sprite.rotation = rot
+        self.arrow_sprite.scale_y = .75
+        self.arrow_sprite.scale_x = 1
+        self.arrow_sprite.draw()
+        self.N_sprite.draw()
+
+
+        if len(self.adsb_dic.dict) <= 1:
+            self.vh_label.color = (0,255,0,255)
+        else:
+            self.vh_label.color = (255,255,255,255)
+
+        self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)-1)
         if len(self.adsb_dic.dict) == 0:
             self.vh_icao.text = "none"
             self.vh_icao.draw()
@@ -322,7 +392,8 @@ class AdsbWindow():
         with self.adsb_dic.lock:
 
             del_list=[]
-            N423DS = self.adsb_dic.dict['myicao1234']
+            #N423DS = self.adsb_dic.dict['myicao1234']
+            N423DS = self.adsb_dic.dict[pix_hawk_config.icao]
             for key in self.adsb_dic.dict:
 
                 vh = self.adsb_dic.dict[key]
@@ -368,7 +439,7 @@ class AdsbWindow():
                     #dot.draw()
                     line.draw()
                 
-                vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist)
+                vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist, self)
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
