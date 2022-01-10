@@ -55,7 +55,7 @@ class MainWindow():
 
             self.phidget_thread = PhidgetThread.get_instance()
 
-            #self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
+            self.adsbwin = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width) 
 
         except Exception:
             self.ex_stop()
@@ -90,7 +90,7 @@ class MainWindow():
 
             self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
 
-            #self.adsb_window.draw()
+            self.adsbwin.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
 
         except Exception:
             self.ex_stop()

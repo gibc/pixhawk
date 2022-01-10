@@ -518,17 +518,16 @@ class mavlinkmsg (Thread):
                     print("adsb_altitude: ", adsb_altitude)
                     ICAO_address = str(dic['ICAO_address'])
                     print("ICAO_address: ", ICAO_address)
-                    #def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading):
-                    #self.vh = AdsbVehicle(ICAO_address, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-                    #if not str(ICAO_address) in self.adsb_dic.dict:
-                    #    self.vh = AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-                    if cord_valid and heading_valid and call_sign_valid:
-                        self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                            adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
-                    else:
-                        self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                            adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
-                        print("bad adsb message **************************")
+                    #Don't create new adbs vehical if recieved from adasb out transmitter
+                    #    instead, create synthetic vehical from gps msg data
+                    if ICAO_address != pix_hawk_config.icao:
+                        if cord_valid and heading_valid and call_sign_valid:
+                            self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
+                        else:
+                            self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
+                            print("bad adsb message **************************")
 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -592,7 +591,7 @@ class mavlinkmsg (Thread):
                         my_icao = pix_hawk_config.icao
                         
                         
-                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, 0, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)
                         self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt-500, 0, 0, 180, True) #self.gnd_track)

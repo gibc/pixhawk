@@ -161,6 +161,10 @@ class AdsbVehicle():
         self.wing_line = None
         self.retry_count = 3
         self.tail_list = []
+        #self.arrow_image = pyglet.image.load('/home/pi/Downloads/_arrow.jpg')
+        #self.arrow_image.anchor_x = int(50/2)
+        #self.arrow_image.anchor_y = int(100/2)
+        #self.arrow_sprite = pyglet.sprite.Sprite(self.arrow_image, x=150, y=150)
         
 
     def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance, adsb_window):
@@ -190,9 +194,9 @@ class AdsbVehicle():
             self.wing_line.position = (20+x_pos, 10+y_pos, -20+x_pos, 10+y_pos)
             #self.wing_line.position = self.get_line_pos(self.wing_line.position, x_pos, y_pos)
             #self.wing_line.draw()
-            sprite.scale = 1
-            sprite.rotation = self.heading
-            sprite.position = x_pos, y_pos
+            #sprite.scale = 1
+            #sprite.rotation = self.heading
+            #sprite.position = x_pos, y_pos
             #sprite.draw()
             
             #line = shapes.Line(x_pos, y_pos, x_pos+8, y_pos+8, 10, color=(255,0,0))
@@ -224,12 +228,14 @@ class AdsbVehicle():
                 circle.anchor_x=0
                 circle.anchor_y=0
                 sprite.scale = .8
+                #sprite.scale_y = .75
+                #sprite.scale_x = 1
                 rot = self.heading #- 180
                 if rot < 360:
                     rot = 360 - rot
                 sprite.rotation = 0
                 sprite.position = x_pos, y_pos
-                #sprite.color = (255,255,0)
+                #sprite.scale = 1
                 sprite.draw()
 
                 circle2 = shapes.Circle(x_pos, y_pos, 7, color=(0,255,255))
