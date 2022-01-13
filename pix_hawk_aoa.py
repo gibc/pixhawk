@@ -9,7 +9,7 @@ from math import floor
 import traceback
 from pix_hawk_test import MockVar
 from pix_hawk_sound import SoundThread
-#from pix_hawk_util import Math
+import traceback
 
 
 class Aoa():
@@ -97,19 +97,28 @@ class Aoa():
             self.aoa_label.draw()
 
         except Exception as ex:
+            traceback.print_exc()
             self.border_rect.draw()
             self.aoa_label.text = str(ex)
             self.aoa_label.draw()
 
     def set_tone(self, aoa):
-        if(self.sound != None):
-            if aoa >= self.stall_aoa_start:
-                volume = (aoa - self.stall_aoa_start) / self.stall_aoa_range
-                if volume > 1:
-                    volume = 1
-                self.sound.start_tone(volume)
-            else:
-                self.sound.stop_tone()
+        try:
+            if(self.sound != None):
+                if aoa >= self.stall_aoa_start:
+                    volume = (aoa - self.stall_aoa_start) / self.stall_aoa_range
+                    if volume > .5:
+                        volume = .5
+                    self.sound.set_tone_mode(True)
+                    self.sound.start_tone(volume)
+                else:
+                    self.sound.stop_tone()
+                    self.sound.set_tone_mode(False)
+                    
+        except Exception:
+            traceback.print_exc()
+            
+
 
     def close(self):
         if self.sound != None:

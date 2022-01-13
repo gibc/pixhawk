@@ -177,8 +177,8 @@ class Wind():
         return(rho, ang)
 
     def pol2cart(self, rho, phi):
-        print('pol2cart mag', rho)
-        print('pol2cart ang degrees', phi)
+        #print('pol2cart mag', rho)
+        #print('pol2cart ang degrees', phi)
         #convert to 90 origin going in
         #phi = phi + 90
         #if phi > 360:
@@ -190,8 +190,8 @@ class Wind():
         y = rho * np.sin(phi)
         #x = rho * np.cos(phi)
         #y = rho * np.sin(phi)
-        print('pol2cart x', x)
-        print('pol2cart y', y)
+        #print('pol2cart x', x)
+        #print('pol2cart y', y)
         #print()
         return(x, y)
     

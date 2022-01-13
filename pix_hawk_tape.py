@@ -119,7 +119,7 @@ class Tape:
         for i in range (len(self.tick_labels)):
                 
             nxt = self.get_tick_value(heading_origin, i, self.units_interval)
-            print('nxt', nxt)
+            #print('nxt', nxt)
             if nxt < 0 and self.tape_unit != TapeUnit.FEET_VERT_SPEED:
                 continue
             self.tick_labels[i].text = self.get_value_str(nxt)
@@ -127,7 +127,7 @@ class Tape:
             #print('self.tick_labels[i].text ', self.tick_labels[i].text)
         
             org_offset = self.angle_dif_right(heading_origin, nxt)
-            print('****org_offset****', org_offset)
+            #print('****org_offset****', org_offset)
             
             if self.orient == Orient.HORZ:
                 org_offset -= 30 # shift origin to the left to allow 7 tick lables

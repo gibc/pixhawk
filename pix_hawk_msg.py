@@ -135,12 +135,12 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, 2)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 20)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 20)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 10)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 20)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, 10)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, 10)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, 5)
         
     """ 
     def on_press(self, key):
@@ -510,7 +510,7 @@ class mavlinkmsg (Thread):
                     #    adsb_heading = 360 + adsb_heading
                     adsb_heading = int(adsb_heading)
                     
-                    hor_velocity = dic['hor_velocity']
+                    hor_velocity = dic['hor_velocity'] * .022369 # c/s to mph
                     ver_velocity = dic['ver_velocity']
                     lat = dic['lat']/10000000
                     lon = dic['lon']/10000000
@@ -527,7 +527,7 @@ class mavlinkmsg (Thread):
                         else:
                             self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
                                 adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
-                            print("bad adsb message **************************")
+                            #print("bad adsb message **************************")
 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -558,7 +558,7 @@ class mavlinkmsg (Thread):
                         """
                         altitude = dic['altitude']
                         self.altitude = 3.2808 * altitude
-                        print("altitude: ", self.altitude)
+                        #print("altitude: ", self.altitude)
                         #print("")
                     #self.msglock.release()
             

@@ -4,6 +4,7 @@ from threading import Thread, Lock
 import pyaudio
 import numpy as np
 from numpy import arange, float32
+import threading
 
 
 
@@ -65,24 +66,79 @@ class SoundThread(Thread):
                          stream_callback = self.wave_data.call_back,
                          output_device_index=2
                          )
+        self.stream.stop_stream()
+        self.beep_on = False
+        self.tone_mode = False
+        self.beep_volume = 0
+        self.beep_on_secs = 0
+        self.beeb_off_ses = 0
+        self.lock = Lock()
 
     def start_tone(self, volume):
-        if self.stream.is_active():
-            self.wave_data.set_volume(volume)
-            return
-        else:
-            self.wave_data.set_volume(volume)
-            self.stream.start_stream()
+        print('*************************** start tone')
+        with self.lock:
+            if self.stream.is_active():
+                self.wave_data.set_volume(volume)
+                return
+            else:
+                self.wave_data.set_volume(volume)
+                self.stream.start_stream()
+
+                if not self.stream.is_active():
+                    print('audio stream start failed')
+                    raise Exception('audio stream start failed')
+                
 
 
     def stop_tone(self):
-        if self.stream.is_active():
-            self.stream.stop_stream()
+        print('*************************** stop tone')
+        with self.lock:
+            if self.stream.is_active():
+                self.stream.stop_stream()
+
+    
+    def set_tone_mode(self, mode):
+        with self.lock:
+            self.tone_mode = mode
+
+    
+    def start_beep(self, volume, on_secs, off_secs):
+        #print('start_beep+++++++++++++++++++++++++')
+        with self.lock:
+            self.beep_volume = volume
+            self.beep_on_secs = on_secs
+            self.beeb_off_ses = off_secs
+            self.beep_on = True
+
+    def set_beep(self, volume, on_secs, off_secs):
+        #print('set_beep+++++++++++++++++++++++++')
+        with self.lock:
+            self.beep_volume = volume
+            self.beep_on_secs = on_secs
+            self.beeb_off_ses = off_secs
+        
+                
+
+    def stop_beep(self):
+        with self.lock:
+            self.beep_on = False
+        
 
     def run(self):
         print('SoundThread started')
         while SoundThread._run_thread:
-            time.sleep(.5)
+            #print('sound thread running++++++++++++++++++++++++++')
+            if self.beep_on and not self.tone_mode:
+                self.start_tone(self.beep_volume)
+                time.sleep(self.beep_on_secs)
+                if self.beep_on and not self.tone_mode:
+                    self.stop_tone()
+                    time.sleep(self.beeb_off_ses)
+            else:
+                time.sleep(.5)
+                if not self.beep_on and not self.tone_mode:
+                    self.stop_tone()
+                
         print('SoundThread terminated')
 
     @classmethod
@@ -104,10 +160,17 @@ class SoundThread(Thread):
 
 if __name__ == '__main__':
     st = SoundThread.get_instance()
+    
+    st.start_beep(.3, .25, .15)
+    time.sleep(2)
+
+    st.set_tone_mode(True)
     st.start_tone(.1)
     time.sleep(3)
     st.stop_tone()
-    time.sleep(1)
-    st.start_tone(1)
-    time.sleep(3)
+    st.set_tone_mode(False)
+    time.sleep(2)
+    st.stop_beep()
+
+
     SoundThread.put_instance()

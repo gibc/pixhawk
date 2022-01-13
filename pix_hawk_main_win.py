@@ -36,6 +36,10 @@ class MainWindow():
 
             self.ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
+            self.phidget_thread = None
+            self.aoa_gague = None
+            self.adsb_window = None
+
             self.compass_tape = CompassTape(self.main_window, 150, 200, 800, 65, 6, 30, align=Align.LEFT, orient=Orient.VERT)
 
             self.roll_gague = RollGague(self.main_window, 1.7*(self.compass_tape.border_rect.height))
@@ -55,8 +59,7 @@ class MainWindow():
 
             self.phidget_thread = PhidgetThread.get_instance()
 
-            self.adsbwin = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width) 
-
+        
         except Exception:
             self.ex_stop()
 
@@ -85,12 +88,11 @@ class MainWindow():
 
             self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
 
-            #draw_calc(self, airspeed, heading, gnd_speed, gnd_track, altitude):
             self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
 
             self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
 
-            self.adsbwin.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
+            self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
 
         except Exception:
             self.ex_stop()
@@ -110,6 +112,7 @@ class MainWindow():
             if not pix_hawk_msg.mavlinkmsg._run_thread:
                 self.msg_thread.join()
 
+
         if self.phidget_thread != None:
             PhidgetThread.put_instance()
             if not PhidgetThread._run_thread:
@@ -117,22 +120,18 @@ class MainWindow():
 
         if self.aoa_gague != None:
             self.aoa_gague.close()
+        
+        if self.adsb_window != None:
+            self.adsb_window.close()
+
 
 
         pyglet.app.exit()
         quit() #exit the python interpretor
 
     def on_close(self):
-        print('main_window on closed called')
         
-        """pix_hawk_msg.mavlinkmsg.put_instance()
-        if not pix_hawk_msg.mavlinkmsg._run_thread:
-            self.msg_thread.join()
-
-        PhidgetThread.put_instance()
-        if not PhidgetThread._run_thread:
-            self.phidget_thread.join()"""
-
+        print('main_window on closed called')
         self.ex_stop()
 
     def update(self, dt):
