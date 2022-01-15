@@ -193,7 +193,7 @@ class AdsbVehicle():
                 self.vh_label2.draw()
 
                 threat_level = circle.radius
-                if distance > 3:
+                if distance > 3.1:
                     threat_level = 0
 
             else:
@@ -352,10 +352,14 @@ class AdsbWindow():
 
         self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
         
-        if not pix_hawk_config.icao in self.adsb_dic.dict:
+        #if not pix_hawk_config.icao in self.adsb_dic.dict:
+        #    return
+
+        #N423DS = self.adsb_dic.dict[pix_hawk_config.icao]
+        N423DS = self.adsb_dic.getVehicle(pix_hawk_config.icao)
+        if N423DS == None:
             return
 
-        N423DS = self.adsb_dic.dict[pix_hawk_config.icao]
         rot = N423DS.heading
         if rot < 360:
             rot = 360 - rot
@@ -366,21 +370,22 @@ class AdsbWindow():
         self.N_sprite.draw()
 
 
-        if len(self.adsb_dic.dict) <= 1:
-            self.vh_label.color = (0,255,0,255)
-        else:
-            self.vh_label.color = (255,255,255,255)
+        #if len(self.adsb_dic.dict) <= 1:
+        #    self.vh_label.color = (0,255,0,255)
+        #else:
+        #    self.vh_label.color = (255,255,255,255)
 
-        """self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)-1)
-        if len(self.adsb_dic.dict) == 0:
-            self.vh_icao.text = "none"
-            self.vh_icao.draw()
-        self.vh_label.draw()"""
+
         with self.adsb_dic.lock:
 
+            if len(self.adsb_dic.dict) <= 1:
+                self.vh_label.color = (0,255,0,255)
+            else:
+                self.vh_label.color = (255,255,255,255)
+
+
             del_list=[]
-            #N423DS = self.adsb_dic.dict['myicao1234']
-            N423DS = self.adsb_dic.dict[pix_hawk_config.icao]
+            
             self.threat  = -1
             self.nearest_ap = None
             for key in self.adsb_dic.dict:
@@ -421,20 +426,20 @@ class AdsbWindow():
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
 
-            print('************************************self.threat', self.threat)
+            #print('************************************self.threat', self.threat)
             if self.threat > 15:
                 if not self.sound.beep_on:
-                    self.sound.start_beep(.05, .25, .5,)
+                    self.sound.start_beep(.3, .25, .5,)
                 else:
-                    self.sound.set_beep(.05, .25, .5,)
+                    self.sound.set_beep(.3, .25, .5,)
             else:
                 self.sound.stop_beep()
 
-        self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)-1) + '-' + str(self.threat)
-        if len(self.adsb_dic.dict) == 0:
-            self.vh_icao.text = "none"
-            self.vh_icao.draw()
-        self.vh_label.draw()
+            self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)-1) + '-' + str(self.threat)
+            if len(self.adsb_dic.dict) == 0:
+                self.vh_icao.text = "none"
+                self.vh_icao.draw()
+            self.vh_label.draw()
 
             
 
