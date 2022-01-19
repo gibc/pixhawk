@@ -32,8 +32,8 @@ import time
 
 #os.system('xrandr -o left')
 
-#kbd = KeyBoard()
-#ky = kbd.wait_key(5)
+kbd = KeyBoard()
+ky = kbd.wait_key(5)
 #cps_obj = Compass()
 #cps_obj.get_mag_data()
 

@@ -4,9 +4,11 @@ this script started from
 /etc/xdg/lxsession/LXDE-pi/autostart
 xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
 """
-#from re import S
+
+
 import pyglet
 from pyglet import clock
+from pyglet.window import key
 import pix_hawk_msg
 from pix_hawk_roll_pitch import RollGague
 from pix_hawk_compass_tape import CompassTape
@@ -19,18 +21,28 @@ from PhidgetThread import PhidgetThread
 from pix_hawk_gps import GPS_Window
 from pix_hawk_wind import WindChild
 from pix_hawk_aoa import Aoa
+from pix_hawk_beep import Beep
 import traceback
+
+
+
 
 class MainWindow():
     def __init__(self, width, height, full_screen = False):
 
         try:
+            
             if full_screen:
                 self.main_window = pyglet.window.Window(fullscreen=True)
             else:
                 self.main_window = pyglet.window.Window(width, height)
             self.on_draw = self.main_window.event(self.on_draw)
             self.main_window.on_close = self.on_close
+            self.main_window.on_key_press = self.on_key_press
+            self.fpsd = pyglet.window.FPSDisplay(window=self.main_window)
+
+            #self.beep = Beep()
+            #self.beep.start()
 
             self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
 
@@ -69,7 +81,10 @@ class MainWindow():
     def on_draw(self):
 
         try:
+            #self.beep.beep()
             self.main_window.clear()
+
+            
 
             self.ahdata = self.msg_thread.getAharsData(self.ahdata)
 
@@ -93,6 +108,8 @@ class MainWindow():
             self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
 
             self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
+
+            self.fpsd.draw()
 
         except Exception:
             self.ex_stop()
@@ -124,6 +141,10 @@ class MainWindow():
         if self.adsb_window != None:
             self.adsb_window.close()
 
+        #if self.beep != None:
+        #    self.beep.run_thread = False
+
+
 
 
         pyglet.app.exit()
@@ -134,6 +155,13 @@ class MainWindow():
         print('main_window on closed called')
         self.ex_stop()
 
+    def on_key_press(self, symbol, modifiers):
+        if symbol == key.ESCAPE:
+            self.on_close()
+
+        elif self.adsb_window != None:
+            self.adsb_window.on_key_press(symbol, modifiers)
+
     def update(self, dt):
         x=0
 
@@ -141,9 +169,10 @@ if __name__ == '__main__':
     # unit test code
 
     try:
-        mw = MainWindow(1500,700, full_screen=True)
+        mw = MainWindow(1500,700, full_screen=False)
+        #mw = MainWindow(1500,750, full_screen=True)
 
-        pyglet.clock.schedule_interval(mw.update, .1)
+        pyglet.clock.schedule_interval(mw.update, .05)
 
         pyglet.app.run()
 

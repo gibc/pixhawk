@@ -11,6 +11,10 @@ from pix_hawk_util import Math
 import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
+from datetime import timedelta
+
+
+#from pix_hawk_util import KeyBoard
 
 
 """
@@ -242,8 +246,13 @@ class AdsbVehicle():
 
 class AdsbWindow():
     def __init__(self, adsb_dic, pyglet_window, compass_width):
-        #self.adsb_dic = AdsbDict.get_instance()
+
+                
         self.adsb_dic = adsb_dic
+
+        self.fpsd = pyglet.window.FPSDisplay(window=pyglet_window)
+        
+
         x_pos = pyglet_window._x + compass_width
         wd = pyglet_window.width - compass_width
         self.border_rect = shapes.BorderedRectangle(x_pos, pyglet_window._y, wd, pyglet_window.height,
@@ -277,7 +286,51 @@ class AdsbWindow():
         self.sound = SoundThread.get_instance()
         self.threat = -1
         self.nearest_ap = None
-        
+        #self.key_board = KeyBoard.get_instance()
+        self.warning_on = True
+        self.warning_rect = pyglet.shapes.Rectangle(x_pos+self.border_rect.width-30,
+                                                    pyglet_window._y,
+                                                        30, 30, color = (255,0,0) )
+        self.adsb_beep_on = False
+        self.beep_off_time = -1
+        self.beep_on_time = -1
+        self.warn_off_time = -1
+
+    def check_waning_on(self, warn_off_duration = 20):
+        cur_time = time.time()
+        if not self.warning_on and self.warn_off_time < 0:
+            self.warn_off_time = cur_time + warn_off_duration
+        elif not self.warning_on and self.warn_off_time > 0:
+            if cur_time > self.warn_off_time:
+                self.warning_on = True
+                self.warn_off_time = -1
+
+
+    def check_beep(self, is_threat, on_duration = 1, off_duration = 2):
+        cur_time = time.time()
+        if is_threat and self.warning_on:
+            
+            if self.beep_on_time > 0 and cur_time > self.beep_on_time:
+                self.sound.stop_tone()
+                self.beep_on_time = -1
+                self.beep_off_time = cur_time + off_duration
+
+            elif self.beep_off_time > 0 and cur_time > self.beep_off_time:
+                self.sound.start_tone(.1)
+                self.beep_off_time = -1
+                self.beep_on_time = cur_time + on_duration
+
+            elif self.beep_off_time < 0 and self.beep_on_time < 0:
+                self.sound.start_tone(.1)
+                self.beep_off_time = -1
+                self.beep_on_time = cur_time + on_duration
+        else:
+            if self.beep_on_time > 0 and cur_time > self.beep_on_time:
+                self.sound.stop_tone()
+                self.beep_on_time = -1
+                self.beep_off_time = -1
+
+      
     def latlon_distance(self, lat1, lon1, lat2, lon2):
         origin = (lat1,lon1)
         destination = (lat2,lon2)
@@ -342,7 +395,14 @@ class AdsbWindow():
         
 
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
+
         
+        #self.fpsd.draw() PUT BACK
+        
+        
+        #cur_key = self.key_board.get_key()
+        #if cur_key != None:
+        #    self.warning_on = not self.warning_on
 
         self.border_rect.draw()
 
@@ -419,21 +479,26 @@ class AdsbWindow():
                 
                 threat = vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist, self)
                 if threat > self.threat:
-                    self.nearest_ap = vh.icao
                     self.threat = threat
+                    #self.nearest_ap = vh.icao
                 
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
 
-            #print('************************************self.threat', self.threat)
-            if self.threat > 15:
+            #self.threat = 33 # TAKE OUT
+            self.check_beep(self.threat > 15)
+            self.check_waning_on()
+            """if self.threat > 15 and self.warning_on and not self.adsb_beep_on:
+
+                self.adsb_beep_on = True
                 if not self.sound.beep_on:
                     self.sound.start_beep(.3, .25, .5,)
                 else:
                     self.sound.set_beep(.3, .25, .5,)
             else:
-                self.sound.stop_beep()
+                self.adsb_beep_on = False
+                self.sound.stop_beep()"""
 
             self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)-1) + '-' + str(self.threat)
             if len(self.adsb_dic.dict) == 0:
@@ -441,8 +506,14 @@ class AdsbWindow():
                 self.vh_icao.draw()
             self.vh_label.draw()
 
-            
+            if not self.warning_on:
+                self.warning_rect.draw()
 
+        
+
+            
+    def on_key_press(self,symbol, modifiers):
+        self.warning_on = not self.warning_on
 
 
     def close(self):
@@ -485,7 +556,7 @@ if __name__ == '__main__':
     #print(len(adsbDict.dict))
 
    
-    window = pyglet.window.Window(1200,700)
+    window = pyglet.window.Window(1200,700, fullscreen = False)
 
     adsbwin = AdsbWindow(msg_thread.adsb_dic, window, 1000/2)
     
@@ -500,9 +571,14 @@ if __name__ == '__main__':
         x=0
         #print("dt: ", dt)
 
-    window.on_draw = on_draw
+    @window.event
+    def on_key_press(symbol, modifiers):
+        adsbwin.on_key_press(symbol, modifiers)
 
-    pyglet.clock.schedule_interval(update, .1)
+    window.on_draw = on_draw
+    window.on_keyborad = on_key_press
+
+    pyglet.clock.schedule_interval(update, .05)
     
     pyglet.app.run()
 

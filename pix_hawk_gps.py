@@ -112,8 +112,8 @@ class GPS_Window():
 
 if __name__ == '__main__':
 
-    #window = pyglet.window.Window(1500,700)
-    window = pyglet.window.Window(fullscreen=True)
+    window = pyglet.window.Window(1500,700)
+    #window = pyglet.window.Window(fullscreen=True)
         
     gps_win = GPS_Window(window, 1500/2)
 

@@ -20,6 +20,11 @@ import matplotlib.pyplot as plt
 
 import time
 
+filename = '/home/pi/Downloads/beep-07a.wav'
+wav_obj = sa.WaveObject.from_wave_file(filename)
+wav_obj.play()
+quit()
+
 strattime = 0
 endtime = 5
 sampelrate = 48000
@@ -98,7 +103,7 @@ p.terminate()
 
 import wave
 
-filename = '/home/pi/piano2.wav'
+filename = '/home/pi/Downloads/beep-07a.wav'
 
 chunk = 1024
 wf = wave.open(filename, 'rb')

@@ -1,4 +1,5 @@
 
+
 from re import S
 from threading import Thread, Lock
 import pyaudio
@@ -53,7 +54,7 @@ class WaveData():
         return data * self.volume
 
     def get_static_chunk(self):
-        return self.static_chunk
+        return self.static_chunk * self.volume
 
 
     def set_volume(self, volume):
@@ -188,7 +189,7 @@ class SoundThread(Thread):
         if cls._instance == None:
             cls._instance = SoundThread()
             cls._run_thread = True
-            cls._instance.start()
+            #cls._instance.start()
         cls._instance_count += 1
         return cls._instance
     
