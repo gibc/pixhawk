@@ -1,6 +1,8 @@
 from re import A, L, M, S
+from shutil import register_unpack_format
 import pyglet
 from pyglet import shapes
+import threading
 from threading import Lock, Thread
 import time
 import math
@@ -292,21 +294,52 @@ class AdsbWindow():
                                                     pyglet_window._y,
                                                         30, 30, color = (255,0,0) )
         self.adsb_beep_on = False
-        self.beep_off_time = -1
-        self.beep_on_time = -1
-        self.warn_off_time = -1
+        #self.beep_off_time = -1
+        #self.beep_on_time = -1
+        #self.warn_off_time = -1
+        self.run_beep = True
+        self.beep_thread = Thread(target = self.beep_target)
+        self.beep_thread.start()
+        self.enable_timer = None
+        #self.enable_timer.daemon = True
 
-    def check_waning_on(self, warn_off_duration = 20):
+
+    def enable_warning(self):
+        self.warning_on = True
+        self.enable_timer = None
+
+    def beep_target(self):
+        print('beep thread started')
+        while self.run_beep:
+            #self.check_beep(self.threat > 15)
+            self.check_beep_sleep(self.threat > 15)
+            time.sleep(.1)
+        print('beep thread stopped')
+
+    
+    """def check_waning_on(self, warn_off_duration = 20):
         cur_time = time.time()
         if not self.warning_on and self.warn_off_time < 0:
             self.warn_off_time = cur_time + warn_off_duration
         elif not self.warning_on and self.warn_off_time > 0:
             if cur_time > self.warn_off_time:
                 self.warning_on = True
-                self.warn_off_time = -1
+                self.warn_off_time = -1"""
+    def check_beep_sleep(self,is_threat, on_duration = 1, off_duration = 1):
+        if self.sound.get_tone_mode():
+            return
 
+        if is_threat and self.warning_on:
+            self.sound.start_tone(.4)
+            time.sleep(on_duration)
+            self.sound.stop_tone()
+            time.sleep(off_duration)
+            
 
-    def check_beep(self, is_threat, on_duration = 1, off_duration = 2):
+    """def check_beep(self, is_threat, on_duration = 1, off_duration = 1):
+        if self.sound.get_tone_mode():
+            return
+
         cur_time = time.time()
         if is_threat and self.warning_on:
             
@@ -316,19 +349,19 @@ class AdsbWindow():
                 self.beep_off_time = cur_time + off_duration
 
             elif self.beep_off_time > 0 and cur_time > self.beep_off_time:
-                self.sound.start_tone(.1)
+                self.sound.start_tone(.4)
                 self.beep_off_time = -1
                 self.beep_on_time = cur_time + on_duration
 
             elif self.beep_off_time < 0 and self.beep_on_time < 0:
-                self.sound.start_tone(.1)
+                self.sound.start_tone(.4)
                 self.beep_off_time = -1
                 self.beep_on_time = cur_time + on_duration
         else:
             if self.beep_on_time > 0 and cur_time > self.beep_on_time:
                 self.sound.stop_tone()
                 self.beep_on_time = -1
-                self.beep_off_time = -1
+                self.beep_off_time = -1"""
 
       
     def latlon_distance(self, lat1, lon1, lat2, lon2):
@@ -487,8 +520,8 @@ class AdsbWindow():
                 del self.adsb_dic.dict[key]
 
             #self.threat = 33 # TAKE OUT
-            self.check_beep(self.threat > 15)
-            self.check_waning_on()
+            #self.check_beep(self.threat > 15)
+            #self.check_waning_on()
             """if self.threat > 15 and self.warning_on and not self.adsb_beep_on:
 
                 self.adsb_beep_on = True
@@ -514,12 +547,18 @@ class AdsbWindow():
             
     def on_key_press(self,symbol, modifiers):
         self.warning_on = not self.warning_on
-
-
+        if not self.warning_on:
+            if self.enable_timer == None:
+                self.enable_timer = threading.Timer(20, self.enable_warning)
+                self.enable_timer.daemon = True
+                self.enable_timer.start()
+        
     def close(self):
         AdsbDict.put_instance()
         if self.sound != None:
             SoundThread.put_instance()
+        self.run_beep = False
+        self.beep_thread.join()
         
 
 

@@ -21,8 +21,8 @@ class Aoa():
         self.y = window._y + window.height * (.2)
         self.stripe_ht = ht/stripe_count
         self.sound = SoundThread.get_instance()
-        self.stall_aoa_range = 8
-        self.stall_aoa_start = 8
+        self.stall_aoa_range = 4
+        self.stall_aoa_start = 4
         self.border_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
                                                        self.ht, border=0, color=(0,0,0),
                                                        border_color = (255,255,255))
@@ -107,11 +107,11 @@ class Aoa():
             if(self.sound != None):
                 if aoa >= self.stall_aoa_start:
                     volume = (aoa - self.stall_aoa_start) / self.stall_aoa_range
-                    if volume > .5:
-                        volume = .5
+                    if volume > .7:
+                        volume = .7
                     self.sound.set_tone_mode(True)
                     self.sound.start_tone(volume)
-                else:
+                elif self.sound.get_tone_mode():
                     self.sound.stop_tone()
                     self.sound.set_tone_mode(False)
                     
