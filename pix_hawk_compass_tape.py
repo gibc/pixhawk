@@ -38,7 +38,7 @@ class CompassTape(Tape):
                           font_size=30,
                           x=self.current_val_rect.x,
                           y=self.current_val_rect.y+8,
-                          anchor_y='bottom', anchor_x='center'))
+                          anchor_y='bottom', anchor_x='center', batch=self.tick_batch))
 
         self.border_rect.color = (0,0,255)
 

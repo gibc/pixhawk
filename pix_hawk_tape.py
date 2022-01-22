@@ -61,6 +61,7 @@ class Tape:
         self.units_interval = units_interval  #eg 30 degrees
         self.tape_unit = tape_unit
         self.origin_offset = (tick_count * units_interval) / 2
+        self.tick_batch = pyglet.graphics.Batch()
         
         """
         self.lable_wd = 120
@@ -93,17 +94,17 @@ class Tape:
         #else:
         #    self.current_val_rect = shapes.BorderedRectangle(self.x, y+self.border_rect.height/2-self.pixel_wd/2,  120, 50, border=10, color = (0, 0, 0),
         #                                    border_color = (255,255,255))
-        self.current_val_label = pyglet.text.Label('****',
+        self.current_val_label = pyglet.text.Label('',
                           font_size=50,
                           x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
                           anchor_y='bottom', anchor_x='left')
         for i in range(tick_count):
-            self.tick_labels.append(pyglet.text.Label('****',
+            self.tick_labels.append(pyglet.text.Label('',
                           font_size=30,
                           x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
-                          anchor_y='bottom', anchor_x='center'))
+                          anchor_y='bottom', anchor_x='center', batch=self.tick_batch))
             
             
             
@@ -163,7 +164,9 @@ class Tape:
         
             self.tick_labels[i].color = self.get_value_color(nxt)
         
-            self.tick_labels[i].draw()
+            #self.tick_labels[i].draw()
+
+        self.tick_batch.draw()
             #print('self.tick_labels[i].x: ', self.tick_labels[i].x)
             
         if self.tape_unit == TapeUnit.DEGREE:

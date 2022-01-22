@@ -11,7 +11,7 @@ class AltTape(Tape):
         super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=align, tape_unit=TapeUnit.FEET_ALT, orient=orient)
         
         
-        self.climb_val_label = pyglet.text.Label('****',
+        self.climb_val_label = pyglet.text.Label('',
                           font_size=50,
                           x=self.current_val_rect.x,
                           y=self.border_rect.y+self.border_rect.height+1,
@@ -61,7 +61,7 @@ class AltTapeLeft(Tape):
         self.current_val_rect.y = self.border_rect.height/2 
         self.current_val_label.y = self.border_rect.height/2
 
-        self.climb_val_label = pyglet.text.Label('****',
+        self.climb_val_label = pyglet.text.Label('',
                           font_size=50,
                           x=self.current_val_rect.x,
                           #y=self.border_rect.y+self.border_rect.height+1,
@@ -85,7 +85,7 @@ class AltTapeLeft(Tape):
         
     def draw(self, alt, climb):
         super().draw(alt)
-        print('climb', str(climb))
+        #print('climb', str(climb))
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
         

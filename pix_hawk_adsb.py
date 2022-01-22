@@ -1,3 +1,4 @@
+import imp
 from re import A, L, M, S
 from shutil import register_unpack_format
 import pyglet
@@ -13,7 +14,7 @@ from pix_hawk_util import Math
 import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
-from datetime import timedelta
+import cProfile
 
 
 #from pix_hawk_util import KeyBoard
@@ -620,6 +621,7 @@ if __name__ == '__main__':
     pyglet.clock.schedule_interval(update, .05)
     
     pyglet.app.run()
+    #cProfile.run('pyglet.app.run()')
 
     pix_hawk_msg.mavlinkmsg.put_instance()
     adsbwin.close()

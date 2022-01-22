@@ -23,6 +23,7 @@ from pix_hawk_wind import WindChild
 from pix_hawk_aoa import Aoa
 from pix_hawk_beep import Beep
 import traceback
+from pix_hawk_util import FunTimer
 
 
 
@@ -31,6 +32,9 @@ class MainWindow():
     def __init__(self, width, height, full_screen = False):
 
         try:
+
+            self.fun_timer = FunTimer(enable=False)
+            #self.fun_timer = FunTimer()
             
             if full_screen:
                 self.main_window = pyglet.window.Window(fullscreen=True)
@@ -89,25 +93,42 @@ class MainWindow():
             self.ahdata = self.msg_thread.getAharsData(self.ahdata)
 
             # draw all controls on top of roll gague to overaly top and bot rects
+            self.fun_timer.start('roll_gague')
             self.roll_gague.draw(self.ahdata.roll, self.ahdata.pitch)
+            self.fun_timer.stop('roll_gague')
 
             if self.phidget_thread != None:
                 yaw = self.phidget_thread.get_yaw()
             else:
                 yaw = 0
+            
+            self.fun_timer.start('compass_tape')
             self.compass_tape.draw(yaw)
+            self.fun_timer.stop('compass_tape')
 
+            self.fun_timer.start('alt_tape')
             self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb)
+            self.fun_timer.stop('alt_tape')
 
+            self.fun_timer.start('speed_tape')
             self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)
+            self.fun_timer.stop('speed_tape')
 
+            self.fun_timer.start('gps_window')
             self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
+            self.fun_timer.stop('gps_window')
 
+            self.fun_timer.start('wind_gague')
             self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
+            self.fun_timer.stop('wind_gague')
 
+            self.fun_timer.start('aoa_gague')
             self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
+            self.fun_timer.stop('aoa_gague')
 
+            self.fun_timer.start('adsb_window')
             self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
+            self.fun_timer.stop('adsb_window')
 
             self.fpsd.draw()
 
@@ -119,7 +140,7 @@ class MainWindow():
         
 
     def ex_stop(self):
-        print("\033c", end="")
+        #print("\033c", end="")
         print("***************************************************")
         traceback.print_exc()
         print("***************************************************")
@@ -152,6 +173,8 @@ class MainWindow():
 
     def on_close(self):
         
+        self.fun_timer.close()
+
         print('main_window on closed called')
         self.ex_stop()
 

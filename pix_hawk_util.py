@@ -1,4 +1,5 @@
 
+from itertools import count
 import re
 from threading import Thread, Lock, Timer
 import time
@@ -9,6 +10,50 @@ import tty
 from math import sin, cos, radians, fmod
 import numpy as np
 import math
+
+
+class FunTimer():
+
+    def __init__(self, enable=True):
+       self.timer_list = []
+       self.dict  = {}
+       self.fun_count = 0
+       self.enable = enable
+
+    def start(self, name):
+        if not self.enable:
+            return
+        if not name in self.dict:
+                cur_time = time.time()
+                cum_time = 0
+                self.timer_list.append([cur_time,cum_time])
+                self.dict[name] = self.fun_count
+                self.fun_count += 1
+        idx = self.dict[name]
+        self.timer_list[idx][0] = time.time()
+
+    def stop(self, name):
+        if not self.enable:
+            return
+        idx = self.dict[name]
+        cur_time = self.timer_list[idx][0]
+        time_dif = time.time() - cur_time
+        self.timer_list[idx][1] += time_dif
+
+    def close(self):
+        if not self.enable:
+            return
+        cum_time = 0
+        for itm in self.timer_list:
+            cum_time += itm[1]
+
+        for key in self.dict:
+            idx = self.dict[key]
+            tot_time = self.timer_list[idx][1]
+            percent_time = tot_time/cum_time
+            print('fun name {0} percent time {1} tot time {2}'.format(key, percent_time, tot_time))
+
+
 
 class Math():
 
@@ -193,8 +238,25 @@ class KeyBoard(Thread):
         return _getch()
 
 
+
+
 if __name__ == '__main__':
-    kbd = KeyBoard.get_instance()
+
+    #ft = FunTimer(enable=False)
+    ft = FunTimer()
+
+    for i in range(2):
+
+        ft.start('fun_one')
+        time.sleep(1.5)
+        ft.stop ('fun_one')
+
+        ft.start('fun_two')
+        time.sleep(.75)
+        ft.stop ('fun_two')
+
+    ft.close()
+    """kbd = KeyBoard.get_instance()
     
     key = kbd.wait_key(timeout=30)
     print('wait kye ', key)
@@ -205,7 +267,7 @@ if __name__ == '__main__':
             print(key)
         time.sleep(.1)
         i += 1
-    KeyBoard.stop()
+    KeyBoard.stop()"""
 
     
     """while True:
