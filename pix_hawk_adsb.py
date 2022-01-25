@@ -1,6 +1,6 @@
-import imp
-from re import A, L, M, S
-from shutil import register_unpack_format
+#import imp
+#from re import A, L, M, S
+#from shutil import register_unpack_format
 import pyglet
 from pyglet import shapes
 import threading
@@ -14,7 +14,7 @@ from pix_hawk_util import Math
 import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
-import cProfile
+
 
 
 #from pix_hawk_util import KeyBoard
@@ -52,6 +52,9 @@ flags	uint16_t		ADSB_FLAGS	Bitmap to indicate various statuses including valid d
 squawk	uint16_t			Squawk code
 
 """
+
+import cProfile, pstats
+#profiler = cProfile.Profile()
 
 
 class AdsbDict():
@@ -155,9 +158,12 @@ class AdsbVehicle():
         self.tail_list = []
         
         
-
-    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance, adsb_window):
         
+        
+
+    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance, adsb_window, circle):
+        global profiler
+        #profiler.enable()
         try:
             threat_level = 0
             if self.vh_label2 == None:
@@ -166,37 +172,34 @@ class AdsbVehicle():
                           x=0,
                           y=0,
                           anchor_y='bottom', anchor_x='center')
-            if self.fuse_line == None:
-                self.fuse_line = shapes.Line(0,    30, 0,   -30, 3, color = (0, 255, 0))
-            if self.wing_line == None:
-                self.wing_line = shapes.Line(20,    10, -20,   10,  3, color = (255, 0, 0))
-            
+                      
             self.vh_label2.x = x_pos
             self.vh_label2.y = y_pos
-            lsrt = str(self.icao)
+            
+
             alt_dif = int(self.altitude/100 - gps_alt / 100)
             self.vh_label2.text = str(alt_dif) #+ ':' + str(int(self.h_speed)) #+ ':' + self.call_sign #str(self.heading) + ':' + self.call_sign
             
-
-            self.wing_line.position = (20+x_pos, 10+y_pos, -20+x_pos, 10+y_pos)
             
             if self.icao != pix_hawk_config.icao:
                 radious = (50 - 2*abs(alt_dif))
                 if radious < 15:
                     radious = 15
-                circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
+                #circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
+                circle.position = (x_pos, y_pos)
+                circle.radius = radious
+                
                 if abs(alt_dif) < 15:
                     if alt_dif >= 0:
                         circle.color=(255,0,0)
                     else:
                         circle.color =(255,255,0)
-                circle.opacity = (125)
-                circle.anchor_x=0
-                circle.anchor_y=0
+                
                 if distance > 4:
                     circle.radius = 15
                     circle.color = (0,255,255)
                 circle.draw()
+
                 self.vh_label2.draw()
 
                 threat_level = circle.radius
@@ -232,6 +235,7 @@ class AdsbVehicle():
 
         #if distance >= 2:
         #    return 0
+        #profiler.disable()
         return threat_level
 
     def get_line_pos(self, line_pos, x_pos, y_pos):
@@ -244,6 +248,7 @@ class AdsbVehicle():
     def update_tail(self, lat, lon):
         self.tail_list.insert(0, (lat,lon))
         if len(self.tail_list) > 20:
+        #if len(self.tail_list) > 15:
             self.tail_list.pop()
         
 
@@ -281,11 +286,18 @@ class AdsbWindow():
         self.arrow_image.anchor_x = int(50/2)
         self.arrow_image.anchor_y = int(100/2)
         self.arrow_sprite = pyglet.sprite.Sprite(self.arrow_image, x=150, y=150)
+        #self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
+       
         
         self.N_img = pyglet.image.load('/home/pi/Downloads/N_img.jpg')
         self.N_sprite = pyglet.sprite.Sprite(self.N_img, 0,0)
         self.N_sprite.anchor_x = 0
         self.N_sprite.ahchor_y = 0
+
+        self.N_sprite.position = (self.border_rect.x + self.border_rect.width - 60, self.border_rect.y + self.border_rect.height-110)
+        self.N_sprite.scale = 1.5
+        
+
         self.sound = SoundThread.get_instance()
         self.threat = -1
         self.nearest_ap = None
@@ -303,6 +315,13 @@ class AdsbWindow():
         self.beep_thread.start()
         self.enable_timer = None
         #self.enable_timer.daemon = True
+        self.tail_line = shapes.Line(0, 0, 0, 0, width = 5, color=(0,255,0))
+
+        # vehical graphics passed to vehical draw
+        self.vehical_circle = shapes.Circle(0, 0, 0, color=(0,255,255))
+        self.vehical_circle.opacity = (125)
+        self.vehical_circle.anchor_x=0
+        self.vehical_circle.anchor_y=0
 
 
     def enable_warning(self):
@@ -440,8 +459,8 @@ class AdsbWindow():
 
         self.border_rect.draw()
 
-        self.N_sprite.position = (self.border_rect.x + self.border_rect.width - 60, self.border_rect.y + self.border_rect.height-110)
-        self.N_sprite.scale = 1.5
+        #self.N_sprite.position = (self.border_rect.x + self.border_rect.width - 60, self.border_rect.y + self.border_rect.height-110)
+        #self.N_sprite.scale = 1.5
         #self.N_sprite.draw()
 
         self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
@@ -461,6 +480,7 @@ class AdsbWindow():
         self.arrow_sprite.scale_y = .75
         self.arrow_sprite.scale_x = 1
         self.arrow_sprite.draw()
+
         self.N_sprite.draw()
 
 
@@ -504,14 +524,18 @@ class AdsbWindow():
 
                 #vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite)
 
+                #tail_batch = pyglet.graphics.Batch()
                 for pos in vh.tail_list:
                     xy = self.get_pixel_pos(N423DS, pos[0], pos[1], gps_lat, gps_lon)
                     #dot = shapes.Circle(xy[0], xy[0], 20, color=(255,0,0))
-                    line = shapes.Line(xy[0], xy[1], xy[0]+5, xy[1]+5, 5, color=(0,255,0))
+                    #line = shapes.Line(xy[0], xy[1], xy[0]+5, xy[1]+5, 5, color=(0,255,0))
+                    self.tail_line.position = (xy[0], xy[1], xy[0]+5, xy[1]+5)
                     #dot.draw()
-                    line.draw()
+                    #line.draw()
+                    self.tail_line.draw()
+                #tail_batch.draw()
                 
-                threat = vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist, self)
+                threat = vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist, self, self.vehical_circle)
                 if threat > self.threat:
                     self.threat = threat
                     #self.nearest_ap = vh.icao
@@ -555,17 +579,23 @@ class AdsbWindow():
                 self.enable_timer.start()
         
     def close(self):
+        global profiler
         AdsbDict.put_instance()
         if self.sound != None:
             SoundThread.put_instance()
         self.run_beep = False
         self.beep_thread.join()
+
+        #stats = pstats.Stats(profiler).sort_stats('cumtime')
+        #stats.print_stats(.1)
         
 
 
 
 if __name__ == '__main__':
     # unit test code
+    import cProfile, pstats
+    #profiler = cProfile.Profile()
 
     import pix_hawk_msg
 
@@ -602,10 +632,12 @@ if __name__ == '__main__':
     
     def on_draw():
         global ahdata
+        #profiler.enable()
         window.clear()
         #rect.draw()
         ahdata = msg_thread.getAharsData(ahdata)
         adsbwin.draw(ahdata.lat, ahdata.lon, ahdata.gps_alt, ahdata.gnd_track)
+        #profiler.disable()
     
     def update(dt):
         x=0
@@ -625,6 +657,10 @@ if __name__ == '__main__':
 
     pix_hawk_msg.mavlinkmsg.put_instance()
     adsbwin.close()
+
+    #stats = pstats.Stats(profiler).sort_stats('cumtime')
+    
+    #stats.print_stats(.1)
 
 
 

@@ -36,8 +36,9 @@ label = pyglet.text.Label(text,
                           font_size = 28,
                           x = 20, y = window.height//2, )
 """
-Tkinter.Frame().destroy()
+#Tkinter.Frame().destroy() #PUT BACK
 def get_str_wd(string, size):
+    return len(string)*size*.8 #TAKE OUT
     #tic = time.perf_counter()
     txt = tkFont.Font(family="Times New Roman", size=size)
     toc = time.perf_counter()

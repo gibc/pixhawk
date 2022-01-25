@@ -6,6 +6,7 @@ xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
 """
 
 
+from cmath import pi
 import pyglet
 from pyglet import clock
 from pyglet.window import key
@@ -24,6 +25,7 @@ from pix_hawk_aoa import Aoa
 from pix_hawk_beep import Beep
 import traceback
 from pix_hawk_util import FunTimer
+import pix_hawk_config
 
 
 
@@ -192,8 +194,10 @@ if __name__ == '__main__':
     # unit test code
 
     try:
-        mw = MainWindow(1500,700, full_screen=False)
-        #mw = MainWindow(1500,750, full_screen=True)
+        if pix_hawk_config.DEBUG:
+            mw = MainWindow(1500,700, full_screen=False)
+        else:
+            mw = MainWindow(1500,750, full_screen=True)
 
         pyglet.clock.schedule_interval(mw.update, .05)
 

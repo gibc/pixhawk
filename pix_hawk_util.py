@@ -2,6 +2,7 @@
 from itertools import count
 import re
 from threading import Thread, Lock, Timer
+import threading
 import time
 import termios
 import sys
@@ -10,6 +11,19 @@ import tty
 from math import sin, cos, radians, fmod
 import numpy as np
 import math
+import pix_hawk_config
+
+class DebugPrint():
+
+    lock = Lock()
+    
+    @staticmethod
+    def print(*args):
+        if not pix_hawk_config.DEBUG:
+            return
+        with DebugPrint.lock:
+            arg_str = ','.join(map(str,args))
+            print(arg_str)
 
 
 class FunTimer():

@@ -1,3 +1,4 @@
+import imp
 import pyglet
 from pyglet import shapes
 from pix_hawk_tape import Tape
@@ -107,6 +108,10 @@ class AltTapeLeft(Tape):
     
 if __name__ == '__main__':
     # unit test code
+
+    import cProfile, pstats
+    profiler = cProfile.Profile()
+    
     
     print('__main__')
     mock_angle = 5000
@@ -114,9 +119,11 @@ if __name__ == '__main__':
     climb = 0
     climb_delta = 100
     def on_draw():
+        #profiler.enable()
         window.clear()
         #rect.draw()
         tape.draw(mock_angle, climb)
+        #profiler.disable()
     
     def update(dt):
         x=0
@@ -161,4 +168,11 @@ if __name__ == '__main__':
     pyglet.clock.schedule_interval(update, .1)
     pyglet.clock.schedule_interval(mock_data, .5)
 
+    #profiler.enable()
+
     pyglet.app.run()
+
+    #profiler.disable()
+    #stats = pstats.Stats(profiler).sort_stats('cumtime')
+    
+    #stats.print_stats(.1)

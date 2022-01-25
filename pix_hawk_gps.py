@@ -83,6 +83,10 @@ class GPS_Window():
                           anchor_y='bottom', anchor_x='left')
 
     def draw(self, fix, track, speed, commpass_heading, alt):
+        if fix < 3:
+            self.border_rect.color=(255,0,0)
+        else:
+            self.border_rect.color=(0,0,0)
         self.border_rect.draw()
 
         self.fix_label.text = str(fix)

@@ -23,6 +23,7 @@ from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
 import pix_hawk_config
+from pix_hawk_util import DebugPrint
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -290,9 +291,9 @@ class mavlinkmsg (Thread):
 
                 if msg.get_type() == 'SENSOR_OFFSETS':
                     self.SENSOR_OFFSETS = msg
-                    print('self.SENSOR_OFFSET X', self.SENSOR_OFFSETS.mag_ofs_x)
-                    print('self.SENSOR_OFFSET Y', self.SENSOR_OFFSETS.mag_ofs_y)
-                    print('self.SENSOR_OFFSET Z', self.SENSOR_OFFSETS.mag_ofs_z)
+                    DebugPrint.print('self.SENSOR_OFFSET X', self.SENSOR_OFFSETS.mag_ofs_x)
+                    DebugPrint.print('self.SENSOR_OFFSET Y', self.SENSOR_OFFSETS.mag_ofs_y)
+                    DebugPrint.print('self.SENSOR_OFFSET Z', self.SENSOR_OFFSETS.mag_ofs_z)
                 
                 """if msg.get_type() == 'PARAM_VALUE':
                     
@@ -393,7 +394,7 @@ class mavlinkmsg (Thread):
                         #self.heading = heading
                         self.heading = yaw
 
-                        print('heading ',self.heading)
+                        DebugPrint.print('heading ',self.heading)
 
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)

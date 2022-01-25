@@ -6,6 +6,7 @@ import pyaudio
 import numpy as np
 from numpy import arange, float32
 import threading
+from pix_hawk_util import DebugPrint
 
 
 
@@ -100,7 +101,7 @@ class SoundThread(Thread):
         self.lock = Lock()
 
     def start_tone(self, volume):
-        print('*************************** start tone')
+        DebugPrint.print('*************************** start tone')
         with self.lock:
             if self.stream.is_active():
                 self.wave_data.set_volume(volume)
@@ -116,7 +117,7 @@ class SoundThread(Thread):
 
 
     def stop_tone(self):
-        print('*************************** stop tone')
+        DebugPrint.print('*************************** stop tone')
         with self.lock:
             if self.stream.is_active():
                 self.stream.stop_stream()
