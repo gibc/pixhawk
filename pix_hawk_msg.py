@@ -107,6 +107,7 @@ class mavlinkmsg (Thread):
         self.yacc = -1
         self.zacc = -1
         self.gps_alt = -1
+        self.tail_count = 0
 
         self.smothed_heading = 0
 
@@ -584,6 +585,8 @@ class mavlinkmsg (Thread):
                         self.fix_type = fix_type
                         
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
+                        if pix_hawk_config.DEBUG:
+                            self.gnd_track = 0
 
                         self.gps_alt = dic['alt'] * 0.00328084
 
@@ -591,8 +594,18 @@ class mavlinkmsg (Thread):
 
                         my_icao = pix_hawk_config.icao
                         
-                        
-                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
+                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
+
+                        if pix_hawk_config.DEBUG:
+                            if self.tail_count < 40:
+                                off =self.tail_count*.002
+                                self.tail_count += 1
+                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.05+off, self.lon-.05, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
+                            elif self.tail_count < 100:
+                                self.tail_count += 1
+                            else:
+                                self.tail_count = 0
+
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)
                         self.adsb_dic.updateVehicle('myicao1234b', "RIGHT", self.lat+.05, self.lon, self.gps_alt-500, 0, 0, 180, True) #self.gnd_track)
