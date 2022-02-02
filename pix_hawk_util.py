@@ -152,6 +152,23 @@ class Math():
             to360 = 360 - a1
             return to360 + a2
 
+    @classmethod
+    def latlon_distance(self, lat1, lon1, lat2, lon2):
+        origin = (lat1,lon1)
+        destination = (lat2,lon2)
+        radius = 6371
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = (math.sin(dlat / 2) * math.sin(dlat / 2) +
+            math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+            math.sin(dlon / 2) * math.sin(dlon / 2))
+
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+        d = (radius * c) / 1.609344 # convet to miles
+
+        return d
+
     
 
 

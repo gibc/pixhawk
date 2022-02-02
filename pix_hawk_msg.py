@@ -524,11 +524,14 @@ class mavlinkmsg (Thread):
                     #    instead, create synthetic vehical from gps msg data
                     if ICAO_address != pix_hawk_config.icao:
                         if cord_valid and heading_valid and call_sign_valid:
-                            self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                                adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
-                        else:
-                            self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                                adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
+
+                            if self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude):
+
+                                self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
+                        #else:
+                            #self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                            #    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
                             #print("bad adsb message **************************")
 
                 if msg.get_type() == 'AHRS3':
@@ -583,20 +586,27 @@ class mavlinkmsg (Thread):
                         #print("satellites_visible: ", satellites_visible)
                         fix_type = dic['fix_type']
                         self.fix_type = fix_type
+
+                        if self.fix_type < 3:
+                            self.lat = 39.932138
+                            self.lon = -105.065293
                         
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
                         if pix_hawk_config.DEBUG:
                             self.gnd_track = 0
 
                         self.gps_alt = dic['alt'] * 0.00328084
+                        if self.fix_type < 3:
+                            self.gps_alt = 5400 # at eagle rd per topo map
 
                         vel = dic['vel']
 
                         my_icao = pix_hawk_config.icao
                         
-                        self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
+                        #self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
 
-                        if pix_hawk_config.DEBUG:
+                        #if pix_hawk_config.DEBUG:
+                        if False:
                             if self.tail_count < 40:
                                 off =self.tail_count*.002
                                 self.tail_count += 1

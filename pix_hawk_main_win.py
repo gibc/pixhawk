@@ -104,6 +104,7 @@ class MainWindow():
             else:
                 yaw = 0
             
+            
             self.fun_timer.start('compass_tape')
             self.compass_tape.draw(yaw)
             self.fun_timer.stop('compass_tape')
