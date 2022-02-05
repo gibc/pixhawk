@@ -140,9 +140,11 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 10)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_PRESSURE, 5)
+        
         
     """ 
     def on_press(self, key):
@@ -289,6 +291,15 @@ class mavlinkmsg (Thread):
                     continue
                 
                 #print(msg.get_type)
+
+                if msg.get_type() == 'SCALED_PRESSURE':
+                    dic = msg.to_dict()
+                    pres = dic['press_abs']
+
+                    # alt meters = 44330 * (1 - (measured pres/baro pre) ^ (1/5.255))
+                    baro_pressure = 1019.3 # set this from atis, convert from in to pa
+                    alt = 44330 * (1 - (pres/baro_pressure ) ** (1/5.255))
+                    alt = alt * 3.28084 # convert meters to ft
 
                 if msg.get_type() == 'SENSOR_OFFSETS':
                     self.SENSOR_OFFSETS = msg
