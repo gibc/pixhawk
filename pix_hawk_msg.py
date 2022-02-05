@@ -23,7 +23,7 @@ from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
 import pix_hawk_config
-from pix_hawk_util import DebugPrint
+from pix_hawk_util import DebugPrint, Math
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -133,7 +133,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS3, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
-        #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS_RAW_INT, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS_RAW_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, 2)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
@@ -459,19 +459,44 @@ class mavlinkmsg (Thread):
                     self.wind_dir = dic['direction']
                     self.wind_speed = dic['speed']
                     #pass
+
+                if msg.get_type() == 'GPS_RAW_INT':
+                    #print("\n\n*****Got message: %s*****" % msg.get_type())
+                    #print("Message: %s" % msg)
+                    with self.msglock:
+                        dic = msg.to_dict()
+                        self.lat = dic['lat']/10000000
+                    
+                        self.lon = dic['lon']/10000000
+                        
+                        satellites_visible = dic['satellites_visible']
+                        #print("satellites_visible: ", satellites_visible)
+                        fix_type = dic['fix_type']
+                        self.fix_type = fix_type
+
+                        if self.fix_type < 3:
+                            self.lat = 39.932138
+                            self.lon = -105.065293
+                        
+                        self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
+                        if pix_hawk_config.DEBUG:
+                            self.gnd_track = 0
+
+                        self.gps_alt = dic['alt'] * 0.00328084
+
+                        
                     
                 if msg.get_type() == 'GLOBAL_POSITION_INT':
                     #print("\n\n*****Got message: %s*****" % msg.get_type())
                     #print("Message: %s" % msg)
-
+                    with self.msglock:
+                        dic = msg.to_dict()
+                                      
+                        vel_z = dic['vz'] #gnd speed Z cm/s (altitude, positive down)
+                        vel_z = vel_z * 1.9685  # to feet/min
+                        vel_z = -vel_z # to positive u
                     
-
-                    dic = msg.to_dict()
-                    vel_z = dic['vz'] #gnd speed Z cm/s (altitude, positive down)
-                    vel_z = vel_z * 1.9685  # to feet/min
-                    vel_z = -vel_z # to positive u
-                    #print('vel_z ', vel_z)
-                    with self.msglock:                   
+                                       
                         self.climb = vel_z
                         
                     
@@ -525,10 +550,11 @@ class mavlinkmsg (Thread):
                     if ICAO_address != pix_hawk_config.icao:
                         if cord_valid and heading_valid and call_sign_valid:
 
-                            if self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude):
+                            dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
+                            if dist > 0:
 
                                 self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True)
+                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                         #else:
                             #self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
                             #    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
@@ -557,8 +583,7 @@ class mavlinkmsg (Thread):
                         self.pitch = math.degrees(pitch)
                         #print("pitch: ", pitch)
             
-                        yaw = dic['yaw']
-                        yaw = math.degrees(yaw)
+                        yaw
                         #print("yaw: ", yaw)
                         """
                         altitude = dic['altitude']
@@ -569,9 +594,12 @@ class mavlinkmsg (Thread):
             
                 #if msg.get_type() == 'GPS_RAW_INT':
                 if msg.get_type() == 'GPS2_RAW':
-                    
+                    ### This now all handled by GPS_RAW_INT msg and Here 3 gps sensor
                     with self.msglock:
                         #print("\n\n*****Got message: %s*****" % msg.get_type())
+                        #print("Message: %s" % msg)
+
+                        # print("\n\n*****Got message: %s*****" % msg.get_type())
                         #print("Message: %s" % msg)
                         dic = msg.to_dict()
                         self.lat = dic['lat']/10000000
@@ -605,12 +633,14 @@ class mavlinkmsg (Thread):
                         
                         #self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
 
-                        #if pix_hawk_config.DEBUG:
-                        if False:
+                        if pix_hawk_config.DEBUG:
+                        #if False:
                             if self.tail_count < 40:
                                 off =self.tail_count*.002
                                 self.tail_count += 1
-                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.05+off, self.lon-.05, self.gps_alt, 0, 0, self.gnd_track, True) #self.gnd_track)
+                                dist = Math.latlon_distance(self.lat, self.lon, self.lat-.05+off, self.lon-.05)
+                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.05+off, 
+                                    self.lon-.05, self.gps_alt, 0, 0, self.gnd_track, True, dist) #self.gnd_track)
                             elif self.tail_count < 100:
                                 self.tail_count += 1
                             else:

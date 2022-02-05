@@ -99,12 +99,13 @@ class AdsbDict():
                 self.dict[str(vehicle.icao)] = vehicle
     
     #AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-    def updateVehicle(self, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid):
+    def updateVehicle(self, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid, distance):
         with self.lock:
             if not icao in self.dict:
                 if not all_valid:
                     return
-                self.dict[str(icao)] = AdsbVehicle(icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+                self.dict[str(icao)] = AdsbVehicle(icao, callsign, lat, lon, adsb_altitude, 
+                        hor_velocity, ver_velocity, adsb_heading, distance)
                 self.dict[str(icao)].time = time.time()
 
             else:             
@@ -126,19 +127,21 @@ class AdsbDict():
                 self.dict[str(icao)].h_speed = hor_velocity
                 self.dict[str(icao)].v_speed = ver_velocity
                 self.dict[str(icao)].heading = adsb_heading
+                self.dict[str(icao)].distance = distance
                 #self.dict[str(icao)].time = time.time()
                 self.dict[str(icao)].set_timeout()
     
     def vehicleInLimits(self, gps_lat, gps_lon, gps_alt, vh_lat, vh_lon, vh_alt):
         if abs(gps_alt - vh_alt) > pix_hawk_config.AdsbAltLimit*1000:
             DebugPrint.print("---out of distance limt----")
-            return False
+            return -1
 
-        if Math.latlon_distance(gps_lat, gps_lon, vh_lat, vh_lon) > pix_hawk_config.AdsbDistanceLimit:
+        dist = Math.latlon_distance(gps_lat, gps_lon, vh_lat, vh_lon)
+        if dist > pix_hawk_config.AdsbDistanceLimit:
             DebugPrint.print("---out of ALTITUDE limt----")
-            return False
+            return -1
         
-        return True
+        return dist
 
         
 
@@ -152,12 +155,13 @@ class AdsbDict():
     
             
 class AdsbVehicle():
-    def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading):
+    def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading, distance):
         self.icao = str(icao)
         self.call_sign = str(call_sign)
         self.lat = lat
         self.lon = lon
         self.altitude = altitude
+        self.distance = distance
         self.h_speed = h_speed
         self.v_speed = v_speed
         self.heading = heading
@@ -193,8 +197,8 @@ class AdsbVehicle():
 
             
 
-
-    def draw(self, x_pos, y_pos, gps_alt, gps_track, sprite, distance, adsb_window, circle):
+    # draw adsb vehicle
+    def draw(self, x_pos, y_pos, gps_alt, circle):
         global profiler
         #profiler.enable()
         try:
@@ -214,11 +218,11 @@ class AdsbVehicle():
             self.vh_label2.text = str(alt_dif) #+ ':' + str(int(self.h_speed)) #+ ':' + self.call_sign #str(self.heading) + ':' + self.call_sign
             
             
-            #if self.icao != pix_hawk_config.icao:
+            
             radious = (50 - 2*abs(alt_dif))
             if radious < 15:
                 radious = 15
-                #circle = shapes.Circle(x_pos, y_pos, radious, color=(0,255,255))
+                
             circle.position = (x_pos, y_pos)
             threat_level = radious
             circle.radius = radious * 1.3 
@@ -229,40 +233,18 @@ class AdsbVehicle():
                 else:
                     circle.color =(255,255,0)
                 
-            if distance > 4:
+            if self.distance > 4:
                 circle.radius = 15
                 circle.color = (0,255,255)
             circle.draw()
 
             self.vh_label2.draw()
 
-                #threat_level = circle.radius
-            if distance > 3.1:
+                
+            if self.distance > 3.1:
                 threat_level = 0
 
-            """else:
-                radious = adsb_window.get_pix_mile_y() * 3
-                circle = shapes.Circle(x_pos, y_pos, radious, color=(200,200,200))
-                circle.opacity = (50)
-                circle.anchor_x=0
-                circle.anchor_y=0
-                sprite.scale = .8
-                
-                rot = self.heading #- 180
-                if rot < 360:
-                    rot = 360 - rot
-                sprite.rotation = 0
-                sprite.position = x_pos, y_pos
-                
-                sprite.draw()
-
-                circle2 = shapes.Circle(x_pos, y_pos, 7, color=(0,255,255))
-                circle2.anchor_x=0
-                circle2.anchor_y=0
-                circle2.draw()
-
-                circle.draw()
-                threat_level = 0"""
+            
 
         except Exception as ex:
             print(ex)
@@ -311,11 +293,7 @@ class AdsbWindow():
                           x=self.border_rect.x,
                           y=self.border_rect.y,
                           anchor_y='bottom', anchor_x='left')
-        #self.vh_icao = pyglet.text.Label('****',
-        #                  font_size=30,
-        #                  x=self.border_rect.x,
-        #                  y=self.border_rect.y + 100,
-        #                  anchor_y='bottom', anchor_x='left')
+        
         self.miles_per_degree_lat = 69
         self.miles_per_degree_lon = 53
         #self.win_wd_degress = 3 * self.miles_per_degree_lat
@@ -390,33 +368,6 @@ class AdsbWindow():
             time.sleep(off_duration)
             
 
-    """def check_beep(self, is_threat, on_duration = 1, off_duration = 1):
-        if self.sound.get_tone_mode():
-            return
-
-        cur_time = time.time()
-        if is_threat and self.warning_on:
-            
-            if self.beep_on_time > 0 and cur_time > self.beep_on_time:
-                self.sound.stop_tone()
-                self.beep_on_time = -1
-                self.beep_off_time = cur_time + off_duration
-
-            elif self.beep_off_time > 0 and cur_time > self.beep_off_time:
-                self.sound.start_tone(.4)
-                self.beep_off_time = -1
-                self.beep_on_time = cur_time + on_duration
-
-            elif self.beep_off_time < 0 and self.beep_on_time < 0:
-                self.sound.start_tone(.4)
-                self.beep_off_time = -1
-                self.beep_on_time = cur_time + on_duration
-        else:
-            if self.beep_on_time > 0 and cur_time > self.beep_on_time:
-                self.sound.stop_tone()
-                self.beep_on_time = -1
-                self.beep_off_time = -1"""
-
       
     def latlon_distance(self, lat1, lon1, lat2, lon2):
         origin = (lat1,lon1)
@@ -445,17 +396,16 @@ class AdsbWindow():
 
         return brng
 
-    #def get_pixel_pos(self, N423DS, lat, lon, gps_lat, gps_lon):
+    
     def get_pixel_pos(self, gps_track, lat, lon, gps_lat, gps_lon):
 
-        #angle = Math.get_bearing(N423DS.lat, N423DS.lon, lat, lon)
+        
         angle = Math.get_bearing(gps_lat, gps_lon, lat, lon)
-        #angle += N423DS.heading
-        angle += gps_track
+        
         if angle > 360:
             angle = angle - 360
 
-        #dist = self.latlon_distance(N423DS.lat, N423DS.lon, lat, lon)
+        
         dist = self.latlon_distance(gps_lat, gps_lon, lat, lon)
 
         xy = Math.pol2cart(dist, angle)
@@ -469,8 +419,10 @@ class AdsbWindow():
 
                
 
-        pix_mile_x = .75/4 * self.border_rect.width/2
-        pix_mile_y = .75/4* self.border_rect.height/2
+        #pix_mile_x = .75/4 * self.border_rect.width/2
+        pix_mile_x = self.get_pix_mile_x()
+        #pix_mile_y = .75/4* self.border_rect.height/2
+        pix_mile_y = self.get_pix_mile_y()
 
         x_pos = pix_mile_x*xy[0]+self.border_rect.x+self.border_rect.width/2
         y_pos = pix_mile_y*xy[1]+self.border_rect.y+self.border_rect.height/2
@@ -484,7 +436,7 @@ class AdsbWindow():
         return .75/4* self.border_rect.height/2
 
         
-
+    # draw adsb window
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
 
         if pix_hawk_config.DEBUG:
@@ -494,10 +446,6 @@ class AdsbWindow():
 
         self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
         
-        #N423DS = self.adsb_dic.getVehicle(pix_hawk_config.icao)
-        #if N423DS == None:
-        #    return
-
         #rot = N423DS.heading
         rot = gps_track
         if rot < 360:
@@ -513,7 +461,9 @@ class AdsbWindow():
         self.N_sprite.draw()
 
         # draw background
-        x_pos, y_pos = self.get_pixel_pos(gps_track, gps_lat, gps_lon, gps_lat, gps_lon)
+        x_pos = self.border_rect.x+self.border_rect.width/2
+        y_pos = self.border_rect.y+self.border_rect.height/2
+
 
         radious = self.get_pix_mile_y() * 3
         circle = shapes.Circle(x_pos, y_pos, radious, color=(200,200,200))
@@ -522,15 +472,6 @@ class AdsbWindow():
         circle.anchor_y=0
         self.arrow_sprite.scale = .8
                 
-        #rot = self.heading 
-        rot = gps_track
-        if rot < 360:
-            rot = 360 - rot
-        self.arrow_sprite.rotation = 0
-        self.arrow_sprite.position = x_pos, y_pos
-                
-        self.arrow_sprite.draw()
-
         circle2 = shapes.Circle(x_pos, y_pos, 7, color=(0,255,255))
         circle2.anchor_x=0
         circle2.anchor_y=0
@@ -553,24 +494,13 @@ class AdsbWindow():
             self.nearest_ap = None
             for key in self.adsb_dic.dict:
 
-                
-
                 vh = self.adsb_dic.dict[key]
-                #dist = self.latlon_distance(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
-               
-                #if time.time() - vh.time > 10:
+                
                 if vh.is_timed_out:
                     del_list.append(vh.icao)
                     continue
 
-                #dist = self.latlon_distance(N423DS.lat, N423DS.lon, vh.lat, vh.lon)
-                dist = self.latlon_distance(gps_lat, gps_lon, vh.lat, vh.lon)
-            
-                if dist > 5:
-                   continue
-
                 
-                #x_pos, y_pos = self.get_pixel_pos(N423DS, vh.lat, vh.lon, gps_lat, gps_lon)
                 x_pos, y_pos = self.get_pixel_pos(gps_track, vh.lat, vh.lon, gps_lat, gps_lon)
 
                 for pos in vh.tail_list:
@@ -585,7 +515,7 @@ class AdsbWindow():
                     self.tail_line.draw()
                 
                 
-                threat = vh.draw(x_pos, y_pos, gps_alt, gps_track, self.arrow_sprite, dist, self, self.vehical_circle)
+                threat = vh.draw(x_pos, y_pos, gps_alt, self.vehical_circle)
                 if threat > self.threat:
                     self.threat = threat
                    
@@ -596,9 +526,6 @@ class AdsbWindow():
 
             
             self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
-            #if len(self.adsb_dic.dict) == 0:
-            #    self.vh_icao.text = "none"
-            #    self.vh_icao.draw()
             self.vh_label.draw()
 
             if not self.warning_on:
