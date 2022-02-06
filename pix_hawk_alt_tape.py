@@ -1,10 +1,12 @@
 import imp
 import pyglet
 from pyglet import shapes
+from pyglet.window import key
 from pix_hawk_tape import Tape
 from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
+
 
 class AltTape(Tape):
 
@@ -62,6 +64,13 @@ class AltTapeLeft(Tape):
         self.current_val_rect.y = self.border_rect.height/2 
         self.current_val_label.y = self.border_rect.height/2
 
+        self.baro_label = pyglet.text.Label('',
+                          font_size=35,
+                          x=self.current_val_rect.x + self.current_val_rect.width,
+                          y=self.current_val_label.y,
+                          color=(0,255,0,255),
+                          anchor_y='bottom', anchor_x='left')
+
         self.climb_val_label = pyglet.text.Label('',
                           font_size=50,
                           x=self.current_val_rect.x,
@@ -80,13 +89,20 @@ class AltTapeLeft(Tape):
 
         self.tick_pixels = self.border_rect.height/self.tick_count
         self.units2pix_scale = self.tick_pixels/self.units_interval
+        self.baro_val = 29.29
+        self.alt_mode_gps = True
 
         
     
         
-    def draw(self, alt, climb):
+    def draw(self, alt, climb, baro_press):
+        if not self.alt_mode_gps:
+            alt = self.get_baro_alt(baro_press)
         super().draw(alt)
         #print('climb', str(climb))
+        if not self.alt_mode_gps:
+            self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
+            self.baro_label.draw()
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
         
@@ -105,6 +121,33 @@ class AltTapeLeft(Tape):
         #self.climb_val_label.color = self.up_rect.color
         self.climb_val_label.draw()
         self.up_rect.draw()
+
+    def get_baro_alt(self, cur_pressure_hpa):
+        in_mecury = self.baro_val
+        hpa = 33.86389 * in_mecury
+        baro_pressure = hpa # set this from atis, convert from in to pa
+        alt = 44330 * (1 - (cur_pressure_hpa/baro_pressure ) ** (1/5.255))
+        baro_alt = alt * 3.28084 # convert meters to ftSS
+        return baro_alt
+
+
+    def on_key_press(self,symbol, modifiers):
+        if symbol == key.UP: 
+            if self.baro_val < 35:
+                self.baro_val += 1
+        elif symbol == key.DOWN:
+            if self.baro_val > 25:
+                self.baro_val -= 1
+        elif symbol == key.LEFT:
+            if self.baro_val < 35:
+                self.baro_val += .1
+        elif symbol == key.RIGHT:
+            if self.baro_val > 25:
+                self.baro_val -= .1
+        elif symbol == key.TAB:
+            self.alt_mode_gps = not self.alt_mode_gps
+                
+        
     
 if __name__ == '__main__':
     # unit test code
@@ -122,7 +165,7 @@ if __name__ == '__main__':
         #profiler.enable()
         window.clear()
         #rect.draw()
-        tape.draw(mock_angle, climb)
+        tape.draw(mock_angle, climb, 1028.78)
         #profiler.disable()
     
     def update(dt):

@@ -110,7 +110,7 @@ class MainWindow():
             self.fun_timer.stop('compass_tape')
 
             self.fun_timer.start('alt_tape')
-            self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb)
+            self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
             self.fun_timer.stop('alt_tape')
 
             self.fun_timer.start('speed_tape')
@@ -153,7 +153,6 @@ class MainWindow():
             if not pix_hawk_msg.mavlinkmsg._run_thread:
                 self.msg_thread.join()
 
-
         if self.phidget_thread != None:
             PhidgetThread.put_instance()
             if not PhidgetThread._run_thread:
@@ -184,6 +183,10 @@ class MainWindow():
     def on_key_press(self, symbol, modifiers):
         if symbol == key.ESCAPE:
             self.on_close()
+
+        elif self.alt_tape != None:
+            if symbol == key.UP or symbol == key.DOWN or symbol == key.LEFT or symbol == key.RIGHT or key.TAB:
+                self.alt_tape.on_key_press(symbol, modifiers)
 
         elif self.adsb_window != None:
             self.adsb_window.on_key_press(symbol, modifiers)

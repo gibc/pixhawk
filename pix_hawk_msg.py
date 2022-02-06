@@ -28,7 +28,7 @@ from pix_hawk_util import DebugPrint, Math
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
                 fix_type=-1, gnd_track=-1, wind_speed=-1, wind_dir=-1, xmag=-1, ymag=-1, zmag=-1,
-                xacc=-1, yacc=-1, zacc=-1, gps_alt=-1, lat=-1, lon=-1):
+                xacc=-1, yacc=-1, zacc=-1, gps_alt=-1, lat=-1, lon=-1, baro_press=-1):
         #print('aharsData init')
         self.roll = roll
         self.pitch = pitch
@@ -50,6 +50,7 @@ class aharsData:
         self.yacc = yacc
         self.zacc = zacc
         self.gps_alt = gps_alt
+        self.baro_press = baro_press
         
 
 class mavlinkmsg (Thread):
@@ -75,6 +76,7 @@ class mavlinkmsg (Thread):
         self.pitch = 0
         self.pitch_rad = 0
         self.heading = 0
+        self.baro_press = -1
         self.altitude = 0
         self.climb = 0
         self.groundspeed = 0
@@ -294,12 +296,14 @@ class mavlinkmsg (Thread):
 
                 if msg.get_type() == 'SCALED_PRESSURE':
                     dic = msg.to_dict()
-                    pres = dic['press_abs']
+                    self.baro_press = dic['press_abs']
 
                     # alt meters = 44330 * (1 - (measured pres/baro pre) ^ (1/5.255))
-                    baro_pressure = 1019.3 # set this from atis, convert from in to pa
-                    alt = 44330 * (1 - (pres/baro_pressure ) ** (1/5.255))
-                    alt = alt * 3.28084 # convert meters to ft
+                    #in_mecury = 30.28
+                    #hpa = 33.86389 * in_mecury
+                    #baro_pressure = hpa # set this from atis, convert from in to pa
+                    #lt = 44330 * (1 - (pres/baro_pressure ) ** (1/5.255))
+                    #self.baro_alt = alt * 3.28084 # convert meters to ftSS
 
                 if msg.get_type() == 'SENSOR_OFFSETS':
                     self.SENSOR_OFFSETS = msg
@@ -494,6 +498,9 @@ class mavlinkmsg (Thread):
                             self.gnd_track = 0
 
                         self.gps_alt = dic['alt'] * 0.00328084
+
+                        #if self.fix_type < 4:
+                        #    self.gps_alt = self.baro_alt
 
                         
                     
@@ -771,7 +778,8 @@ class mavlinkmsg (Thread):
         #if(False):
             newData = aharsData(self.roll, self.pitch, self.heading, self.altitude, 
                 self.climb, self.groundspeed, self.airspeed, self.fix_type, self.gnd_track, self.wind_speed, 
-                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc, self.gps_alt, self.lat, self.lon)
+                self.wind_dir, self.xmag, self.ymag, self.zmag, self.xacc, self.yacc, self.zacc, self.gps_alt, self.lat, self.lon,
+                self.baro_press)
             self.msglock.release()
             return newData
         else:

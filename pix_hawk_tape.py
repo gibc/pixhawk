@@ -1,4 +1,5 @@
 from re import A, S
+from unicodedata import decimal
 import pyglet
 from pyglet import shapes
 from enum import Enum
@@ -188,7 +189,7 @@ class Tape:
                 self.current_val_label.x += 25
             if current_val < 10:
                 self.current_val_label.x += 25
-            self.current_val_label.text = str(self.round_half_up(current_val,1))
+            self.current_val_label.text = str(self.round_half_up(current_val,decimals=0)) #put back 1 decimal
         #if self.tape_unit == TapeUnit.DEGREE:
         #    self.current_val_label.x = self.self.current_val_rect.x
 
@@ -293,7 +294,10 @@ class Tape:
     
     def round_half_up(self, n, decimals=0):
         multiplier = 10 ** decimals
-        return int(floor(n*multiplier + 0.5) / multiplier)
+        if decimals == 0:
+            return int(floor(n*multiplier + 0.5) / multiplier)
+        else:
+            return (floor(n*multiplier + 0.5) / multiplier)
 
     def get_sum_right(self, a1, a2):
     #print('get_sum_right', a1, a2)
