@@ -183,14 +183,18 @@ class MainWindow():
     def on_key_press(self, symbol, modifiers):
         if symbol == key.ESCAPE:
             self.on_close()
+            return
 
-        elif self.alt_tape != None:
-            if symbol == key.UP or symbol == key.DOWN or symbol == key.LEFT or symbol == key.RIGHT or key.TAB:
+        if self.alt_tape != None:
+            if symbol == key.UP or symbol == key.DOWN or symbol == key.LEFT or symbol == key.RIGHT or symbol == key.TAB:
                 self.alt_tape.on_key_press(symbol, modifiers)
+                return
 
-        elif self.adsb_window != None:
-            self.adsb_window.on_key_press(symbol, modifiers)
-
+        if self.adsb_window != None:
+            if symbol == key.SPACE:
+                self.adsb_window.on_key_press(symbol, modifiers)
+                return
+                                                       
     def update(self, dt):
         x=0
 

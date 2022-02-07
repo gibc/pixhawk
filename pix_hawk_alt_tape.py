@@ -1,4 +1,3 @@
-import imp
 import pyglet
 from pyglet import shapes
 from pyglet.window import key
@@ -6,6 +5,8 @@ from pix_hawk_tape import Tape
 from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
+import time
+
 
 
 class AltTape(Tape):
@@ -91,15 +92,20 @@ class AltTapeLeft(Tape):
         self.units2pix_scale = self.tick_pixels/self.units_interval
         self.baro_val = 29.29
         self.alt_mode_gps = True
-
+        self.climb_list = []
+        self.climb_alt = 0
+        self.climb_time = time.time()
+        self.climb_buf_len = 3
+        self.climb_weight = self.get_climb_wts(self.climb_buf_len)
         
-    
+
         
     def draw(self, alt, climb, baro_press):
         if not self.alt_mode_gps:
             alt = self.get_baro_alt(baro_press)
+            climb = self.get_baro_climb()
         super().draw(alt)
-        #print('climb', str(climb))
+        print('climb', str(climb))
         if not self.alt_mode_gps:
             self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
             self.baro_label.draw()
@@ -121,6 +127,31 @@ class AltTapeLeft(Tape):
         #self.climb_val_label.color = self.up_rect.color
         self.climb_val_label.draw()
         self.up_rect.draw()
+    
+    def get_climb_wts(self, buf_len):
+        wts = []
+        for i in range(buf_len):
+            wts.append(1 / (i+1))
+        return wts
+
+    def get_baro_climb(self):
+        num = [a*b for a,b in zip(self.climb_list, self.climb_weight)]
+        num = sum(num)
+        denom = sum(self.climb_weight)
+        w_mean = num/denom
+        #print('w mean climb rate:', w_mean)
+        return w_mean
+
+    def set_baro_climb(self, alt):
+        alt_dif = alt - self.climb_alt
+        time_dif = time.time() - self.climb_time
+        climb_rate = alt_dif / time_dif # feet / sec
+        climb_rate /= 60 # feet / min
+        self.climb_list.insert(0, climb_rate)
+        
+        if len(self.climb_list) > self.climb_buf_len:
+            self.climb_list.pop()
+        
 
     def get_baro_alt(self, cur_pressure_hpa):
         in_mecury = self.baro_val
@@ -128,22 +159,29 @@ class AltTapeLeft(Tape):
         baro_pressure = hpa # set this from atis, convert from in to pa
         alt = 44330 * (1 - (cur_pressure_hpa/baro_pressure ) ** (1/5.255))
         baro_alt = alt * 3.28084 # convert meters to ftSS
+
+        self.set_baro_climb(baro_alt)
+        self.climb_time = time.time()
+        self.climb_alt = baro_alt
         return baro_alt
 
 
     def on_key_press(self,symbol, modifiers):
+        inc = .1
+        if modifiers & key.MOD_SHIFT:
+            inc = 1
         if symbol == key.UP: 
             if self.baro_val < 35:
-                self.baro_val += 1
+                self.baro_val += inc
         elif symbol == key.DOWN:
             if self.baro_val > 25:
-                self.baro_val -= 1
+                self.baro_val -= inc
         elif symbol == key.LEFT:
             if self.baro_val < 35:
-                self.baro_val += .1
+                self.baro_val += .01
         elif symbol == key.RIGHT:
             if self.baro_val > 25:
-                self.baro_val -= .1
+                self.baro_val -= .01
         elif symbol == key.TAB:
             self.alt_mode_gps = not self.alt_mode_gps
                 
@@ -159,18 +197,34 @@ if __name__ == '__main__':
     print('__main__')
     mock_angle = 5000
     mock_delta = 2
+
+    mock_pressure = 900
+    mock_pressure_delta = 20
+
     climb = 0
     climb_delta = 100
     def on_draw():
         #profiler.enable()
         window.clear()
         #rect.draw()
-        tape.draw(mock_angle, climb, 1028.78)
+        tape.draw(mock_angle, climb, mock_pressure)
         #profiler.disable()
     
     def update(dt):
         x=0
         #print("dt: ", dt)
+
+    def mock_pressure_fn(dt):
+        global mock_pressure
+        global mock_pressure_delta
+        mock_pressure = mock_pressure + mock_pressure_delta
+        if mock_pressure > 900:
+            mock_pressure = 900
+            mock_pressure_delta = -mock_pressure_delta
+        if mock_pressure < 700:
+            mock_pressure = 700
+            mock_pressure_delta = -mock_pressure_delta
+
         
     def mock_data(dt):
         print('mock_data')
@@ -206,10 +260,12 @@ if __name__ == '__main__':
     #rect = shapes.BorderedRectangle(center_x, center_y,  100, 100, border=3, color = (0, 0, 255),
                                             #border_color = (255,255,255))
     tape = AltTapeLeft(window, 75, 150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
+    tape.alt_mode_gps = False
     #tape = Tape(50, 100, 500, 75, 6, 100, align=Align.RIGHT, tape_unit=TapeUnit.FEET_VERT_SPEED, orient=Orient.VERT)
     
     pyglet.clock.schedule_interval(update, .1)
-    pyglet.clock.schedule_interval(mock_data, .5)
+    #pyglet.clock.schedule_interval(mock_data, .5)
+    pyglet.clock.schedule_interval(mock_pressure_fn, .5)
 
     #profiler.enable()
 
