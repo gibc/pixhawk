@@ -1,6 +1,8 @@
 #import imp
 #from re import A, L, M, S
 #from shutil import register_unpack_format
+from distutils.command.config import config
+import imp
 from re import M
 import pyglet
 from pyglet import shapes
@@ -15,6 +17,7 @@ from pix_hawk_util import DebugPrint, Math
 import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
+import pix_hawk_config
 
 
 
@@ -202,47 +205,41 @@ class AdsbVehicle():
         global profiler
         #profiler.enable()
         try:
-            threat_level = 0
+            threat_level = self.get_threat_level(self.altitude - gps_alt, self.distance)
+            
             if self.vh_label2 == None:
                 self.vh_label2 = pyglet.text.Label('****',
-                          font_size=30,
+                          font_size=40,
                           x=0,
                           y=0,
                           anchor_y='bottom', anchor_x='center')
                       
-            self.vh_label2.x = x_pos
-            self.vh_label2.y = y_pos-20
-            
-
             alt_dif = int(self.altitude/100 - gps_alt / 100)
-            self.vh_label2.text = str(alt_dif) #+ ':' + str(int(self.h_speed)) #+ ':' + self.call_sign #str(self.heading) + ':' + self.call_sign
-            
-            
-            
-            radious = (50 - 2*abs(alt_dif))
-            if radious < 15:
-                radious = 15
+            #alt_dif = -5
+            self.vh_label2.x = x_pos
+            if alt_dif > 0:
+                self.vh_label2.y = y_pos-5 
+            else:
+                self.vh_label2.y = y_pos-60
                 
+            self.vh_label2.text = str(alt_dif)
+
             circle.position = (x_pos, y_pos)
-            threat_level = radious
-            circle.radius = radious * 1.3 
+            
+            circle.radius = self.get_vh_radius(threat_level)
                 
-            if abs(alt_dif) < 15:
-                if alt_dif >= 0:
-                    circle.color=(255,0,0)
-                else:
-                    circle.color =(255,255,0)
+            if threat_level > 0:
+                circle.color=(255,0,0)
+            else:
+                circle.color =(0,255,255)
                 
-            if self.distance > 4:
-                circle.radius = 15
-                circle.color = (0,255,255)
+            
             circle.draw()
 
             self.vh_label2.draw()
 
                 
-            if self.distance > 3.1:
-                threat_level = 0
+            
 
             
 
@@ -253,6 +250,29 @@ class AdsbVehicle():
         #    return 0
         #profiler.disable()
         return threat_level
+
+    def get_threat_level(self, alt_seperation, dist_seperation):
+
+        alt_seperation = abs(alt_seperation)/1000 
+        if alt_seperation > pix_hawk_config.AdsbAltThreat:
+            return 0
+
+        if dist_seperation > pix_hawk_config.AdsbDistanceThreat:
+            return 0
+
+        alt_threat = (1 - alt_seperation / pix_hawk_config.AdsbAltThreat) * 50
+        dist_threat = (1 - dist_seperation / pix_hawk_config.AdsbDistanceThreat) * 50
+
+        return int(alt_threat + dist_threat)
+
+    def get_vh_radius(self, threat_level):
+        radius = 25
+        if threat_level <= 0:
+            return radius
+
+        radius += threat_level * .25
+        return int(radius)
+    
 
     def get_line_pos(self, line_pos, x_pos, y_pos):
         x = (line_pos[0] + x_pos)
@@ -362,7 +382,7 @@ class AdsbWindow():
             return
 
         if is_threat and self.warning_on:
-            self.sound.start_tone(.4)
+            self.sound.start_tone(.5)
             time.sleep(on_duration)
             self.sound.stop_tone()
             time.sleep(off_duration)
@@ -538,7 +558,7 @@ class AdsbWindow():
         self.warning_on = not self.warning_on
         if not self.warning_on:
             if self.enable_timer == None:
-                self.enable_timer = threading.Timer(20, self.enable_warning)
+                self.enable_timer = threading.Timer(45, self.enable_warning)
                 self.enable_timer.daemon = True
                 self.enable_timer.start()
         

@@ -5,9 +5,9 @@
 #Can also filter within recv_match command - see "Read all parameters" example
 #"""
 # Import mavutil
-from posixpath import join
-from re import S, X
-import re
+#from posixpath import join
+#from re import S, X
+#import re
 from numpy import float32, true_divide
 from pymavlink import mavutil
 #from pymavlink import mavextra
@@ -135,8 +135,8 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS3, -1)
         #self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_AHRS2, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS_RAW_INT, 5)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, 2)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS_RAW_INT, -1)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GPS2_RAW, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 10)
