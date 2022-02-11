@@ -182,6 +182,8 @@ class AdsbVehicle():
         self.timeout_thread.start()
         
         self.is_timed_out = False
+
+        self.alt_dif = 0
         
         
         
@@ -214,15 +216,15 @@ class AdsbVehicle():
                           y=0,
                           anchor_y='bottom', anchor_x='center')
                       
-            alt_dif = int(self.altitude/100 - gps_alt / 100)
+            self.alt_dif = int(self.altitude/100 - gps_alt / 100)
             #alt_dif = -5
             self.vh_label2.x = x_pos
-            if alt_dif > 0:
+            if self.alt_dif > 0:
                 self.vh_label2.y = y_pos-5 
             else:
                 self.vh_label2.y = y_pos-60
                 
-            self.vh_label2.text = str(alt_dif)
+            self.vh_label2.text = str(self.alt_dif)
 
             circle.position = (x_pos, y_pos)
             
@@ -341,6 +343,7 @@ class AdsbWindow():
         self.sound = SoundThread.get_instance()
         self.threat = -1
         self.nearest_ap = None
+        self.nearest_bearing = 0
         #self.key_board = KeyBoard.get_instance()
         self.warning_on = True
         self.warning_rect = pyglet.shapes.Rectangle(x_pos+self.border_rect.width-30,
@@ -421,14 +424,21 @@ class AdsbWindow():
 
         
         angle = Math.get_bearing(gps_lat, gps_lon, lat, lon)
-        
+
         if angle > 360:
             angle = angle - 360
+
+        print('get_pixel_pos angle', angle)
+
+        #angle = gps_track - angle
+        #if angle < 0:
+        #    angle = 360+angle
 
         
         dist = self.latlon_distance(gps_lat, gps_lon, lat, lon)
 
-        xy = Math.pol2cart(dist, angle)
+        
+        xy = Math.pol2cart(dist, angle, invert=True)
 
         x_miles = (lon-gps_lon) * self.miles_per_degree_lon
         x_pos = x_miles/self.win_max_miles * self.border_rect.width + self.win_x_org
@@ -520,6 +530,10 @@ class AdsbWindow():
                     del_list.append(vh.icao)
                     continue
 
+                angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon)
+                
+                
+                #print('gps_lat {0} gps_lon {1} vh_lat {2} vh_lon {3} angle {4}'.format( gps_lat, gps_lon, vh.lat, vh.lon, int(angle)))
                 
                 x_pos, y_pos = self.get_pixel_pos(gps_track, vh.lat, vh.lon, gps_lat, gps_lon)
 
@@ -527,10 +541,11 @@ class AdsbWindow():
                     #if pos[2] == None:
                     if True:
                         
-                        #pos[2] = self.get_pixel_pos(N423DS, pos[0], pos[1], gps_lat, gps_lon)
+                        
                         pos[2] = self.get_pixel_pos(gps_track, pos[0], pos[1], gps_lat, gps_lon)
+                        
 
-                    #self.tail_line.position = (xy[0], xy[1], xy[0]+5, xy[1]+5)
+                    
                     self.tail_line.position = (pos[2][0], pos[2][1], pos[2][0]+5, pos[2][1]+5) 
                     self.tail_line.draw()
                 
@@ -538,14 +553,20 @@ class AdsbWindow():
                 threat = vh.draw(x_pos, y_pos, gps_alt, self.vehical_circle)
                 if threat > self.threat:
                     self.threat = threat
+                    self.nearest_ap = vh
+                    self.nearest_bearing = int(angle)
                    
                 
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
 
-            
-            self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
+            if self.threat <= 0:
+                self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
+            else:
+                self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + ' br:' + str(int(self.nearest_bearing)) +  ' ' + str(self.nearest_ap.alt_dif) + ' hft'
+                
+
             self.vh_label.draw()
 
             if not self.warning_on:

@@ -86,6 +86,10 @@ class Math():
         #if brng < 0:
         #    brng = 360 - brng
 
+        #brng += 90
+        #if brng > 360:
+        #    brng = brng - 360
+
         return brng
 
 
@@ -127,11 +131,20 @@ class Math():
         return(rho, ang)
 
     @classmethod
-    def pol2cart(cla, rho, phi):
+    def pol2cart(cla, rho, phi, invert=False):
+        
+        #phi = phi - rotate
+        #if phi < 0:
+        #    phi = 360 + phi
+        phi = phi % 360
         
         phi = np.radians(phi)
-        x = rho * np.cos(phi)
-        y = rho * np.sin(phi)
+        if invert:
+            x = rho * np.sin(phi)
+            y = rho * np.cos(phi)
+        else:
+            x = rho * np.cos(phi)
+            y = rho * np.sin(phi)
         
         return(x, y)
 
@@ -273,8 +286,42 @@ class KeyBoard(Thread):
 
 if __name__ == '__main__':
 
+    xy = Math.pol2cart(10, 0)
+    print (xy)
+    """for i in range(20):
+        br = Math.get_bearing(40, -105, 39+i/10, -104)
+        print(br)
+        dist = Math.latlon_distance(40, -105, 39+i/10, -104)
+        xy = Math.pol2cart(dist, br, rotate=90)
+        #print(xy)"""
+
+    """br = Math.get_bearing(40, -105, 40, -104)
+    print(br)
+    dist = Math.latlon_distance(40, -105, 40, -104)
+    xy = Math.pol2cart(dist, br, rotate=90)
+    print(xy)
+
+    br = Math.get_bearing(40, -105, 40, -106)
+    print(br)
+    dist = Math.latlon_distance(40, -105, 40, -106)
+    xy = Math.pol2cart(dist, br, rotate=90)
+    print(xy)
+
+    br = Math.get_bearing(40, -105, 39, -105)
+    print(br)
+    dist = Math.latlon_distance(40, -105, 39, -105)
+    xy = Math.pol2cart(dist, br, rotate=90)
+    print(xy)
+
+    br = Math.get_bearing(40, -105, 41, -105)
+    print(br)
+    dist = Math.latlon_distance(40, -105, 41, -105)
+    xy = Math.pol2cart(dist, br, rotate=90)
+    print(xy)"""
+
+
     #ft = FunTimer(enable=False)
-    ft = FunTimer()
+    """ft = FunTimer()
 
     for i in range(2):
 
@@ -286,7 +333,7 @@ if __name__ == '__main__':
         time.sleep(.75)
         ft.stop ('fun_two')
 
-    ft.close()
+    ft.close()"""
     """kbd = KeyBoard.get_instance()
     
     key = kbd.wait_key(timeout=30)
