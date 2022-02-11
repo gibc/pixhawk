@@ -8,7 +8,7 @@ import termios
 import sys
 import select
 import tty
-from math import sin, cos, radians, fmod
+from math import sin, cos, radians, fmod, floor
 import numpy as np
 import math
 import pix_hawk_config
@@ -182,8 +182,22 @@ class Math():
 
         return d
 
-    
+    @classmethod
+    def br2clock(self, bear):
+        clk_degrees = 360 / 12
+        bear = bear/clk_degrees
+        if bear < .5:
+            return 12
+        clk = Math.round_half_up(bear)
+        return clk
 
+    @classmethod
+    def round_half_up(self, n, decimals=0):
+        multiplier = 10 ** decimals
+        if decimals == 0:
+            return int(floor(n*multiplier + 0.5) / multiplier)
+        else:
+            return (floor(n*multiplier + 0.5) / multiplier)
 
 
 class KeyBoard(Thread):
@@ -285,6 +299,9 @@ class KeyBoard(Thread):
 
 
 if __name__ == '__main__':
+
+    clk = Math.br2clock(13)
+    print(clk)
 
     xy = Math.pol2cart(10, 0)
     print (xy)

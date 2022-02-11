@@ -564,7 +564,16 @@ class AdsbWindow():
             if self.threat <= 0:
                 self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
             else:
-                self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + ' br:' + str(int(self.nearest_bearing)) +  ' ' + str(self.nearest_ap.alt_dif) + ' hft'
+                self.vh_label.color = (255,0,0,255)
+                clk = Math.br2clock(self.nearest_bearing)
+                alt_txt = "HI"
+                if self.nearest_ap.alt_dif < 0:
+                    alt_txt = "LOW"
+                dist = self.nearest_ap.distance
+                dist = Math.round_half_up(dist, decimals=1)
+                alt = self.nearest_ap.alt_dif
+                #alt = -2
+                self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + str(alt) + ' hft'
                 
 
             self.vh_label.draw()

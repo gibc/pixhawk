@@ -650,8 +650,8 @@ class mavlinkmsg (Thread):
                         
                         #self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
 
-                        #if pix_hawk_config.DEBUG:
-                        if False:
+                        if pix_hawk_config.DEBUG:
+                        #if False:
                             if self.tail_count < 40:
                                 off =self.tail_count*.002
                                 self.tail_count += 1
