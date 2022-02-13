@@ -9,7 +9,10 @@ from math import floor
 import traceback
 from pix_hawk_test import MockVar
 from pix_hawk_sound import SoundThread
+from pix_hawk_util import Global
 import traceback
+
+from pix_hawk_util import Global
 
 
 class Aoa():
@@ -61,9 +64,8 @@ class Aoa():
         
     def draw(self, airspeed_, climb, pitch):
         try:
-            #if airspeed_ == 0 or climb == 0 or pitch == 0:
-            #    self.border_rect.draw() 
-            #    return
+            if not Global.get_alt_mode_gps():
+                climb = Global.get_baro_climb()
             if airspeed_ < 30:
                 airspeed_  = 30
             if climb == 0:

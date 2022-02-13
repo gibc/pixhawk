@@ -4,6 +4,7 @@
 from distutils.command.config import config
 import imp
 from re import M
+from unicodedata import decimal
 import pyglet
 from pyglet import shapes
 import threading
@@ -423,12 +424,15 @@ class AdsbWindow():
     def get_pixel_pos(self, gps_track, lat, lon, gps_lat, gps_lon):
 
         
-        angle = Math.get_bearing(gps_lat, gps_lon, lat, lon)
+        angle = Math.get_bearing(gps_lat, gps_lon, lat, lon, gps_track)
 
-        if angle > 360:
-            angle = angle - 360
+        
 
-        print('get_pixel_pos angle', angle)
+        #angle -= gps_track
+        #if angle < 0:
+            #angle = 360+angle
+
+        #print('get_pixel_pos angle', angle)
 
         #angle = gps_track - angle
         #if angle < 0:
@@ -478,17 +482,17 @@ class AdsbWindow():
         
         #rot = N423DS.heading
         rot = gps_track
-        if rot < 360:
-            rot = 360 - rot
-        self.arrow_sprite.rotation = rot
+        #if rot < 360:
+        #    rot = 360 - rot
+        self.arrow_sprite.rotation = 0
         #self.arrow_sprite.scale_y = .75
         self.arrow_sprite.scale_y = 1
         #self.arrow_sprite.scale_x = 1
         self.arrow_sprite.scale_x = 1.5
         
-        self.arrow_sprite.draw()
+        #self.arrow_sprite.draw()
 
-        self.N_sprite.draw()
+        #self.N_sprite.draw()
 
         # draw background
         x_pos = self.border_rect.x+self.border_rect.width/2
@@ -500,7 +504,10 @@ class AdsbWindow():
         circle.opacity = (50)
         circle.anchor_x=0
         circle.anchor_y=0
-        self.arrow_sprite.scale = .8
+        self.arrow_sprite.scale_x = .6
+        self.arrow_sprite.scale_y = .5
+        self.arrow_sprite.rotation = rot
+        #self.arrow_sprite.position = (self.border_rect.x+self.border_rect.width/2, self.border_rect.y+self.border_rect.height/2)
                 
         circle2 = shapes.Circle(x_pos, y_pos, 7, color=(0,255,255))
         circle2.anchor_x=0
@@ -508,6 +515,8 @@ class AdsbWindow():
         circle2.draw()
 
         circle.draw()
+
+        self.arrow_sprite.draw()
 
 
         with self.adsb_dic.lock:
@@ -530,7 +539,7 @@ class AdsbWindow():
                     del_list.append(vh.icao)
                     continue
 
-                angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon)
+                angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, gps_track)
                 
                 
                 #print('gps_lat {0} gps_lon {1} vh_lat {2} vh_lon {3} angle {4}'.format( gps_lat, gps_lon, vh.lat, vh.lon, int(angle)))
@@ -571,9 +580,14 @@ class AdsbWindow():
                     alt_txt = "LOW"
                 dist = self.nearest_ap.distance
                 dist = Math.round_half_up(dist, decimals=1)
-                alt = self.nearest_ap.alt_dif
+                alt = self.nearest_ap.alt_dif/10
+                alts = '{:.1f}'.format(alt)
+                alts = alts.strip('0')
+                if alt > 1:
+                    alts = alts.strip('.')
+                #alt = Math.round_half_up(alt/10, decimals=1)
                 #alt = -2
-                self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + str(alt) + ' hft'
+                self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + alts + ' kft'
                 
 
             self.vh_label.draw()

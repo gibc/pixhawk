@@ -67,12 +67,38 @@ class FunTimer():
             percent_time = tot_time/cum_time
             print('fun name {0} percent time {1} tot time {2}'.format(key, percent_time, tot_time))
 
+class Global():
+    _baro_climb = 0
+    _lock = Lock()
+    _alt_mode_gps = True
+
+    @classmethod
+    def set_baro_climb(cls, climb):
+        with cls._lock:
+            cls._baro_climb = climb
+
+    @classmethod
+    def get_baro_climb(cls):
+        with cls._lock:
+            return cls._baro_climb
+
+    @classmethod
+    def set_alt_mode_gps(cls, alt_mode):
+        with cls._lock:
+            cls._alt_mode_gps = alt_mode
+
+    @classmethod
+    def get_alt_mode_gps(cls):
+        with cls._lock:
+            return cls._alt_mode_gps
+
+
 
 
 class Math():
 
     @classmethod
-    def get_bearing(cls, lat1, long1, lat2, long2):
+    def get_bearing(cls, lat1, long1, lat2, long2, track=0):
         #if(abs(lat1 - lat2) < .00001 or abs(long1 - long2) < .00001):
             #return -1
         dLon = (long2 - long1)
@@ -82,13 +108,10 @@ class Math():
         brng = np.degrees(brng)
 
         brng = (brng + 360) % 360
-        #brng -=90
-        #if brng < 0:
-        #    brng = 360 - brng
-
-        #brng += 90
-        #if brng > 360:
-        #    brng = brng - 360
+        
+        brng -= track
+        if brng < 0:
+            brng = 360+brng
 
         return brng
 

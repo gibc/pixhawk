@@ -5,6 +5,7 @@ from pix_hawk_tape import Tape
 from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
+from pix_hawk_util import Global
 import time
 
 
@@ -140,6 +141,7 @@ class AltTapeLeft(Tape):
         denom = sum(self.climb_weight)
         w_mean = num/denom
         #print('w mean climb rate:', w_mean)
+        Global.set_baro_climb(w_mean)
         return w_mean
 
     def set_baro_climb(self, alt):
@@ -184,6 +186,7 @@ class AltTapeLeft(Tape):
                 self.baro_val -= .01
         elif symbol == key.TAB:
             self.alt_mode_gps = not self.alt_mode_gps
+            Global.set_alt_mode_gps(self.alt_mode_gps)
                 
         
     

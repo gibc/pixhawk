@@ -639,7 +639,7 @@ class mavlinkmsg (Thread):
                         
                         self.gnd_track = dic['cog'] / 100 #convert from 100th of degresss to degrees
                         if pix_hawk_config.DEBUG:
-                            self.gnd_track = 0
+                            self.gnd_track = 180
                             
                         if self.fix_type < 3:
                             self.gps_alt = 5400 # at eagle rd per topo map
@@ -657,7 +657,7 @@ class mavlinkmsg (Thread):
                                 self.tail_count += 1
                                 dist = Math.latlon_distance(self.lat, self.lon, self.lat-.05+off, self.lon-.05)
                                 self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.05+off, 
-                                    self.lon-.05, self.gps_alt, 0, 0, self.gnd_track, True, dist) #self.gnd_track)
+                                    self.lon-.05, self.gps_alt+2000, 0, 0, self.gnd_track, True, dist) #self.gnd_track)
                             elif self.tail_count < 100:
                                 self.tail_count += 1
                             else:
