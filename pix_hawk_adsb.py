@@ -366,6 +366,7 @@ class AdsbWindow():
         self.vehical_circle.opacity = (125)
         self.vehical_circle.anchor_x=0
         self.vehical_circle.anchor_y=0
+        self.alert_line = shapes.Line(0,0,0,0, 4, color=(255,0,0))
 
 
     def enable_warning(self):
@@ -504,8 +505,8 @@ class AdsbWindow():
         circle.opacity = (50)
         circle.anchor_x=0
         circle.anchor_y=0
-        self.arrow_sprite.scale_x = .6
-        self.arrow_sprite.scale_y = .5
+        self.arrow_sprite.scale_x = .8
+        self.arrow_sprite.scale_y = .8
         self.arrow_sprite.rotation = rot
         #self.arrow_sprite.position = (self.border_rect.x+self.border_rect.width/2, self.border_rect.y+self.border_rect.height/2)
                 
@@ -564,11 +565,18 @@ class AdsbWindow():
                     self.threat = threat
                     self.nearest_ap = vh
                     self.nearest_bearing = int(angle)
+
+                
                    
                 
 
             for key in del_list:                    
                 del self.adsb_dic.dict[key]
+
+            if self.nearest_ap != None:
+                x_alt, y_alt = self.get_pixel_pos(gps_track, self.nearest_ap.lat, self.nearest_ap.lon, gps_lat, gps_lon)
+                self.alert_line.position = (x_alt, y_alt, self.win_x_org, self.win_y_org)
+                self.alert_line.draw()
 
             if self.threat <= 0:
                 self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
@@ -582,12 +590,13 @@ class AdsbWindow():
                 dist = Math.round_half_up(dist, decimals=1)
                 alt = self.nearest_ap.alt_dif/10
                 alts = '{:.1f}'.format(alt)
-                alts = alts.strip('0')
+                if alt != 0:
+                    alts = alts.strip('0')
                 if alt > 1:
                     alts = alts.strip('.')
-                #alt = Math.round_half_up(alt/10, decimals=1)
-                #alt = -2
-                self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + alts + ' kft'
+                
+                #self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + alts + ' kft'
+                self.vh_label.text = str(dist) + ' mi ' + alts + ' kft ' + str(int(self.nearest_ap.h_speed)) + ' mph'
                 
 
             self.vh_label.draw()

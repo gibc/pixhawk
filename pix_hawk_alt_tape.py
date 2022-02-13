@@ -5,7 +5,7 @@ from pix_hawk_tape import Tape
 from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
-from pix_hawk_util import Global
+from pix_hawk_util import Global, DebugPrint
 import time
 
 
@@ -32,7 +32,7 @@ class AltTape(Tape):
         
     def draw(self, alt, climb):
         super().draw(alt)
-        print('climb', str(climb))
+        DebugPrint.print('climb', str(climb))
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
         
