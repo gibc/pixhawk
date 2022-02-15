@@ -67,10 +67,24 @@ class FunTimer():
             percent_time = tot_time/cum_time
             print('fun name {0} percent time {1} tot time {2}'.format(key, percent_time, tot_time))
 
+class OriginAircraft():
+    def __init__(self, ICAO_address, callsign, lat, lon, alt, speed, climb, heading):
+       
+        self.ICAO_address = ICAO_address 
+        self.callsign = callsign
+        self.lat = lat
+        self.lon = lon
+        self.altitude = alt
+        self.speed = speed  
+        self.climb = climb
+        self.heading = heading
+
+
 class Global():
     _baro_climb = 0
     _lock = Lock()
     _alt_mode_gps = True
+    _origin_ap = None
 
     @classmethod
     def set_baro_climb(cls, climb):
@@ -91,6 +105,28 @@ class Global():
     def get_alt_mode_gps(cls):
         with cls._lock:
             return cls._alt_mode_gps
+
+    @classmethod
+    #def set_this_ap(cls, ap):
+    def update_origin_ap(cls, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading):
+        with cls._lock:
+            if cls._origin_ap == None:
+                cls._origin_ap = OriginAircraft(icao, callsign, lat, lon, adsb_altitude, 
+                        hor_velocity, ver_velocity, adsb_heading)
+            else:
+                cls._origin_ap.icao = icao
+                cls._origin_ap.callsign = callsign
+                cls._origin_ap.lat = lat
+                cls._origin_ap.lon = lon
+                cls._origin_ap.altitude = adsb_altitude
+                cls._origin_ap.h_speed = hor_velocity
+                cls._origin_ap.v_speed = ver_velocity
+                cls._origin_ap.heading = adsb_heading
+                
+    @classmethod
+    def get_origin_ap(cls):
+        with cls._lock:
+            return cls._origin_ap
 
 
 

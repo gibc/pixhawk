@@ -244,7 +244,7 @@ class Tape:
             wd = self.get_str_wd(string, font_ht)
            
             if "<" not in string:
-                wd *= 1.65
+                wd *= 1.4
             else:
                 wd *= 1.75
             return rect.x + rect.width/2 - wd/2

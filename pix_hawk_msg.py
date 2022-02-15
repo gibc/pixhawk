@@ -23,7 +23,7 @@ from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
 import pix_hawk_config
-from pix_hawk_util import DebugPrint, Math
+from pix_hawk_util import DebugPrint, Global, Math
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -573,10 +573,9 @@ class mavlinkmsg (Thread):
 
                                 self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
                                     adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
-                        #else:
-                            #self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                            #    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, False)
-                            #print("bad adsb message **************************")
+                    else:
+                        Global.update_origin_ap(ICAO_address, callsign, lat, lon, 
+                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -663,6 +662,8 @@ class mavlinkmsg (Thread):
                                 self.tail_count += 1
                             else:
                                 self.tail_count = 0
+
+                            Global.update_origin_ap('myicao', 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
 
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)

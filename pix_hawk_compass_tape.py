@@ -48,7 +48,7 @@ class CompassTape(Tape):
     
 
     def draw(self, heading):
-        heading = super().round_half_up(heading, decimals=1)
+        heading = super().round_half_up(heading, decimals=0)
         super().draw(heading)
         return
 
