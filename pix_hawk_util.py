@@ -79,6 +79,27 @@ class OriginAircraft():
         self.climb = climb
         self.heading = heading
 
+        self.time_out_interval = 5
+        self.timeout_time = time.time() + self.time_out_interval
+        self.timeout_thread = Thread(target = self.timeout_target)
+        self.timeout_thread.start()
+        
+        self.is_timed_out = False
+
+    def timeout_target(self):
+        print('timeout_target thread started')
+        while True:
+            if time.time() < self.timeout_time:
+                time.sleep(self.timeout_time - time.time())
+            else:
+                self.is_timed_out = True
+                self._origin_ap = None
+                print('timeout_target thread stopped')  
+            return
+
+    def set_timeout(self):
+        self.timeout_time = time.time() + self.time_out_interval
+
 
 class Global():
     _baro_climb = 0
@@ -107,8 +128,9 @@ class Global():
             return cls._alt_mode_gps
 
     @classmethod
-    #def set_this_ap(cls, ap):
+    
     def update_origin_ap(cls, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading):
+        print('++++++++++++ Origin Aircraft Updated +++++++++++++++++++++++')
         with cls._lock:
             if cls._origin_ap == None:
                 cls._origin_ap = OriginAircraft(icao, callsign, lat, lon, adsb_altitude, 
@@ -122,6 +144,7 @@ class Global():
                 cls._origin_ap.h_speed = hor_velocity
                 cls._origin_ap.v_speed = ver_velocity
                 cls._origin_ap.heading = adsb_heading
+                cls._origin_ap.set_timeout()
                 
     @classmethod
     def get_origin_ap(cls):

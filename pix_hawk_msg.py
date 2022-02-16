@@ -562,10 +562,11 @@ class mavlinkmsg (Thread):
                     adsb_altitude = .00328 * dic['altitude']
                     print("adsb_altitude: ", adsb_altitude)
                     ICAO_address = str(dic['ICAO_address'])
-                    print("ICAO_address: ", ICAO_address)
+                    print("                               ICAO_address: ", ICAO_address)
                     #Don't create new adbs vehical if recieved from adasb out transmitter
                     #    instead, create synthetic vehical from gps msg data
-                    if ICAO_address != pix_hawk_config.icao:
+
+                    if ICAO_address != pix_hawk_config.icao and callsign != pix_hawk_config.callsign:
                         if cord_valid and heading_valid and call_sign_valid:
 
                             dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
@@ -663,7 +664,7 @@ class mavlinkmsg (Thread):
                             else:
                                 self.tail_count = 0
 
-                            Global.update_origin_ap('myicao', 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
+                            Global.update_origin_ap(pix_hawk_config.icao, 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
 
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)
