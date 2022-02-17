@@ -85,20 +85,22 @@ class GPS_Window():
                           anchor_y='bottom', anchor_x='left')
 
     def draw(self, fix, track, speed, commpass_heading, alt):
-        if Global.get_origin_ap() != None:
+        gps_type = ''
+        if Global.get_gps_listener() != None:
             self.border_rect.color=(0,255,0)
-            org_ap = Global.get_origin_ap()
-            fix = 5
-            track = org_ap.heading
-            speed = org_ap.speed
-            alt = org_ap.altitude
+            gps_lsn = Global.get_gps_listener()
+            fix = gps_lsn.fix
+            track = gps_lsn.track
+            speed = gps_lsn.speed
+            alt = gps_lsn.altitude
+            gps_type = gps_lsn.type
         elif fix < 3:
             self.border_rect.color=(255,0,0)
         else:
             self.border_rect.color=(0,0,0)
         self.border_rect.draw()
 
-        self.fix_label.text = str(fix)
+        self.fix_label.text = gps_type +' '+ str(fix)
         self.fix_label.draw()
         self.fix_name.draw()
 

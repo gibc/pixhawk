@@ -664,7 +664,7 @@ class mavlinkmsg (Thread):
                             else:
                                 self.tail_count = 0
 
-                            Global.update_origin_ap(pix_hawk_config.icao, 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
+                            #Global.update_origin_ap(pix_hawk_config.icao, 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
 
                         """
                         self.adsb_dic.updateVehicle('myicao1234a', "LEFT", self.lat-.05, self.lon, self.gps_alt+500, 0, 0, 90, True) #self.gnd_track)

@@ -24,8 +24,9 @@ from pix_hawk_wind import WindChild
 from pix_hawk_aoa import Aoa
 from pix_hawk_beep import Beep
 import traceback
-from pix_hawk_util import FunTimer
+from pix_hawk_util import FunTimer, Global
 import pix_hawk_config
+from pix_hawk_gps_reader import GpsThread
 
 
 
@@ -77,6 +78,13 @@ class MainWindow():
 
             self.phidget_thread = PhidgetThread.get_instance()
 
+            self.gps_td = GpsThread()
+            if self.gps_td.connect('/dev/ttyACM2'):
+                self.gps_td.start()
+            else:
+                self.gps_td = None
+                
+
         
         except Exception:
             self.ex_stop()
@@ -110,7 +118,11 @@ class MainWindow():
             self.fun_timer.stop('compass_tape')
 
             self.fun_timer.start('alt_tape')
-            self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
+            if Global.get_gps_listener() != None:
+                gps_lsn = Global.get_gps_listener()
+                self.alt_tape.draw(gps_lsn.altitude, gps_lsn.climb, self.ahdata.baro_press)
+            else:
+                self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
             self.fun_timer.stop('alt_tape')
 
             self.fun_timer.start('speed_tape')
@@ -163,6 +175,9 @@ class MainWindow():
         
         if self.adsb_window != None:
             self.adsb_window.close()
+
+        if self.gps_td != None:
+             self.gps_td.close()
 
         #if self.beep != None:
         #    self.beep.run_thread = False

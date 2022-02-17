@@ -12,6 +12,8 @@ from math import sin, cos, radians, fmod, floor
 import numpy as np
 import math
 import pix_hawk_config
+from pix_hawk_gps_reader import GpsListener
+
 
 class DebugPrint():
 
@@ -67,45 +69,12 @@ class FunTimer():
             percent_time = tot_time/cum_time
             print('fun name {0} percent time {1} tot time {2}'.format(key, percent_time, tot_time))
 
-class OriginAircraft():
-    def __init__(self, ICAO_address, callsign, lat, lon, alt, speed, climb, heading):
-       
-        self.ICAO_address = ICAO_address 
-        self.callsign = callsign
-        self.lat = lat
-        self.lon = lon
-        self.altitude = alt
-        self.speed = speed  
-        self.climb = climb
-        self.heading = heading
-
-        self.time_out_interval = 5
-        self.timeout_time = time.time() + self.time_out_interval
-        self.timeout_thread = Thread(target = self.timeout_target)
-        self.timeout_thread.start()
-        
-        self.is_timed_out = False
-
-    def timeout_target(self):
-        print('timeout_target thread started')
-        while True:
-            if time.time() < self.timeout_time:
-                time.sleep(self.timeout_time - time.time())
-            else:
-                self.is_timed_out = True
-                self._origin_ap = None
-                print('timeout_target thread stopped')  
-            return
-
-    def set_timeout(self):
-        self.timeout_time = time.time() + self.time_out_interval
-
 
 class Global():
     _baro_climb = 0
     _lock = Lock()
     _alt_mode_gps = True
-    _origin_ap = None
+    _gps_listener = None
 
     @classmethod
     def set_baro_climb(cls, climb):
@@ -128,28 +97,31 @@ class Global():
             return cls._alt_mode_gps
 
     @classmethod
-    
-    def update_origin_ap(cls, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading):
-        print('++++++++++++ Origin Aircraft Updated +++++++++++++++++++++++')
+    def update_gps_listener(cls, type, fix, lat, lon, altitude, speed, climb, track):
+        
         with cls._lock:
-            if cls._origin_ap == None:
-                cls._origin_ap = OriginAircraft(icao, callsign, lat, lon, adsb_altitude, 
-                        hor_velocity, ver_velocity, adsb_heading)
+            if cls._gps_listener == None:
+                cls._gps_listener = GpsListener(type, fix, lat, lon, altitude, speed, climb, track)
             else:
-                cls._origin_ap.icao = icao
-                cls._origin_ap.callsign = callsign
-                cls._origin_ap.lat = lat
-                cls._origin_ap.lon = lon
-                cls._origin_ap.altitude = adsb_altitude
-                cls._origin_ap.h_speed = hor_velocity
-                cls._origin_ap.v_speed = ver_velocity
-                cls._origin_ap.heading = adsb_heading
-                cls._origin_ap.set_timeout()
-                
+                cls._gps_listener.type = type
+                cls._gps_listener.fix = fix
+                cls._gps_listener.lat = lat
+                cls._gps_listener.lon = lon
+                cls._gps_listener.altitude = altitude
+                cls._gps_listener.speed = speed
+                cls._gps_listener.climb = climb
+                cls._gps_listener.track = track
+                cls._gps_listener.set_timeout()
+               
     @classmethod
-    def get_origin_ap(cls):
+    def get_gps_listener(cls):
         with cls._lock:
-            return cls._origin_ap
+            return cls._gps_listener
+
+    @classmethod
+    def set_gps_listener(cls, listener):
+        with cls._lock:
+            cls._gps_listener = listener
 
 
 

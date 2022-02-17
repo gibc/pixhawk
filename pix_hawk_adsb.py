@@ -474,12 +474,12 @@ class AdsbWindow():
     # draw adsb window
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
 
-        if Global.get_origin_ap() != None:
-            org_ap = Global.get_origin_ap()
-            gps_lat = org_ap.lat
-            gps_lon = org_ap.lon
-            gps_alt = org_ap.altitude
-            gps_track = org_ap.heading
+        if Global.get_gps_listener() != None:
+            gps_lsn = Global.get_gps_listener()
+            gps_lat = gps_lsn.lat
+            gps_lon = gps_lsn.lon
+            gps_alt = gps_lsn.altitude
+            gps_track = gps_lsn.track
 
         if pix_hawk_config.DEBUG:
             self.fpsd.draw() 
