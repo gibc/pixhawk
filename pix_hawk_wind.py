@@ -362,12 +362,14 @@ class Wind():
         self.x_wind_label.draw()
     """
          
-    def __init__(self, x, y, wd, ht):
+    def __init__(self, x, y, wd, ht, gps_manager=None, altimeter = None):
         self.x = x
         self.y = y
         self.ht = ht
         self.wd = wd
         self.wind_comp = WindComp()
+        self.gps_manager = gps_manager
+        self.altimeter = altimeter
         
         
         self.wind_rect = shapes.BorderedRectangle(self.x, self.y, self.wd,
@@ -463,6 +465,16 @@ class Wind():
         self.set_wind_comps_text(heading, msg_wind_speed, msg_wind_dir)
     """
     def draw_calc(self, airspeed, heading, gnd_speed, gnd_track, altitude):
+
+        if self.gps_manager != None:
+            gps_lsn = self.gps_manager.get_listener()
+            if gps_lsn != None:
+                gnd_speed = gps_lsn.speed
+                gnd_track = gps_lsn.track
+
+            if self.altimeter != None:
+                altitude, climb = self.altimeter.get_current_altimeter()
+                
         wind = self.calulateWind(airspeed, heading, gnd_speed, gnd_track, altitude)
         #print('wind ang', wind[0])
         #print('wind speed', wind[1])
@@ -489,10 +501,10 @@ class Wind():
 
 class WindChild(Wind):
 
-    def __init__(self, window, compass_width, x, y, wd, ht):
+    def __init__(self, window, compass_width, x, y, wd, ht, gps_manager = None, altimeter = None):
         x = window._x + compass_width/2
         y = window._y + window.height/2 - 2*ht
-        super().__init__(x, y, wd, ht)
+        super().__init__(x, y, wd, ht, gps_manager, altimeter)
         
         
 if __name__ == '__main__':

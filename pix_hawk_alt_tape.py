@@ -7,6 +7,7 @@ from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
 from pix_hawk_util import Global, DebugPrint
 import time
+from threading import Thread, Lock, Timer
 
 
 
@@ -28,6 +29,8 @@ class AltTape(Tape):
         self.pix2climb = self.border_rect.height/2 / 1000
         
         self.up_rect = shapes.Rectangle(self.x-22,self.y+self.border_rect.height/2.,20,200, (0,255,255))
+
+        
     
         
     def draw(self, alt, climb):
@@ -54,9 +57,12 @@ class AltTape(Tape):
 
 class AltTapeLeft(Tape):
 
-    def __init__(self, pyglet_window, compass_height, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
+    def __init__(self, pyglet_window, compass_height, x, y, pixel_wd, pixel_ht, tick_count, units_interval, 
+            align=Align.LEFT, orient=Orient.HORZ, gps_manager = None):
+        
         super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=align, tape_unit=TapeUnit.FEET_ALT, orient=orient)
 
+        self.gps_manager = gps_manager
         
         self.border_rect.x = pyglet_window._x + 30
         self.border_rect.y = pyglet_window._y
@@ -99,9 +105,24 @@ class AltTapeLeft(Tape):
         self.climb_buf_len = 3
         self.climb_weight = self.get_climb_wts(self.climb_buf_len)
         
+        self.lock = Lock()
+        self.baro_altitude = 0
+        self.baro_climb = 0
+        self.gps_altitude = 0
+        self.gps_climb = 0
+        
 
         
     def draw(self, alt, climb, baro_press):
+
+        if self.gps_manager != None:
+            gps_listener = self.gps_manager.get_listener()
+            if gps_listener != None:
+                alt = gps_listener.altitude
+                climb = gps_listener.climb
+
+        self.gps_altitude = alt
+        self.gps_climb = climb
         if not self.alt_mode_gps:
             alt = self.get_baro_alt(baro_press)
             climb = self.get_baro_climb()
@@ -109,6 +130,9 @@ class AltTapeLeft(Tape):
         print('climb', str(climb))
         if not self.alt_mode_gps:
             self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
+            self.baro_label.draw()
+        else:
+            self.baro_label.text = '[gps]'
             self.baro_label.draw()
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
@@ -142,6 +166,7 @@ class AltTapeLeft(Tape):
         w_mean = num/denom
         #print('w mean climb rate:', w_mean)
         Global.set_baro_climb(w_mean)
+        self.baro_climb = w_mean
         return w_mean
 
     def set_baro_climb(self, alt):
@@ -165,6 +190,7 @@ class AltTapeLeft(Tape):
         self.set_baro_climb(baro_alt)
         self.climb_time = time.time()
         self.climb_alt = baro_alt
+        self.baro_altitude = baro_alt
         return baro_alt
 
 
@@ -187,6 +213,27 @@ class AltTapeLeft(Tape):
         elif symbol == key.TAB:
             self.alt_mode_gps = not self.alt_mode_gps
             Global.set_alt_mode_gps(self.alt_mode_gps)
+
+    ##---- Public Methods For Dependancy Injection-------##
+    def get_current_altimeter(self):
+        if self.alt_mode_gps:
+            return self.get_gps_altimeter()
+        else:
+            return self.get_baro_altimeter()
+
+    def get_baro_altimeter(self):
+        with self.lock:
+            return self.baro_altitude, self.baro_climb
+
+    def get_gps_altimeter(self):
+        with self.lock:
+            return self.gps_altitude, self.gps_climb
+
+    def get_altimeter_mode(self):
+        with self.lock:
+            return self.alt_mode_gps
+
+    
                 
         
     

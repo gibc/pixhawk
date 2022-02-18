@@ -5,13 +5,59 @@
 
 from re import M
 import time
+from turtle import pos
 import serial
 from threading import Thread, Lock, Timer
 import traceback
 #from pix_hawk_util import Global, Math
 
+class GpsManager():
+    def __init__(self):    
+        self.gps_dict = {}
+        self.lock = Lock()
+
+    def update_gps_listener(self, type, fix, lat, lon, altitude, speed, climb, track):
+        
+        with self.lock:
+            if not type in self.gps_dict:
+                self.gps_dict[type] = GpsListener(type, fix, lat, lon, altitude, speed, climb, track, self)
+                i = 5
+            else:
+                self.gps_dict[type].type = type
+                self.gps_dict[type].fix = fix
+                self.gps_dict[type].lat = lat
+                self.gps_dict[type].lon = lon
+                self.gps_dict[type].altitude = altitude
+                self.gps_dict[type].speed = speed
+                self.gps_dict[type].climb = climb
+                self.gps_dict[type].track = track
+                self.gps_dict[type].set_timeout()
+
+    #----- Public Methods For Dependency Injection-----
+    def get_listener(self):
+        with self.lock:
+            if len(self.gps_dict) == 0:
+                return None
+            if 'dg' in self.gps_dict:
+                return self.gps_dict['dg']
+            if 'sb' in self.gps_dict: 
+                return self.gps_dict['sb']
+            if 'px' in self.gps_dict: 
+                return self.gps_dict['px']
+
+    def get_listener_cnt(self):
+        with self.lock:
+            return len(self.gps_dict)
+                
+    def delete_listener(self, type):
+        with self.lock:
+            del self.gps_dict[type]
+
+
 class GpsListener():
-    def __init__(self, type, fix, lat, lon, alt, speed, climb, track):
+    def __init__(self, type, fix, lat, lon, alt, speed, climb, track, gps_manager = None):
+
+        self.gps_manager = gps_manager
 
         self.type = type
         self.fix = fix
@@ -39,6 +85,7 @@ class GpsListener():
                 self.is_timed_out = True
                 from pix_hawk_util import Global
                 Global.set_gps_listener(None)
+                self.gps_manager.delete_listener(self.type)
                 print('timeout_target thread stopped')  
             return
 
@@ -47,7 +94,8 @@ class GpsListener():
 
 class GpsThread():
 
-    def __init__(self):
+    def __init__(self, gps_manager):
+        self.gps_manager = gps_manager
         self.lat = None
         self.lon = None
         self.fix = None
@@ -87,39 +135,21 @@ class GpsThread():
         return time.strftime(returnFormat,
                             time.strptime(string, format))  # Convert date and time to a nice printable format
 
+    def mins2degs(self, pos_str):
+        i = pos_str.find('.')
+        dd = pos_str[0:i-2]
+        mm = pos_str[i-2:]
+        mm = float(mm)
+        mm = mm/60.0
+        cor = int(dd) + mm
+        return cor
 
     def getLatLng(self,latString, lngString):
         
-        ls = latString.split('.')
-        head = ls[0]
-        tail = '.'+ls[1]
-        min = float(tail) / 60.00
-        l = len(head)
-        hl = l-2
-        dd = head[0:hl]
-        mm = head[hl:]
-        _lat = int(dd) + int(mm)/60 + min
-        
-        lat = latString[:2].lstrip('0') + "." + "%.7s" % str(float(latString[2:]) * 1.0 / 60.0).lstrip("0.")
-        lng = lngString[:3].lstrip('0') + "." + "%.7s" % str(float(lngString[3:]) * 1.0 / 60.0).lstrip("0.")
+        lat = self.mins2degs(latString)
+        lng = self.mins2degs(lngString)
 
-        ls = lngString.split('.')
-        head = ls[0]
-        tail = '.'+ls[1]
-        min = float(tail) / 60.00
-        l = len(head)
-        hl = l-2
-        dd = head[0:hl]
-        mm = head[hl:]
-        _lon = int(dd) + int(mm)/60 + min
-
-        """a = lngString[:3].lstrip('0')
-        a = int(a)
-        m = lngString[3:]
-        m = float(m)
-        f = m/60
-        ln = a + f"""
-        return _lat, _lon
+        return lat, lng
 
 
     def printRMC(self,lines):
@@ -318,13 +348,17 @@ class GpsThread():
                     elif lines[0] == "GPVTG":
                         self.gps_parser.printVTG(lines)
                         pass
+                    elif lines[0] == "GPTXT":
+                        #self.gps_parser.printVTG(lines)
+                        pass
                     else:
                         print("\n\nUnknown type:", lines[0], "\n\n")
                 print('fix {0}, lat {1}, lon {2}, alt {3}, speed {4}, track {5}'.
                     format(self.fix, self.lat, self.lon, self.altitude, self.speed, self.track))
                 
-                if self.data_complete and int(self.fix) >= 2:
-                    Global.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
+                if self.data_complete and int(self.fix) >= 1:
+                    self.gps_manager.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
+                    #Global.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
                 else:
                     self.check_complete()
             print('gps thread end')
@@ -337,10 +371,11 @@ class GpsThread():
 
 if __name__ == '__main__':
     #ser = serial.Serial('/dev/ttyACM2', 9600, timeout=1)  # Open Serial port
-    gps_td = GpsThread()
+    gps_mng = GpsManager()
+    gps_td = GpsThread(gps_mng)
     if gps_td.connect('/dev/ttyACM2'):
         gps_td.start()
-        time.sleep(20)
+        time.sleep(60)
         gps_td.close()
     else:
         gps_td = None

@@ -8,11 +8,11 @@ from pix_hawk_tape import TapeUnit
 
 class SpeedTape(Tape):
 
-    def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ):
+    def __init__(self, x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=Align.LEFT, orient=Orient.HORZ, gps_manager=None):
         print("SpeedTape init")
         super().__init__(x, y, pixel_wd, pixel_ht, tick_count, units_interval, align=align, tape_unit=TapeUnit.MPH, orient=orient)
         
-        
+        self.gps_manager = gps_manager
         self.grd_speed_val_label = pyglet.text.Label('****',
                           font_size=50,
                           x=self.current_val_rect.x,
@@ -28,6 +28,11 @@ class SpeedTape(Tape):
     
         
     def draw(self, air_speed, gnd_speed):
+        if self.gps_manager != None:
+            gps_lsn = self.gps_manager.get_listener()
+            if gps_lsn != None:
+                gnd_speed = gps_lsn.speed
+                
         super().draw(air_speed)
         #print('gnd_speed', str(gnd_speed))
         gnd_speed = super().round_half_up(gnd_speed)

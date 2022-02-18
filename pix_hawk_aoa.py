@@ -17,7 +17,8 @@ from pix_hawk_util import Global
 
 class Aoa():
 
-    def __init__(self, window, compass_width, wd, ht, stripe_count):
+    def __init__(self, window, compass_width, wd, ht, stripe_count, altimeter = None):
+        self.altimeter = altimeter
         self.wd = wd
         self.ht = ht
         self.x = window._x + compass_width/8
@@ -63,6 +64,8 @@ class Aoa():
         return ret
         
     def draw(self, airspeed_, climb, pitch):
+        if self.altimeter != None:
+            alt, climb = self.altimeter.get_current_altimeter()
         try:
             if not Global.get_alt_mode_gps():
                 climb = Global.get_baro_climb()

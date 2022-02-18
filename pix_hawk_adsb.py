@@ -299,9 +299,9 @@ class AdsbVehicle():
         
 
 class AdsbWindow():
-    def __init__(self, adsb_dic, pyglet_window, compass_width):
+    def __init__(self, adsb_dic, pyglet_window, compass_width, gps_manager = None):
 
-                
+        self.gps_manager = gps_manager    
         self.adsb_dic = adsb_dic
 
         self.fpsd = pyglet.window.FPSDisplay(window=pyglet_window)
@@ -474,7 +474,15 @@ class AdsbWindow():
     # draw adsb window
     def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
 
-        if Global.get_gps_listener() != None:
+        if self.gps_manager != None:
+            gps_lsn = self.gps_manager.get_listener()
+            if gps_lsn != None:
+                gps_lat = gps_lsn.lat
+                gps_lon = gps_lsn.lon
+                gps_alt = gps_lsn.altitude
+                gps_track = gps_lsn.track
+     
+        elif Global.get_gps_listener() != None:
             gps_lsn = Global.get_gps_listener()
             gps_lat = gps_lsn.lat
             gps_lon = gps_lsn.lon

@@ -4,7 +4,8 @@ from pyglet import shapes
 from pix_hawk_util import Global
 
 class GPS_Window():
-    def __init__(self, pyglet_window, compass_width):
+    def __init__(self, pyglet_window, compass_width, gps_manager = None):
+        self.gps_manager = gps_manager
         rect_width = 600
         rect_ht = 130
         x_pos = pyglet_window._x + compass_width/2 - rect_width/2
@@ -86,7 +87,16 @@ class GPS_Window():
 
     def draw(self, fix, track, speed, commpass_heading, alt):
         gps_type = ''
-        if Global.get_gps_listener() != None:
+        if self.gps_manager != None and self.gps_manager.get_listener() != None:
+            self.border_rect.color=(0,255,255)
+            gps_lsn = self.gps_manager.get_listener()
+            fix = gps_lsn.fix
+            track = gps_lsn.track
+            speed = gps_lsn.speed
+            alt = gps_lsn.altitude
+            gps_type = gps_lsn.type
+
+        elif Global.get_gps_listener() != None:
             self.border_rect.color=(0,255,0)
             gps_lsn = Global.get_gps_listener()
             fix = gps_lsn.fix

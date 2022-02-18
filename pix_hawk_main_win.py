@@ -26,7 +26,7 @@ from pix_hawk_beep import Beep
 import traceback
 from pix_hawk_util import FunTimer, Global
 import pix_hawk_config
-from pix_hawk_gps_reader import GpsThread
+from pix_hawk_gps_reader import GpsThread, GpsManager
 
 
 
@@ -51,6 +51,8 @@ class MainWindow():
             #self.beep = Beep()
             #self.beep.start()
 
+            self.gps_manager = GpsManager()
+
             self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
 
             self.ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
@@ -63,22 +65,25 @@ class MainWindow():
 
             self.roll_gague = RollGague(self.main_window, 1.7*(self.compass_tape.border_rect.height))
 
-            self.alt_tape = AltTapeLeft(self.main_window, self.compass_tape.border_rect.height, 150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
+            self.alt_tape = AltTapeLeft(self.main_window, self.compass_tape.border_rect.height, 150, 100, 500, 55, 6, 100, 
+                    align=Align.LEFT, orient=Orient.VERT, gps_manager= self.gps_manager)
 
             self.speed_tape = SpeedTapeRight(self.main_window, self.compass_tape.border_rect.height, self.compass_tape.border_rect.width, 
                 150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
 
-            self.adsb_window = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width)
+            self.adsb_window = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width, 
+                gps_manager= self.gps_manager)
 
-            self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width)
+            self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width, self.gps_manager)
 
-            self.wind_gague = WindChild(self.main_window, self.compass_tape.border_rect.width, 0, 0, 350, 160)
+            self.wind_gague = WindChild(self.main_window, self.compass_tape.border_rect.width, 0, 0, 350, 160, 
+                self.gps_manager, self.alt_tape)
 
-            self.aoa_gague = Aoa(self.main_window, self.compass_tape.border_rect.width, 100, 200, 20)
+            self.aoa_gague = Aoa(self.main_window, self.compass_tape.border_rect.width, 100, 200, 20, self.alt_tape)
 
             self.phidget_thread = PhidgetThread.get_instance()
 
-            self.gps_td = GpsThread()
+            self.gps_td = GpsThread(self.gps_manager)
             if self.gps_td.connect('/dev/ttyACM2'):
                 self.gps_td.start()
             else:
