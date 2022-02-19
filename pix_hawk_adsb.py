@@ -14,7 +14,7 @@ import math
 
 from pyglet.graphics import draw
 from mavextra import gps_offset
-from pix_hawk_util import DebugPrint, Global, Math
+from pix_hawk_util import DebugPrint, Math
 import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
@@ -482,12 +482,12 @@ class AdsbWindow():
                 gps_alt = gps_lsn.altitude
                 gps_track = gps_lsn.track
      
-        elif Global.get_gps_listener() != None:
+        """elif Global.get_gps_listener() != None:
             gps_lsn = Global.get_gps_listener()
             gps_lat = gps_lsn.lat
             gps_lon = gps_lsn.lon
             gps_alt = gps_lsn.altitude
-            gps_track = gps_lsn.track
+            gps_track = gps_lsn.track"""
 
         if pix_hawk_config.DEBUG:
             self.fpsd.draw() 

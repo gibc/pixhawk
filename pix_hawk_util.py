@@ -70,7 +70,7 @@ class FunTimer():
             print('fun name {0} percent time {1} tot time {2}'.format(key, percent_time, tot_time))
 
 
-class Global():
+"""class Global():
     _baro_climb = 0
     _lock = Lock()
     _alt_mode_gps = True
@@ -121,7 +121,7 @@ class Global():
     @classmethod
     def set_gps_listener(cls, listener):
         with cls._lock:
-            cls._gps_listener = listener
+            cls._gps_listener = listener"""
 
 
 

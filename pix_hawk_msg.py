@@ -23,7 +23,7 @@ from PhidgetThread import PhidgetThread
 from PhidgetThread import PhidgetMag
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
 import pix_hawk_config
-from pix_hawk_util import DebugPrint, Global, Math
+from pix_hawk_util import DebugPrint, Math
 
 class aharsData:
     def __init__(self, roll=-1, pitch=-1, heading=-1, altitude=-1, climb=-1, groundspeed=-1, airspeed=-1, 
@@ -59,8 +59,10 @@ class mavlinkmsg (Thread):
     _run_thread = True
 
 
-    def __init__(self):
+    def __init__(self, gps_manager=None):
         Thread.__init__(self)
+        self.gps_manager = gps_manager
+
         #self.compass_ops = CompassOps('mag_params/home_params.txt')
         #if start_compass_thread:
         self.phigetThread = PhidgetThread.get_instance()
@@ -555,8 +557,8 @@ class mavlinkmsg (Thread):
                     #    adsb_heading = 360 + adsb_heading
                     adsb_heading = int(adsb_heading)
                     
-                    hor_velocity = dic['hor_velocity'] * .022369 # c/s to mph
-                    ver_velocity = dic['ver_velocity']
+                    hor_velocity = dic['hor_velocity'] * 0.0223694 # cm/s to mph
+                    ver_velocity = dic['ver_velocity'] * 1.9685  # cm/s to ft/min 
                     lat = dic['lat']/10000000
                     lon = dic['lon']/10000000
                     adsb_altitude = .00328 * dic['altitude']
@@ -575,8 +577,12 @@ class mavlinkmsg (Thread):
                                 self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
                                     adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
-                        Global.update_origin_ap(ICAO_address, callsign, lat, lon, 
-                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+                        if self.gps_manager != None:
+                            self.gps_manager.update_gps_listener('sb', 3, self.lat, self.lon, 
+                                adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
+
+                        #Global.update_origin_ap(ICAO_address, callsign, lat, lon, 
+                                    #adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
 
                 if msg.get_type() == 'AHRS3':
                     with self.msglock:
@@ -645,12 +651,18 @@ class mavlinkmsg (Thread):
                         if self.fix_type < 3:
                             self.gps_alt = 5400 # at eagle rd per topo map
 
-                        vel = dic['vel']
+                        vel = int(dic['vel'])
+                        vel = vel * 0.0223694  # cm/s to mph
 
                         my_icao = pix_hawk_config.icao
                         
                         #self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
 
+                        if self.gps_manager != None:
+                            climb = 0 # not availabe in this msg
+                            self.gps_manager.update_gps_listener('px', self.fix_type, self.lat, self.lon, 
+                                self.gps_alt, vel, climb, self.gnd_track)
+                               
                         if pix_hawk_config.MockAirPlane:
                         #if False:
                             if self.tail_count < 40:
@@ -823,7 +835,11 @@ class mavlinkmsg (Thread):
 #AOArequest_message_interval(11020, 1)
 
 if __name__ == '__main__':
-    msgthd = mavlinkmsg()
+
+    from pix_hawk_gps_reader import GpsManager
+    gmng = GpsManager()
+
+    msgthd = mavlinkmsg(gmng)
     msgthd.start()
 
     try:

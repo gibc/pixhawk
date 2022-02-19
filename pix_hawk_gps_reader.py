@@ -38,12 +38,19 @@ class GpsManager():
         with self.lock:
             if len(self.gps_dict) == 0:
                 return None
-            if 'dg' in self.gps_dict:
-                return self.gps_dict['dg']
+
             if 'sb' in self.gps_dict: 
                 return self.gps_dict['sb']
             if 'px' in self.gps_dict: 
-                return self.gps_dict['px']
+                if int(self.gps_dict['px'].fix) >= 3:
+                    return self.gps_dict['px']
+            if 'dg' in self.gps_dict:
+                if int(self.gps_dict['dg'].fix) >= 1:
+                    return self.gps_dict['dg']
+            else:
+                return None
+            
+            
 
     def get_listener_cnt(self):
         with self.lock:
@@ -84,7 +91,7 @@ class GpsListener():
             else:
                 self.is_timed_out = True
                 from pix_hawk_util import Global
-                Global.set_gps_listener(None)
+                #Global.set_gps_listener(None)
                 self.gps_manager.delete_listener(self.type)
                 print('timeout_target thread stopped')  
             return
@@ -323,7 +330,7 @@ class GpsThread():
 
     def thread_fun(self):
         #gps_td = GpsThread('/dev/ttyACM2')
-        from pix_hawk_util import Global
+        #from pix_hawk_util import Global
         try:
             print('gps thread started')
             while self.run_thread:

@@ -10,7 +10,7 @@ from cmath import pi
 import pyglet
 from pyglet import clock
 from pyglet.window import key
-import pix_hawk_msg
+from pix_hawk_msg import mavlinkmsg, aharsData
 from pix_hawk_roll_pitch import RollGague
 from pix_hawk_compass_tape import CompassTape
 from pix_hawk_tape import Align
@@ -24,7 +24,7 @@ from pix_hawk_wind import WindChild
 from pix_hawk_aoa import Aoa
 from pix_hawk_beep import Beep
 import traceback
-from pix_hawk_util import FunTimer, Global
+from pix_hawk_util import FunTimer
 import pix_hawk_config
 from pix_hawk_gps_reader import GpsThread, GpsManager
 
@@ -53,9 +53,11 @@ class MainWindow():
 
             self.gps_manager = GpsManager()
 
-            self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
+            #self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
+            self.msg_thread = mavlinkmsg(self.gps_manager)
+            self.msg_thread.start()
 
-            self.ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
+            self.ahdata = aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
             self.phidget_thread = None
             self.aoa_gague = None
@@ -123,11 +125,11 @@ class MainWindow():
             self.fun_timer.stop('compass_tape')
 
             self.fun_timer.start('alt_tape')
-            if Global.get_gps_listener() != None:
-                gps_lsn = Global.get_gps_listener()
-                self.alt_tape.draw(gps_lsn.altitude, gps_lsn.climb, self.ahdata.baro_press)
-            else:
-                self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
+            #if Global.get_gps_listener() != None:
+            #    gps_lsn = Global.get_gps_listener()
+            #    self.alt_tape.draw(gps_lsn.altitude, gps_lsn.climb, self.ahdata.baro_press)
+            #else:
+            self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
             self.fun_timer.stop('alt_tape')
 
             self.fun_timer.start('speed_tape')
@@ -165,10 +167,11 @@ class MainWindow():
         traceback.print_exc()
         print("***************************************************")
 
-        if pix_hawk_msg != None:
-            pix_hawk_msg.mavlinkmsg.put_instance()
-            if not pix_hawk_msg.mavlinkmsg._run_thread:
-                self.msg_thread.join()
+        if self.msg_thread != None:
+            mavlinkmsg._run_thread = False
+            self.msg_thread.join()
+            
+            
 
         if self.phidget_thread != None:
             PhidgetThread.put_instance()

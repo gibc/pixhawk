@@ -1,7 +1,7 @@
 import pyglet
 from pyglet import shapes
 
-from pix_hawk_util import Global
+#from pix_hawk_util import Global
 
 class GPS_Window():
     def __init__(self, pyglet_window, compass_width, gps_manager = None):
@@ -96,18 +96,31 @@ class GPS_Window():
             alt = gps_lsn.altitude
             gps_type = gps_lsn.type
 
-        elif Global.get_gps_listener() != None:
-            self.border_rect.color=(0,255,0)
-            gps_lsn = Global.get_gps_listener()
-            fix = gps_lsn.fix
-            track = gps_lsn.track
-            speed = gps_lsn.speed
-            alt = gps_lsn.altitude
-            gps_type = gps_lsn.type
+        #elif Global.get_gps_listener() != None:
+            #self.border_rect.color=(0,255,0)
+            #gps_lsn = Global.get_gps_listener()
+            #fix = gps_lsn.fix
+            #track = gps_lsn.track
+            #speed = gps_lsn.speed
+            #alt = gps_lsn.altitude
+            #gps_type = gps_lsn.type
+            
         elif fix < 3:
             self.border_rect.color=(255,0,0)
         else:
             self.border_rect.color=(0,0,0)
+
+        if gps_type == 'sb':
+            self.border_rect.color=(0,0,255)
+        elif gps_type == 'px':
+            self.border_rect.color=(0,255,0)
+        elif gps_type == 'dg':
+            self.border_rect.color=(205,133,63)
+        elif gps_type == '':
+            self.border_rect.color=(255,0,0)
+
+
+        
         self.border_rect.draw()
 
         self.fix_label.text = gps_type +' '+ str(fix)

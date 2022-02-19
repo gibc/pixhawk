@@ -5,7 +5,7 @@ from pix_hawk_tape import Tape
 from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_tape import TapeUnit
-from pix_hawk_util import Global, DebugPrint
+from pix_hawk_util import DebugPrint
 import time
 from threading import Thread, Lock, Timer
 
@@ -165,7 +165,7 @@ class AltTapeLeft(Tape):
         denom = sum(self.climb_weight)
         w_mean = num/denom
         #print('w mean climb rate:', w_mean)
-        Global.set_baro_climb(w_mean)
+        #Global.set_baro_climb(w_mean)
         self.baro_climb = w_mean
         return w_mean
 
@@ -212,7 +212,7 @@ class AltTapeLeft(Tape):
                 self.baro_val -= .01
         elif symbol == key.TAB:
             self.alt_mode_gps = not self.alt_mode_gps
-            Global.set_alt_mode_gps(self.alt_mode_gps)
+            #Global.set_alt_mode_gps(self.alt_mode_gps)
 
     ##---- Public Methods For Dependancy Injection-------##
     def get_current_altimeter(self):
