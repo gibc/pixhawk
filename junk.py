@@ -1,4 +1,5 @@
 import os
+from re import M
 import subprocess
 import sys, tty
 
@@ -19,6 +20,33 @@ import pyaudio
 import matplotlib.pyplot as plt
 
 import time
+
+import serial
+
+magic = [0x0a, 0xb0, 0xcd, 0xe0]
+
+ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
+#ser.open()
+cnt = 0
+while True:
+    ln = ser.read(1)
+    if len(ln) == 0:
+        print('timeout')
+        continue
+    #byte = ln.decode("utf-8")
+    #byte = ln.decode('hex')
+    byte = ord(ln)
+    if byte == magic[cnt]:
+        cnt += 1
+        if cnt >= 3:
+            cnt = 0
+            print('got magic')
+    else:
+        cnt = 0
+    print(byte)
+    
+    #print(ln)
+
 
 filename = '/home/pi/Downloads/beep-07a.wav'
 wav_obj = sa.WaveObject.from_wave_file(filename)

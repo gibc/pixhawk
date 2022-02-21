@@ -41,12 +41,14 @@ class GpsManager():
 
             if 'sb' in self.gps_dict: 
                 return self.gps_dict['sb']
-            if 'px' in self.gps_dict: 
-                if int(self.gps_dict['px'].fix) >= 3:
-                    return self.gps_dict['px']
+            
             if 'dg' in self.gps_dict:
                 if int(self.gps_dict['dg'].fix) >= 1:
                     return self.gps_dict['dg']
+
+            if 'px' in self.gps_dict: 
+                if int(self.gps_dict['px'].fix) >= 3:
+                    return self.gps_dict['px']
             else:
                 return None
             
@@ -164,6 +166,9 @@ class GpsThread():
         # print(lines, '\n')
         #print("Fix taken at:", self.getTime(lines[1] + lines[9], "%H%M%S.%f%d%m%y", "%a %b %d %H:%M:%S %Y"), "UTC")
         #print("Status (A=OK,V=KO):", lines[2])
+        if len(lines[3]) == 0 or len(lines[5]) == 0:
+            return False
+
         latlng = self.getLatLng(lines[3], lines[5])
         self.lat = float(latlng[0])
         self.lon = float(latlng[1])
@@ -191,13 +196,16 @@ class GpsThread():
         #else:
         #    print(lines[11].partition("*")[0])
 
-        return
+        return True
 
 
     def printGGA(self,lines):
         #print("========================================GGA========================================")
         # print(lines, '\n')
         #print("Fix taken at:", self.getTime(lines[1], "%H%M%S.%f", "%H:%M:%S"), "UTC")
+        if len(lines[2]) == 0 or len(lines[4]) == 0:
+            return False
+
         latlng = self.getLatLng(lines[2], lines[4])
         self.lat = float(latlng[0])
         self.lon = float(latlng[1])
@@ -220,14 +228,16 @@ class GpsThread():
         #print("Height of geoid: ", lines[11], lines[12], sep="")
         #print("Time in seconds since last DGPS update:", lines[13])
         #print("DGPS station ID number:", lines[14].partition("*")[0])
-        return
+        return True
 
 
     def printGSA(self,lines): #vt-162 does not generate
         #print("========================================GSA========================================")
         # print(lines, '\n')
 
-        #print("Selection of 2D or 3D fix (A=Auto,M=Manual):", lines[1])
+        if len(lines[2]) == 0 or len(lines[4]) == 0:
+            return False
+
         print("3D fix (1=No fix,2=2D fix, 3=3D fix):", lines[2])
         print("PRNs of satellites used for fix:", end='')
         for i in range(0, 12):
@@ -261,6 +271,8 @@ class GpsThread():
     def printGLL(self,lines):
         #print("========================================GLL========================================")
         # print(lines, '\n')
+        if len(lines[1]) == 0 or len(lines[3]) == 0:
+            return False
 
         latlng = self.getLatLng(lines[1], lines[3])
         self.lat = float(latlng[0])
@@ -272,10 +284,14 @@ class GpsThread():
         #print("Status (A=OK,V=KO):", lines[6])
         #if lines[7].partition("*")[0]:  # Extra field since NMEA standard 2.3
         #    print("Mode (A=Autonomous, D=Differential, E=Estimated, N=Data not valid):", lines[7].partition("*")[0])
-        return
+        return True
 
 
     def printVTG(self,lines):
+
+        #if len(lines[1]) == 0 or len(lines[5]) == 0:
+        #    return False
+
         #print("========================================VTG========================================")
         # print(lines, '\n')
 
@@ -287,16 +303,19 @@ class GpsThread():
 
         #print("Magnetic track made good (deg):", lines[3], lines[4])
         #print("Ground speed (knots):", lines[5], lines[6])
-        speed = float(lines[5])
-        speed = speed * 1.150779 # knots to mph
-        from pix_hawk_util import Math
-        self.speed = Math.round_half_up( speed, 1)
+        if len(lines[5]) == 0:
+            self.speed = 0
+        else:
+            speed = float(lines[5])
+            speed = speed * 1.150779 # knots to mph
+            from pix_hawk_util import Math
+            self.speed = Math.round_half_up( speed, 1)
         #print('speed (mph): ', self.speed)
 
         #print("Ground speed (km/h):", lines[7], lines[8].partition("*")[0])
         #if lines[9].partition("*")[0]:  # Extra field since NMEA standard 2.3
         #    print("Mode (A=Autonomous, D=Differential, E=Estimated, N=Data not valid):", lines[9].partition("*")[0])
-        return
+        return True
 
 
     def checksum(self,line):
@@ -334,34 +353,52 @@ class GpsThread():
         try:
             print('gps thread started')
             while self.run_thread:
-                line = self.gps_parser.readString()
-                lines = line.split(",")
-                if self.gps_parser.checksum(line):
-                    if lines[0] == "GPRMC":
-                        self.gps_parser.printRMC(lines)
-                        pass
-                    elif lines[0] == "GPGGA":
-                        self.gps_parser.printGGA(lines)
-                        pass
-                    elif lines[0] == "GPGSA":
-                        # printGSA(lines)
-                        pass
-                    elif lines[0] == "GPGSV":
-                        # printGSV(lines)
-                        pass
-                    elif lines[0] == "GPGLL":
-                        self.gps_parser.printGLL(lines)
-                        pass
-                    elif lines[0] == "GPVTG":
-                        self.gps_parser.printVTG(lines)
-                        pass
-                    elif lines[0] == "GPTXT":
-                        #self.gps_parser.printVTG(lines)
-                        pass
-                    else:
-                        print("\n\nUnknown type:", lines[0], "\n\n")
-                print('fix {0}, lat {1}, lon {2}, alt {3}, speed {4}, track {5}'.
-                    format(self.fix, self.lat, self.lon, self.altitude, self.speed, self.track))
+                try: 
+                    line = self.gps_parser.readString()
+                    lines = line.split(",")
+                    if self.gps_parser.checksum(line):
+                        if lines[0] == "GPRMC":
+                            if not self.gps_parser.printRMC(lines):
+                                print('GPRMC error')
+                                continue
+                            
+                        elif lines[0] == "GPGGA":
+                            if not self.gps_parser.printGGA(lines):
+                                print('GPGGA error')
+                                continue
+                            
+                        elif lines[0] == "GPGSA":
+                            # printGSA(lines)
+                            pass
+                        elif lines[0] == "GPGSV":
+                            # printGSV(lines)
+                            pass
+                        elif lines[0] == "GPGLL":
+                            if not self.gps_parser.printGLL(lines):
+                                print('GPGLL error')
+                                continue
+                            
+                        elif lines[0] == "GPVTG":
+                            if not self.gps_parser.printVTG(lines):
+                                print('GPVTG error')
+                                continue
+                            
+                        elif lines[0] == "GPTXT":
+                            print('GPTXT message')
+                            print('severtiy:', lines[3])
+                            print('message:', lines[4])
+                            #print('GPTXT discarded')
+                            continue
+                        else:
+                            print("\n\nUnknown type:", lines[0], "\n\n")
+                            continue
+                except:
+                    print('________gps parser error________')
+                    continue
+
+                if self.data_complete:
+                    print('fix {0}, lat {1}, lon {2}, alt {3}, speed {4}, track {5}'.
+                        format(self.fix, self.lat, self.lon, self.altitude, self.speed, self.track))
                 
                 if self.data_complete and int(self.fix) >= 1:
                     self.gps_manager.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
@@ -380,10 +417,11 @@ if __name__ == '__main__':
     #ser = serial.Serial('/dev/ttyACM2', 9600, timeout=1)  # Open Serial port
     gps_mng = GpsManager()
     gps_td = GpsThread(gps_mng)
-    if gps_td.connect('/dev/ttyACM2'):
+    #if gps_td.connect('/dev/ttyACM2'):
+    if gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):    
         gps_td.start()
-        time.sleep(60)
-        gps_td.close()
-    else:
-        gps_td = None
+    #    time.sleep(50)
+    #    gps_td.close()
+    #else:
+    #    gps_td = None
     

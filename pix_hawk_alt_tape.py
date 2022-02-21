@@ -99,6 +99,7 @@ class AltTapeLeft(Tape):
         self.units2pix_scale = self.tick_pixels/self.units_interval
         self.baro_val = 29.29
         self.alt_mode_gps = True
+        self.alt_mode_gps_request = True
         self.climb_list = []
         self.climb_alt = 0
         self.climb_time = time.time()
@@ -109,29 +110,50 @@ class AltTapeLeft(Tape):
         self.baro_altitude = 0
         self.baro_climb = 0
         self.gps_altitude = 0
-        self.gps_climb = 0
+        self.baro_error = None
         
 
         
     def draw(self, alt, climb, baro_press):
 
+        self.baro_altitude = self.get_baro_alt(baro_press)
+        self.baro_climb = self.get_baro_climb()
+
+        self.gps_altitude = None 
         if self.gps_manager != None:
             gps_listener = self.gps_manager.get_listener()
             if gps_listener != None:
-                alt = gps_listener.altitude
-                climb = gps_listener.climb
+                self.gps_altitude = gps_listener.altitude
+                #climb = gps_listener.climb
 
-        self.gps_altitude = alt
-        self.gps_climb = climb
-        if not self.alt_mode_gps:
-            alt = self.get_baro_alt(baro_press)
-            climb = self.get_baro_climb()
+        if not self.alt_mode_gps_request:
+            alt = self.baro_altitude
+            self.alt_mode_gps = False
+        else:
+            if self.gps_altitude != None:
+                alt = self.gps_altitude
+                self.alt_mode_gps = True
+            else:
+                self.alt_mode_gps = False
+                alt = self.baro_altitude
+
+        if self.gps_altitude != None:
+            self.baro_error = abs(self.baro_altitude - self.gps_altitude)
+        else:
+            self.baro_error = None
+
         super().draw(alt)
+
         print('climb', str(climb))
         if not self.alt_mode_gps:
             self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
+            if self.baro_error != None and self.baro_error > 200:
+                self.baro_label.color = (255,0,0,255)
+            else:
+                self.baro_label.color = (0,255,0,255)
             self.baro_label.draw()
         else:
+            self.baro_label.color = (0,255,0,255)
             self.baro_label.text = '[gps]'
             self.baro_label.draw()
         self.climb_val_label.text = str(int(round(climb)))
@@ -211,7 +233,7 @@ class AltTapeLeft(Tape):
             if self.baro_val > 25:
                 self.baro_val -= .01
         elif symbol == key.TAB:
-            self.alt_mode_gps = not self.alt_mode_gps
+            self.alt_mode_gps_request = not self.alt_mode_gps_request
             #Global.set_alt_mode_gps(self.alt_mode_gps)
 
     ##---- Public Methods For Dependancy Injection-------##
@@ -227,7 +249,7 @@ class AltTapeLeft(Tape):
 
     def get_gps_altimeter(self):
         with self.lock:
-            return self.gps_altitude, self.gps_climb
+            return self.gps_altitude, self.baro_climb
 
     def get_altimeter_mode(self):
         with self.lock:

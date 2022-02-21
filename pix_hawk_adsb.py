@@ -4,6 +4,7 @@
 from distutils.command.config import config
 import imp
 from re import M
+from tkinter.tix import Tree
 from unicodedata import decimal
 import pyglet
 from pyglet import shapes
@@ -131,8 +132,10 @@ class AdsbDict():
                 self.dict[str(icao)].h_speed = hor_velocity
                 self.dict[str(icao)].v_speed = ver_velocity
                 self.dict[str(icao)].heading = adsb_heading
-                self.dict[str(icao)].distance = distance
-                #self.dict[str(icao)].time = time.time()
+                #self.dict[str(icao)].distance = distance
+                
+                self.dict[str(icao)].set_distance(distance)
+                self.dict[str(icao)].time = time.time()
                 self.dict[str(icao)].set_timeout()
     
     def vehicleInLimits(self, gps_lat, gps_lon, gps_alt, vh_lat, vh_lon, vh_alt):
@@ -169,13 +172,17 @@ class AdsbVehicle():
         self.h_speed = h_speed
         self.v_speed = v_speed
         self.heading = heading
-        #self.time = time.time()
+        
+        #self.set_distance(distance)
+        self.time = time.time()
         self.vh_label2 = None
         #self.fuse_line = None
         #self.wing_line = None
         self.retry_count = 3
         self.tail_list = []
         self.skip_count = 0
+        self.conv_speed = 0
+        self.converging = False
 
         self.time_out_interval = 5
         self.timeout_time = time.time() + self.time_out_interval
@@ -185,9 +192,25 @@ class AdsbVehicle():
         self.is_timed_out = False
 
         self.alt_dif = 0
+
+    def set_distance(self, dist): # called only at update not on new instance
+        time_dif = time.time() - self.time
+        dist_dif = self.distance - dist
+        #if abs(dist_dif) < .1:
+            #self.distance = dist
+            #return
+        self.conv_speed = dist_dif/time_dif  # mps
+        self.conv_speed /= 60 #mpm
+        #self.conv_speed /= 60 #mph
+        if self.conv_speed > 0:
+            self.converging = True
+        else:
+            self.converging = False
+        self.distance = dist
         
-        
-        
+
+
+            
     def timeout_target(self):
         print('timeout_target thread started')
         while True:
@@ -593,6 +616,10 @@ class AdsbWindow():
             if self.nearest_ap != None:
                 x_alt, y_alt = self.get_pixel_pos(gps_track, self.nearest_ap.lat, self.nearest_ap.lon, gps_lat, gps_lon)
                 self.alert_line.position = (x_alt, y_alt, self.win_x_org, self.win_y_org)
+                if self.nearest_ap.converging:
+                    self.alert_line.color = (255,0,0)
+                else:
+                    self.alert_line.color = (0,255,0)
                 self.alert_line.draw()
 
             if self.threat <= 0:
@@ -613,7 +640,7 @@ class AdsbWindow():
                     alts = alts.strip('.')
                 
                 #self.vh_label.text = str(clk) + " o'c " + alt_txt + ' ' + str(dist) + ' mi ' + alts + ' kft'
-                self.vh_label.text = str(dist) + ' mi ' + alts + ' kft ' + str(int(self.nearest_ap.h_speed)) + ' mph'
+                self.vh_label.text = str(dist) + ' mi ' + alts + ' kft ' + str(int(self.nearest_ap.h_speed))+ ' mph'
                 
 
             self.vh_label.draw()

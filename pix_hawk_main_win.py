@@ -86,7 +86,7 @@ class MainWindow():
             self.phidget_thread = PhidgetThread.get_instance()
 
             self.gps_td = GpsThread(self.gps_manager)
-            if self.gps_td.connect('/dev/ttyACM2'):
+            if self.gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):
                 self.gps_td.start()
             else:
                 self.gps_td = None

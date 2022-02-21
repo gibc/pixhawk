@@ -665,12 +665,12 @@ class mavlinkmsg (Thread):
                                
                         if pix_hawk_config.MockAirPlane:
                         #if False:
-                            if self.tail_count < 40:
-                                off =self.tail_count*.002
+                            if self.tail_count < 80:
+                                off =self.tail_count*.001
                                 self.tail_count += 1
-                                dist = Math.latlon_distance(self.lat, self.lon, self.lat-.05+off, self.lon-.05)
-                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.05+off, 
-                                    self.lon-.05, self.gps_alt+1500, 120, 0, self.gnd_track, True, dist) #self.gnd_track)
+                                dist = Math.latlon_distance(self.lat, self.lon, self.lat-.04+off, self.lon-.005)
+                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.04+off, 
+                                    self.lon-.005, self.gps_alt+100, 120, 10, self.gnd_track, True, dist) #self.gnd_track)
                             elif self.tail_count < 100:
                                 self.tail_count += 1
                             else:
