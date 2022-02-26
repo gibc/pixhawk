@@ -1,4 +1,5 @@
 from ast import Pass
+from re import I
 from sys import breakpointhook
 from typing import SupportsInt
 from numpy import dtype
@@ -8,6 +9,8 @@ from threading import Thread
 import numpy as np
 import ctypes
 import sys
+from pix_hawk_util import KeyBoard
+import traceback
 
 radioMagic = [0x0a, 0xb0, 0xcd, 0xe0]
 
@@ -15,10 +18,12 @@ class RadioThread():
     def __init__(self, conn_str):
         self.conn_str = conn_str
         self.ser = None
-        self.read_td = Thread(target=self.target)
+        #self.read_td = Thread(target=self.target)
+        self.read_td = Thread(target=self.radioSerialPortReader)
         self.fec_lib = ctypes.CDLL('./fec_lib.so')
         self.run_thread = True
         self.maxSignalStrength = 0
+        self.key_board = KeyBoard.get_instance()
         
     
     def connect(self):
@@ -26,7 +31,7 @@ class RadioThread():
         return self.ser != None
 
     def processRadioMessage(self, msg):
-        rssiRaw = msg[0].astype(np.byte)
+        rssiRaw = msg[0]
         rssiDump978 = rssiRaw
         msg = msg[5:]
         toRelay = None
@@ -37,10 +42,22 @@ class RadioThread():
             #C.correct_uplink_frame((*C.uint8_t)(unsafe.Pointer(&msg[0])), (*C.uint8_t)(unsafe.Pointer(&to[0])), (*C.int)(unsafe.Pointer(&rs_errors)))
             to = bytearray(432)
             msg_cnt = len(msg)
+
+            #int correct_uplink_frame(uint8_t *from, uint8_t *to, int *rs_errors)
+            self.fec_lib.correct_uplink_frame.argtypes = \
+                ctypes.POINTER(ctypes.c_byte), ctypes.POINTER(ctypes.c_byte), ctypes.POINTER(ctypes.c_int)
+
             array_type_msg = ctypes.c_byte * msg_cnt
             array_type_to = ctypes.c_byte * 432
+
             rs_errors = ctypes.c_int32()
-            self.fec_lib.correct_uplink_frame(array_type_msg(*msg), array_type_to(*to), ctypes.byref(rs_errors))
+
+            # reed solomen from for uplink is (92,72) * 6 blocks = 984
+            # we expect 552
+
+            self.fec_lib.correct_uplink_frame(array_type_msg.from_buffer(msg), array_type_to.from_buffer(bytes(to)), \
+                    ctypes.byref(rs_errors))
+
             #toRelay = Sprintf("+%s;ss=%d;", hex.EncodeToString(to[:432]), rssiDump978)
 
             rs = str(to[:432])
@@ -50,7 +67,24 @@ class RadioThread():
             #to = bytearray(48)
 		    #copy(to, msg)
             to = msg[:48]
-            i = int(self.fec_libL.correct_adsb_frame(to, rs_errors))
+            msg_cnt = len(msg)
+
+            #int correct_adsb_frame(uint8_t *to, int *rs_errors)
+
+            
+            array_type_to = ctypes.c_byte * 48
+            rs_errors = ctypes.c_int32()
+
+            # reed solomen from for adsb msg is: (30,18) = 48  or (48,34)  =  88   
+            #  fec c code tries long then short
+
+            i = 0
+            try:
+                i = int(self.fec_lib.correct_adsb_frame(array_type_to.from_buffer(bytes(to)), ctypes.byref(rs_errors)))
+            except:
+                traceback.print_exc()
+
+
             if i == 1:
 			    #Short ADS-B frame.
                 rs = str(to[:18])
@@ -65,17 +99,17 @@ class RadioThread():
              print ("processRadioMessage(): unhandled message size {0}", len(msg))
 
         if toRelay != None:
-            sys.stdout.write(toRelay)
+            sys.stdout.write(toRelay)  # gib - can I send this to uat_decode.c in c modules??
 
-        if len(toRelay) > 0 and rs_errors != 9999:
-            o, msgtype= self.parseInput(toRelay)
+        #if len(toRelay) > 0 and rs_errors != 9999:
+        #    o, msgtype= self.parseInput(toRelay)
             
         
-        if o != None and msgtype != 0:
+        #if o != None and msgtype != 0:
 			#relayMessage(msgtype, o)
-            sys.stdout.write(o)
+            #sys.stdout.write(o)
 		
-    def parseInput(self, buf):
+    def parseInput(self, buf):  # gib - same as uat_decode.c ???
         x = buf.split(';') # Discard everything after the first ';'.
         s = x[0]
         if len(s) == 0:
@@ -215,42 +249,78 @@ class RadioThread():
 
         
     def target(self):
-        if not self.read_td.is_alive():
-            self.read_td.start()
-            print('radio thread started')
+        try:
+            if not self.read_td.is_alive():
+                self.read_td.start()
+                print('radio thread started')
 
-        while self.run_thread:
-            ln = self.ser.read(1)
-            if len(ln) == 0:
-                print('timeout')
-                continue
+            file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
+            buf = []
+            bufcnt = 0
+
+            
+            cnt = 0
+            while self.run_thread:
+
+                key = self.key_board.get_key()
+                if key == '\n':
+                    file.close()
+                    self.run_thread = False
+                
+                ln = self.ser.read(1)
+                if len(ln) == 0:
+                    print('timeout')
+                    continue
     
-            byte = ord(ln)
-            if byte == radioMagic[cnt]:
-                cnt += 1
-                if cnt >= 3:
+                byte = ord(ln)
+                if byte == radioMagic[cnt]:
+                    cnt += 1
+                    if cnt >= 3:
+                        cnt = 0
+                    print('got magic')
+                else:
                     cnt = 0
-                print('got magic')
-            else:
-                cnt = 0
-            print(byte)
+           
+                buf.append(byte)
+                bufcnt += 1
+                if bufcnt > 10:
+                    file.write(bytes(buf))
+                    bufcnt = 0
+
+                print(byte)
+
+            print('radio  thread stopped')
+            KeyBoard.stop()
+
+        except:
+            file.close()
+            self.run_thread = False
+            traceback.print_exc()
+
 
     def radioSerialPortReader(self):
 
-        if not self.read_td.is_alive():
-            self.read_td.start()
-            print('radio thread started')
+        #if not self.read_td.is_alive():
+        #    self.read_td.start()
+        #    print('radio thread started')
+        file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'rb')
 
         buf = []
         while self.run_thread:
            
-            ln = self.ser.read(1)
-            if len(ln) == 0:
-                print('timeout')
-                continue
+            #ln = self.ser.read(1)
+            #if len(ln) == 0:
+                #print('timeout')
+                #continue
 
-            byte = ord(ln)
-            buf.append(byte)
+            #byte = file.read(1)
+            buf = file.read(100)
+
+            
+
+            #byte = ord(ln)
+            #byte = ord(byte)
+            #buf.append(byte)
             bufLen = len(buf)
             if bufLen < 6:
                 continue
@@ -260,7 +330,7 @@ class RadioThread():
             for i in range(0,bufLen-6):
                 if buf[i] == radioMagic[0] and buf[i+1] == radioMagic[1] and buf[i+2] == radioMagic[2] and buf[i+3] == radioMagic[3]:
                     
-                    msgLen = int(buf[i+4].astype(np.int16) + (buf[i+5].astype(np.int16)<<8) + 5) # 5 bytes for RSSI and TS.
+                    msgLen = int(buf[i+4] + (buf[i+5]<<8) + 5) # 5 bytes for RSSI and TS.
                     
                     if bufLen < i+6+msgLen:
                         break # Wait for more of the message to come in.
@@ -272,6 +342,9 @@ class RadioThread():
                     numMessages += 1
             if numMessages > 0:
                 buf = finBuf
+
+        print('radio thread stoped')
+        KeyBoard.stop()
 
     """tmpBuf := make([]byte, 1024) // Read buffer.
 	var buf []byte               // Message buffer.
