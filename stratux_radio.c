@@ -18,20 +18,28 @@
 
 unsigned char radioMagic []= {0x0a, 0xb0, 0xcd, 0xe0};
 unsigned char buf[1024];
+unsigned char swpBuf[1024];
 unsigned char tmpBuf[200];
-unsigned char toRelay[2000];
+unsigned char toRelay[200];
 unsigned char to[1000];
 
+int findMagic(FILE* fd);
+int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int st, int ed) ;
+char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 
 int main(int argc, char* argv[])
 {
     //char radio_fifo[] = "/tmp/radio";
-    char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
+    //char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
     //FILE *fd = fopen(radio_fifo, O_RDONLY);
     // from py code file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
-    FILE *fd = fopen(radio_log, O_RDONLY);
+	init_fec();
+	FILE *fd;
+	//int a = 10;
+    fd = fopen(radio_log, "r"); //home/pi/PhidgetInsurments/mag_dataadsb_log.txt
+	
     radioSerialPortReader(fd);
 }
 
@@ -43,10 +51,21 @@ void radioSerialPortReader(FILE *fd) {
     int msgLen = 0;
 	while(1){
 
-        size_t rc = fread(tmpBuf, sizeof(tmpBuf), 1, fd);
+		if (findMagic(fd) < 0)
+			break;
+
+		msgLen = getMsg(fd);
+		if(msgLen < 0)
+			break;
+
+		processRadioMessage(0, msgLen);
+
+		continue;
+
+        size_t rc = fread(tmpBuf, 1, 200, fd);
 
 		//buf = append(buf, tmpBuf[:n]...)
-        memccpy(&buf[head], &tmpBuf[0], rc , sizeof(char));
+        memcpy(&buf[head], &tmpBuf[0], rc );
         head = head + rc;
 		bufLen = head;
 		
@@ -77,11 +96,59 @@ void radioSerialPortReader(FILE *fd) {
 				numMessages += 1;
 			}
 		}
-		//if (numMessages > 0) {
-		//	buf = finBuf
-		//}
+		if (numMessages > 0) {
+			//clearBuf(head);
+			head = 0;
+			bufLen = 0;
+    		numMessages = 0;
+    		msgLen = 0;
+		}
 	}
 }
+
+int getMsg(FILE* fd)
+{
+	int rc;
+	int msgLen; 
+	unsigned char tmp[3];
+	rc = fread(&tmp[0], 1, 3, fd);
+	if (rc < 2)
+		return -1;
+	
+	msgLen = (__uint16_t)(tmp[1]) + ((__uint16_t)(tmp[2])<<8) + 5;
+
+	rc = fread(&buf[0], 1, msgLen, fd);
+	if (rc < msgLen)
+		return -1;
+
+	buf[msgLen] = 0;
+	return msgLen;
+
+}
+
+// find magic 4 bytes
+int findMagic(FILE* fd)
+{
+	unsigned char buf[10];
+	int cnt = 0;
+
+	while ( fread(&buf[0], 1, 1, fd) > 0)
+	{
+		if (buf[0] == radioMagic[cnt]){
+        	cnt = cnt + 1;
+        	if (cnt >= 3)
+            	return ftell(fd);
+		}
+		else
+		{
+			cnt = 0;
+			continue;
+		}
+	}  
+	return -1;
+}
+
+
 
 /*
 	processRadioMessage().
@@ -101,20 +168,20 @@ void processRadioMessage(int st, int ed) {
 
 	//msg = msg[5:]
     //int msglen = sizeof(msg)-5;
-    int msglen = ed-st-5;
+    int msglen = (ed-st)-5;
 
 	int rs_errors = 0;
 
 	switch (msglen) 
     {
 	case 552:
-		correct_uplink_frame(&buf[st], to, &rs_errors);
+		correct_uplink_frame(&buf[st+5], to, &rs_errors);
         to[432]=0;
 		int cnt = sprintf((char*)toRelay, "+%s;ss=%d;", (char*)to, rssiDump978);
         toRelay[cnt+1] = 0;
 	case 48:
 		//copy(to, msg);
-        memccpy(&to, &buf[st], ed-st , sizeof(char));
+        memcpy(&to[0], &buf[st+5], msglen );
 		int i = correct_adsb_frame((unsigned char*)to, &rs_errors);
 		if (i == 1) {
 			// Short ADS-B frame.

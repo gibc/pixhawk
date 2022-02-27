@@ -20,7 +20,7 @@ class RadioThread():
         self.ser = None
         #self.read_td = Thread(target=self.target)
         self.read_td = Thread(target=self.radioSerialPortReader)
-        self.fec_lib = ctypes.CDLL('./fec_lib.so')
+        #self.fec_lib = ctypes.CDLL('./fec_lib.so')
         self.run_thread = True
         self.maxSignalStrength = 0
         self.key_board = KeyBoard.get_instance()
