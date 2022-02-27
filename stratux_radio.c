@@ -29,18 +29,26 @@ void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int st, int ed) ;
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 
+int bad_msg_count = 0;
+int good_msg_count = 0;
+
 int main(int argc, char* argv[])
 {
     //char radio_fifo[] = "/tmp/radio";
     //char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
     //FILE *fd = fopen(radio_fifo, O_RDONLY);
     // from py code file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
+	printf("start radio2frame\n");
+
 	init_fec();
 	FILE *fd;
 	//int a = 10;
     fd = fopen(radio_log, "r"); //home/pi/PhidgetInsurments/mag_dataadsb_log.txt
 	
     radioSerialPortReader(fd);
+
+	fclose(fd);
+	printf("close connection bad msg cnt: %d good msg cnt %d\n", bad_msg_count, good_msg_count);
 }
 
 void radioSerialPortReader(FILE *fd) {
@@ -55,10 +63,15 @@ void radioSerialPortReader(FILE *fd) {
 			break;
 
 		msgLen = getMsg(fd);
+		if(msgLen < -1)
+			continue;
 		if(msgLen < 0)
 			break;
 
 		processRadioMessage(0, msgLen);
+		good_msg_count += 1;
+		
+		memset(buf,0,sizeof buf);
 
 		continue;
 
@@ -110,18 +123,25 @@ int getMsg(FILE* fd)
 {
 	int rc;
 	int msgLen; 
-	unsigned char tmp[3];
-	rc = fread(&tmp[0], 1, 3, fd);
+	unsigned char tmp[2];
+	rc = fread(&tmp[0], 1, 2, fd);
 	if (rc < 2)
 		return -1;
 	
-	msgLen = (__uint16_t)(tmp[1]) + ((__uint16_t)(tmp[2])<<8) + 5;
+	msgLen = (__uint16_t)(tmp[0]) + ((__uint16_t)(tmp[1])<<8) + 5;
+	if(msgLen > 800){
+		int pos = ftell(fd);
+		bad_msg_count += 1;
+		return -2;
+	}
 
+	
 	rc = fread(&buf[0], 1, msgLen, fd);
 	if (rc < msgLen)
 		return -1;
 
 	buf[msgLen] = 0;
+	
 	return msgLen;
 
 }
@@ -136,7 +156,7 @@ int findMagic(FILE* fd)
 	{
 		if (buf[0] == radioMagic[cnt]){
         	cnt = cnt + 1;
-        	if (cnt >= 3)
+        	if (cnt >= 4)
             	return ftell(fd);
 		}
 		else
@@ -201,6 +221,21 @@ void processRadioMessage(int st, int ed) {
 	}
 
 	if (strlen((char*)toRelay) > 0 && rs_errors != 9999) {
-		// send to frame pipe
+		unsigned char tb[50];
+		memset(tb,0,sizeof tb);
+
+		int len = 0;
+		len = strlen(toRelay);
+		for(int i = 0; i < len; i++)
+		{
+			printf("%d ", toRelay[i]);
+		}
+		printf("\n");
+		//fflush(stdout);
+		//sprintf(tb, "%s", toRelay[0]);
+
+		//printf("frame: %s\n", toRelay);
+		//int i = 0;
+		//fflush(stdout);
 	}
 }
