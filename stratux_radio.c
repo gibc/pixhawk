@@ -7,8 +7,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#define UAT_H
 #include "uat.h"
 #include "fec.h"
+#define UAT_DECODE_H
+#include "uat_decode.h"
+
+
 
 //#include <stdio.h>
 //#include <fcntl.h>
@@ -28,6 +33,9 @@ int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int st, int ed) ;
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
+int get_size();
+
+struct uat_adsb_mdb *mdb_zero; // adsb struct memory
 
 int bad_msg_count = 0;
 int good_msg_count = 0;
@@ -39,6 +47,8 @@ int main(int argc, char* argv[])
     //FILE *fd = fopen(radio_fifo, O_RDONLY);
     // from py code file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
 	printf("start radio2frame\n");
+ 
+	mdb_zero = malloc(get_size());
 
 	init_fec();
 	FILE *fd;
@@ -47,6 +57,7 @@ int main(int argc, char* argv[])
 	
     radioSerialPortReader(fd);
 
+	free(mdb_zero);
 	fclose(fd);
 	printf("close connection bad msg cnt: %d good msg cnt %d\n", bad_msg_count, good_msg_count);
 }
@@ -206,6 +217,13 @@ void processRadioMessage(int st, int ed) {
 		if (i == 1) {
 			// Short ADS-B frame.
             to[18]=0;
+
+			
+
+			//struct uat_adsb_mdb *mdb_zero; 
+			//mdb_zero = malloc(get_size());
+    		
+			uat_decode_adsb_mdb((char*)to, mdb_zero);
 			int cnt = sprintf((char*)toRelay, "-%s;ss=%d;", (char*)to, rssiDump978);
             toRelay[cnt+1] = 0;
 		} 
