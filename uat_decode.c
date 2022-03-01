@@ -448,9 +448,7 @@ static void uat_display_auxsv(const struct uat_adsb_mdb *mdb, FILE *to)
     }
 }
 
-int get_size(){
-    return sizeof(struct uat_adsb_mdb);
-}
+
 
 // gib - called to decode down link frame??
 void uat_decode_adsb_mdb(uint8_t *frame, struct uat_adsb_mdb *mdb)

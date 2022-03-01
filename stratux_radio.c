@@ -10,16 +10,12 @@
 #define UAT_H
 #include "uat.h"
 #include "fec.h"
-#define UAT_DECODE_H
+#undef UAT_DECODE_H
 #include "uat_decode.h"
 
 
 
-//#include <stdio.h>
-//#include <fcntl.h>
-//#include <string.h>
-//#include <unistd.h>
-//#include "fec.h"
+
 
 unsigned char radioMagic []= {0x0a, 0xb0, 0xcd, 0xe0};
 unsigned char buf[1024];
@@ -33,9 +29,7 @@ int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int st, int ed) ;
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
-int get_size();
 
-struct uat_adsb_mdb *mdb_zero; // adsb struct memory
 
 int bad_msg_count = 0;
 int good_msg_count = 0;
@@ -48,7 +42,7 @@ int main(int argc, char* argv[])
     // from py code file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
 	printf("start radio2frame\n");
  
-	mdb_zero = malloc(get_size());
+	
 
 	init_fec();
 	FILE *fd;
@@ -57,7 +51,7 @@ int main(int argc, char* argv[])
 	
     radioSerialPortReader(fd);
 
-	free(mdb_zero);
+	
 	fclose(fd);
 	printf("close connection bad msg cnt: %d good msg cnt %d\n", bad_msg_count, good_msg_count);
 }
@@ -80,7 +74,7 @@ void radioSerialPortReader(FILE *fd) {
 			break;
 
 		processRadioMessage(0, msgLen);
-		good_msg_count += 1;
+		//good_msg_count += 1;
 		
 		memset(buf,0,sizeof buf);
 
@@ -218,12 +212,32 @@ void processRadioMessage(int st, int ed) {
 			// Short ADS-B frame.
             to[18]=0;
 
-			
+			good_msg_count += 1;
 
-			//struct uat_adsb_mdb *mdb_zero; 
-			//mdb_zero = malloc(get_size());
+			struct uat_adsb_mdb mdb_zero; 
+			
     		
-			uat_decode_adsb_mdb((char*)to, mdb_zero);
+			uat_decode_adsb_mdb((char*)to, &mdb_zero);
+			if(mdb_zero.callsign[0] == 0)
+			{
+				mdb_zero.callsign[0] = 'e';
+				mdb_zero.callsign[1] + 'm';
+				mdb_zero.callsign[2] = 'p';
+				mdb_zero.callsign[3] + 't';
+				mdb_zero.callsign[4] = 'y';
+				
+			}
+
+			printf("icao: %d call sign: %s lat: %f lon: %f alt: %d track: %d speed: %d vert speed %d\n", 
+					mdb_zero.address, 
+					&mdb_zero.callsign ,
+					mdb_zero.lat, 
+					mdb_zero.lon,
+					mdb_zero.altitude,
+					mdb_zero.track,
+					mdb_zero.speed,
+					mdb_zero.vert_rate
+					);
 			int cnt = sprintf((char*)toRelay, "-%s;ss=%d;", (char*)to, rssiDump978);
             toRelay[cnt+1] = 0;
 		} 
@@ -233,12 +247,16 @@ void processRadioMessage(int st, int ed) {
 			cnt= sprintf((char*)toRelay, "-%s;ss=%d;",  (char*)to, rssiDump978);
             toRelay[cnt+1] = 0; 
 		}
+		else{
+			bad_msg_count += 1;
+		}
 
 	//default:
 		//print("processRadioMessage(): unhandled message size \n", msglen);
 	}
 
-	if (strlen((char*)toRelay) > 0 && rs_errors != 9999) {
+	//if (strlen((char*)toRelay) > 0 && rs_errors != 9999) {
+	if (0) {
 		unsigned char tb[50];
 		memset(tb,0,sizeof tb);
 
