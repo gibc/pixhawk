@@ -1,49 +1,70 @@
-import os
-from re import M
-import subprocess
-import sys, tty
 
-
-import pyaudio
-
-
-import numpy as np
-from numpy import arange
-
-import simpleaudio as sa
 import decimal
-
 #Play a fixed frequency sound.
 #from __future__ import division
 import math
-import pyaudio
-import matplotlib.pyplot as plt
-
+import os
+import subprocess
+import sys
 import time
+import tty
+from asyncio.subprocess import PIPE
+from encodings import utf_8
+from re import I, M
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pyaudio
 import serial
+import simpleaudio as sa
+from numpy import arange
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
+
+p = subprocess.Popen("./radio2frame", stdin=PIPE)
+#p = subprocess.Popen("cat", stdin=PIPE)
+#while(True):
+    #d = bytearray("some test dat", 'utf_8')
+    #d = bytes([1,2,3,4,5])
+    #p.communicate(input=d)[0]
+    #p.stdin.write(d)
+    #p.stdin.flush()
+    #time.sleep(1)
+
+def readByte(ser):
+    ln = ser.read(1)
+    if len(ln) == 0:
+        print('timeout\n')
+    byte = ord(ln)
+    return byte
+
 
 ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
 #ser.open()
 cnt = 0
 while True:
-    ln = ser.read(1)
-    if len(ln) == 0:
-        print('timeout')
-        continue
-    #byte = ln.decode("utf-8")
-    #byte = ln.decode('hex')
-    byte = ord(ln)
+    #ln = ser.read(1)
+    #if len(ln) == 0:
+        #print('timeout\n')
+        #continue
+    #byte = ord(ln)
+    byte = readByte(ser)
     if byte == magic[cnt]:
         cnt += 1
-        if cnt >= 3:
+        if cnt >= 4:
             cnt = 0
-            print('got magic')
+            print('got magic\n')
+            lob = readByte(ser)
+            hib = readByte(ser)
+            msgLen = int(lob) + int(hib<<8) + 5
+            print('msglen: {0}\n'.format(msgLen))
+
+            #d = bytearray('got magic\n', 'utf_8')
+            #p.stdin.write(d)
+            #p.stdin.flush()
     else:
         cnt = 0
-    print(byte)
+    #print(byte)
     
     #print(ln)
 
