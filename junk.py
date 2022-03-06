@@ -1,5 +1,5 @@
 
-import decimal
+
 #Play a fixed frequency sound.
 #from __future__ import division
 import math
@@ -22,6 +22,7 @@ from numpy import arange
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 
 p = subprocess.Popen("./radio2frame", stdin=PIPE)
+
 #p = subprocess.Popen("cat", stdin=PIPE)
 #while(True):
     #d = bytearray("some test dat", 'utf_8')
@@ -32,11 +33,13 @@ p = subprocess.Popen("./radio2frame", stdin=PIPE)
     #time.sleep(1)
 
 def readByte(ser):
-    ln = ser.read(1)
-    if len(ln) == 0:
-        print('timeout\n')
-    byte = ord(ln)
-    return byte
+    while True:
+        ln = ser.read(1)
+        if len(ln) == 0:
+            print('timeout\n')
+        else:
+            byte = ord(ln)
+            return byte
 
 
 ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
@@ -58,10 +61,16 @@ while True:
             hib = readByte(ser)
             msgLen = int(lob) + int(hib<<8) + 5
             print('msglen: {0}\n'.format(msgLen))
+            msg = []
+            for i in range(msgLen):
+                msg.append(readByte(ser))
+            
+            d = bytes(msg)
 
             #d = bytearray('got magic\n', 'utf_8')
-            #p.stdin.write(d)
-            #p.stdin.flush()
+            p.stdin.write(d)
+            p.stdin.flush()
+            cnt = 0
     else:
         cnt = 0
     #print(byte)

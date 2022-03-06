@@ -36,6 +36,8 @@ char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271
 int bad_msg_count = 0;
 int good_msg_count = 0;
 
+#define MSG_LENGTH 400
+
 int main(int argc, char* argv[])
 {
     //char radio_fifo[] = "/tmp/radio";
@@ -45,29 +47,73 @@ int main(int argc, char* argv[])
 	printf("start radio2frame\n");
  
 	init_fec();
-	FILE *fd;
-	FILE *fss;
+	//FILE *fd;
+	//FILE *fss;
 
+	printf("opening pipe for read\n");
+	int fp = open("/tmp/radio", O_RDONLY) ;
+	printf("opened pipe fp: %d O_RDONLY\n", fp);
+
+	unsigned char msg_buf [MSG_LENGTH];
+	unsigned char byts_buf [MSG_LENGTH/4];
+	
 	while(1)
-	{
-		printf("read from stdin\n");
-		int rb = fread(buf, 1, 53, stdin);
-		//int rb = read(STDIN_FILENO, buf, 10);
-		printf("read cnt: %d\n", rb);
-		for(int i = 0; i<rb; i++)
+	{   
+		
+		//printf("reading 60 bytes from pipe\n");
+		memset(msg_buf,0, sizeof(msg_buf));
+		int cnt = read(fp, msg_buf, MSG_LENGTH);
+		printf("read %d bytes\n", cnt);
+		while(cnt < MSG_LENGTH)
 		{
-			printf("got byte %d ", buf[i]);
+			printf("less than full read %d more bytes\n", MSG_LENGTH-cnt);
+			int bc = read(fp, msg_buf[cnt], MSG_LENGTH-cnt);
+			printf("read %d more bytes\n", bc);
+			cnt = cnt + bc;
+			printf("new cnt %d \n", cnt);
+		}
+
+		for(int i = 0; i<MSG_LENGTH; i = i+2)
+		{
+			printf("buf index: %d: ", i);
+			int val = hex2int(&msg_buf[i]);
+			byts_buf[i/4] = val;
+			printf("out buf %d set to %d\n", i/4, val);
+		}
+	}
+
+		/*if(rd_count >= 10)
+		{
+			for(int j = 0; j<10; j++)
+			{
+				printf(" atoi val: %d,", outb[j]);
+				printf("\n");
+			}
+			rd_count = 0;
+		}
+		else rd_count += 1;
+
+		int val = strtoul(nb, (char**)NULL, 16);
+		outb[rd_count] = val;
+		printf("val %d ", val);
+		//int ml = buf[0];
+		//printf("msg len: %d bytes\n", ml);
+		//int rb = read(STDIN_FILENO, buf, 10);
+		//printf("read cnt: %d\n", rb);
+		for(int i = 0; i<cnt; i++)
+		{
+			printf("got byte %d ", nb[i]);
 		}
 		printf("\n");
 	}
 	
-    fd = fopen(radio_log, "r"); //home/pi/PhidgetInsurments/mag_dataadsb_log.txt
+    //fd = fopen(radio_log, "r"); //home/pi/PhidgetInsurments/mag_dataadsb_log.txt
 	
 	//fss = fopen(serial_path, "rb");
 	
 	//int cnt = fread(&readBuf[0], 1, 1, fss);
 	
-	
+	/*
 	int fs = open(serial_path, O_RDONLY);
 	
 	struct termios tty;
@@ -140,6 +186,17 @@ int main(int argc, char* argv[])
 	
 	fclose(fd);
 	printf("close connection bad msg cnt: %d good msg cnt %d\n", bad_msg_count, good_msg_count);
+	*/
+}
+
+int hex2int(bufptr)
+{
+	unsigned char valbuf [3];
+	memcpy(valbuf, bufptr, 2);
+	valbuf[3] = 0;
+	int val = strtoul(valbuf, (char**)NULL, 16);
+	printf("hex2int val %d\n", val);
+	return val;
 }
 
 int _fread(int fs, int len)
