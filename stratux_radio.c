@@ -28,7 +28,7 @@ unsigned char readBuf[100];
 int findMagic(FILE* fd);
 int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
-void processRadioMessage(int st, int ed) ;
+void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
@@ -37,7 +37,7 @@ int bad_msg_count = 0;
 int good_msg_count = 0;
 
 #define MSG_LENGTH 400
-
+FILE *fss;
 int main(int argc, char* argv[])
 {
     //char radio_fifo[] = "/tmp/radio";
@@ -51,8 +51,23 @@ int main(int argc, char* argv[])
 	//FILE *fss;
 
 	printf("opening pipe for read\n");
-	int fp = open("/tmp/radio", O_RDONLY) ;
-	printf("opened pipe fp: %d O_RDONLY\n", fp);
+	int in_fp = open("/tmp/send_radio", O_RDONLY) ;
+	if(in_fp < 0)
+	{
+		printf("open in pipe failed\n");
+		return 0;
+	}
+
+	printf("opening pipe for write\n");
+	//int out_fp = open("/tmp/receive_radio", O_WRONLY) ;
+	fss = fopen("/tmp/receive_radio", "w");
+	if(fss == NULL)
+	{
+		printf("open out pipe failed\n");
+		return 0;
+	}
+	printf("opened pipe in_fp: %d O_RDONLY\n", in_fp);
+	//printf("opened pipe out_fp: %d O_WRONLY\n", out_fp);
 
 	unsigned char msg_buf [MSG_LENGTH];
 	unsigned char byts_buf [MSG_LENGTH/4];
@@ -62,12 +77,12 @@ int main(int argc, char* argv[])
 		
 		//printf("reading 60 bytes from pipe\n");
 		memset(msg_buf,0, sizeof(msg_buf));
-		int cnt = read(fp, msg_buf, MSG_LENGTH);
+		int cnt = read(in_fp, msg_buf, MSG_LENGTH);
 		printf("read %d bytes\n", cnt);
 		while(cnt < MSG_LENGTH)
 		{
 			printf("less than full read %d more bytes\n", MSG_LENGTH-cnt);
-			int bc = read(fp, msg_buf[cnt], MSG_LENGTH-cnt);
+			int bc = read(in_fp, msg_buf[cnt], MSG_LENGTH-cnt);
 			printf("read %d more bytes\n", bc);
 			cnt = cnt + bc;
 			printf("new cnt %d \n", cnt);
@@ -75,11 +90,18 @@ int main(int argc, char* argv[])
 
 		for(int i = 0; i<MSG_LENGTH; i = i+2)
 		{
-			printf("buf index: %d: ", i);
+			// printf("buf index: %d: ", i);
 			int val = hex2int(&msg_buf[i]);
-			byts_buf[i/4] = val;
-			printf("out buf %d set to %d\n", i/4, val);
+			byts_buf[i/2] = val;
+			// printf("out buf %d set to %d\n", i/4, val);
 		}
+		//printf("exit hex2int loop\n");
+
+		//printf("length of received message: %d: \n", byts_buf[0]);
+		
+		processRadioMessage(0, byts_buf[0], &byts_buf[1]);
+		printf("return from processRadioMessage\n");
+		
 	}
 
 		/*if(rd_count >= 10)
@@ -195,7 +217,7 @@ int hex2int(bufptr)
 	memcpy(valbuf, bufptr, 2);
 	valbuf[3] = 0;
 	int val = strtoul(valbuf, (char**)NULL, 16);
-	printf("hex2int val %d\n", val);
+	//printf("hex2int val %d\n", val);
 	return val;
 }
 
@@ -242,7 +264,7 @@ void radioSerialPortReader(FILE *fd) {
 		if(msgLen < 0)
 			break;
 
-		processRadioMessage(0, msgLen);
+		processRadioMessage(0,0, msgLen);
 		//good_msg_count += 1;
 		
 		memset(buf,0,sizeof buf);
@@ -275,7 +297,7 @@ void radioSerialPortReader(FILE *fd) {
 				}
 				// Message is long enough.
 				//processRadioMessage(buf[i+6 : i+6+msgLen])
-                processRadioMessage(i+6, i+6+msgLen);
+                processRadioMessage(0,i+6, i+6+msgLen);
 
 				// Remove everything in the buffer before this message.
 				//finBuf = buf[i+6+msgLen:]
@@ -396,7 +418,7 @@ int findMagic(FILE* fd)
 	 Processes a single message from the radio. De-interleaves (when necessary), checks Reed-Solomon, passes to main process.
 */
 
-void processRadioMessage(int st, int ed) {
+void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 	// RSSI and message timestamp are prepended to the actual packet.
 
 	// RSSI
@@ -409,21 +431,28 @@ void processRadioMessage(int st, int ed) {
 
 	//msg = msg[5:]
     //int msglen = sizeof(msg)-5;
-    int msglen = (ed-st)-5;
+	printf("enter processRadioMessage\n");
+	char ret_buf [100];
+    int msglen =  msg_len-5;
 
 	int rs_errors = 0;
 
+	printf("msglen %d \n", msglen);
 	switch (msglen) 
     {
 	case 552:
-		correct_uplink_frame(&buf[st+5], to, &rs_errors);
+		//correct_uplink_frame(&buf[st+5], to, &rs_errors);
+		correct_uplink_frame(&msg[5], to, &rs_errors);
         to[432]=0;
 		//int cnt = sprintf((char*)toRelay, "+%s;ss=%d;", (char*)to, rssiDump978);
         //toRelay[cnt+1] = 0;
 	case 48:
 		//copy(to, msg);
-        memcpy(&to[0], &buf[st+5], msglen );
+        //memcpy(&to[0], &buf[st+5], msglen );
+		printf("correct_adsb_frame \n");
+		memcpy(&to[0], &msg[5], msglen );
 		int i = correct_adsb_frame((unsigned char*)to, &rs_errors);
+		printf("i return %d \n", i);
 		if (i == 1) {
 			// Short ADS-B frame.
             to[18]=0;
@@ -441,10 +470,9 @@ void processRadioMessage(int st, int ed) {
 				mdb_zero.callsign[2] = 'p';
 				mdb_zero.callsign[3] = 't';
 				mdb_zero.callsign[4] = 'y';
-				
 			}
 
-			printf("icao: %d call sign: %s lat: %f lon: %f alt: %d track: %d speed: %d vert speed %d\n", 
+			printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -454,6 +482,28 @@ void processRadioMessage(int st, int ed) {
 					mdb_zero.speed,
 					mdb_zero.vert_rate
 					);
+
+			int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
+					mdb_zero.address, 
+					mdb_zero.callsign ,
+					mdb_zero.lat, 
+					mdb_zero.lon,
+					mdb_zero.altitude,
+					mdb_zero.track,
+					mdb_zero.speed,
+					mdb_zero.vert_rate
+				);
+
+			printf("write to pipe\n");
+			//write(pipe, ret_buf, strlen(ret_buf));
+			//fflush(pipe);
+			
+			//write(pipe, "long frame result", strlen("long frame result"));
+			//fflush(pipe);
+			
+			fwrite(ret_buf, 1, pb, fss);
+			fflush(fss);
+
 			//int cnt = sprintf((char*)toRelay, "-%s;ss=%d;", (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
 		} 
@@ -465,7 +515,15 @@ void processRadioMessage(int st, int ed) {
 
 			struct uat_adsb_mdb mdb_zero; 
 			uat_decode_adsb_mdb((char*)to, &mdb_zero);
-			printf("icao: %d call sign: %s lat: %f lon: %f alt: %d track: %d speed: %d vert speed %d\n", 
+			if(mdb_zero.callsign[0] == 0)
+			{
+				mdb_zero.callsign[0] = 'e';
+				mdb_zero.callsign[1] = 'm';
+				mdb_zero.callsign[2] = 'p';
+				mdb_zero.callsign[3] = 't';
+				mdb_zero.callsign[4] = 'y';
+			}
+			printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -475,12 +533,42 @@ void processRadioMessage(int st, int ed) {
 					mdb_zero.speed,
 					mdb_zero.vert_rate
 					);
+
+			int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
+					mdb_zero.address, 
+					mdb_zero.callsign ,
+					mdb_zero.lat, 
+					mdb_zero.lon,
+					mdb_zero.altitude,
+					mdb_zero.track,
+					mdb_zero.speed,
+					mdb_zero.vert_rate
+				);
+
+			printf("write to pipe\n");
+			//write(pipe, ret_buf, strlen(ret_buf));
+			//fflush(pipe);
+
+			//write(pipe, "short frame result", strlen("long frame result"));
+			fwrite(ret_buf, 1, pb, fss);
+			fflush(fss);
+
 			//cnt= sprintf((char*)toRelay, "-%s;ss=%d;",  (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
 		}
 		else{
+			char cb[20];
+			printf("fec fail\n");
+			strcpy(cb, "fec fail\n");                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+			int nbytes = strlen("fec fail\n");
+			int wc = fwrite(cb, 1, nbytes, fss);
+			printf("write cnt byts: %d\n", wc);
+			fflush(fss);
+			printf("wrote fec fail to pipe\n");
+			
 			bad_msg_count += 1;
 		}
+		printf("return from processRadioMessage\n");
 
 	//default:
 		//print("processRadioMessage(): unhandled message size \n", msglen);

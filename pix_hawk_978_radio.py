@@ -15,33 +15,37 @@ class Radio():
         self.run_thread = True
         self.ser = None
         self.r2f_pid = None
-        self.pipe = None
+        self.snd_pipe = None
+        self.rec_pipe = None
         self.radio_thread = Thread(target = self.read_target)
         
         #self.radio_thread.start()
         #self.ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
 
     def mkpipe(self):
+        amode = 0o777
         try:
-            amode = 0o777
-            mkfifo('/tmp/radio', mode=amode)
+            mkfifo('/tmp/send_radio', mode=amode)
+        except:
+            pass
+
+        try:
+            mkfifo('/tmp/receive_radio', mode=amode)
             return True
         except:
             return True
         
     def connect(self):
-        self.ser = serial.Serial(self.con_str, baudrate=2000000, timeout=5)
+        #self.ser = serial.Serial(self.con_str, baudrate=2000000, timeout=5)
+        self.ser = open("/home/pi/PhidgetInsurments/mag_dataadsb_log.txt", "rb")
 
     def radio2frame(self):
         self.r2f_pid = subprocess.Popen("./radio2frame", stdin=PIPE)
-        self.pipe =  open('/tmp/radio', 'w')
-        """ data = []
-        for i in range(60):
-            data.append(i)
-        d = bytearray(data) 
-        x = time.time()
-        line = str(x) + "\r\n\0"""
-        astr = ""
+        self.snd_pipe = open('/tmp/send_radio', 'w')
+        self.rec_pipe =  open('/tmp/receive_radio', 'r')
+        
+            
+        """ astr = ""
         for i in range(200):
             #h = '0x{:02x}'.format(i)
             h = '{:02x}'.format(i)
@@ -52,7 +56,7 @@ class Radio():
         while True:
             b = self.pipe.write(astr)
             self.pipe.flush()
-            time.sleep(5)
+            time.sleep(5) """
 
     def readByte(self, ser):
         while self.run_thread:
@@ -61,6 +65,7 @@ class Radio():
                 print('timeout\n')
             else:
                 byte = ord(ln)
+                #print(byte)
                 return (byte,True)
         return (0,False)
 
@@ -69,7 +74,7 @@ class Radio():
         cnt = 0
         while self.run_thread:
         
-            ret, byte = self.readByte(self.ser)
+            byte, ret = self.readByte(self.ser)
             if not ret:
                 continue
             if byte == magic[cnt]:
@@ -77,27 +82,43 @@ class Radio():
                 if cnt >= 4:
                     cnt = 0
                     print('got magic\n')
-                    ret, lob = self.readByte(self.ser)
+                    lob, ret = self.readByte(self.ser)
                     if not ret:
                         continue
-                    ret, hib = self.readByte(self.ser)
+                    hib, ret = self.readByte(self.ser)
                     if not ret:
                         continue
+
                     msgLen = int(lob) + int(hib<<8) + 5
+                    if msgLen > 200:
+                        continue
+
                     print('msglen: {0}\n'.format(msgLen))
+
                     msg = []
                     msg.append(msgLen)
                     for i in range(msgLen):
-                        msg.append(self.readByte(self.ser))
-                    extra = 60 - len(msg)
+                        byte, ret = self.readByte(self.ser)
+                        msg.append(byte)
+                        
+                    extra = 200 - len(msg)
                     for i in range(extra):
                         msg.append(0)
 
-                    d = bytes(msg)
+                    astr = ""
+                    for i in range(200):
+                        h = '{:02x}'.format(msg[i])
+                        astr += h
 
-                    self.pipe.write(d)
-                    self.pipe.flush()
 
+                    self.snd_pipe.write(astr)
+                    self.snd_pipe.flush()
+
+                    
+                    #vs = self.rec_pipe.read()
+                    vs = self.rec_pipe.readline()
+                    print(vs)
+                    
                     #self.r2f_pid.stdin.write(d)
                     #self.r2f_pid.stdin.flush()
                     cnt = 0
@@ -117,5 +138,5 @@ if __name__ == '__main__':
     rdo.connect()
     rdo.radio2frame()
     rdo.radio_thread.start()
-    time.sleep(30)
-    rdo.close()
+    #time.sleep(30)
+    #rdo.close()
