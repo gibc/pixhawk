@@ -29,6 +29,7 @@ int findMagic(FILE* fd);
 int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
+void send_result(FILE* pipe, struct uat_adsb_mdb* mdb_zero);
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
@@ -100,7 +101,7 @@ int main(int argc, char* argv[])
 		//printf("length of received message: %d: \n", byts_buf[0]);
 		
 		processRadioMessage(0, byts_buf[0], &byts_buf[1]);
-		printf("return from processRadioMessage\n");
+		//printf("return from processRadioMessage\n");
 		
 	}
 
@@ -431,13 +432,13 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 
 	//msg = msg[5:]
     //int msglen = sizeof(msg)-5;
-	printf("enter processRadioMessage\n");
+	//printf("enter processRadioMessage\n");
 	char ret_buf [100];
     int msglen =  msg_len-5;
 
 	int rs_errors = 0;
 
-	printf("msglen %d \n", msglen);
+	printf("c code msglen %d \n", msglen);
 	switch (msglen) 
     {
 	case 552:
@@ -472,7 +473,7 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 				mdb_zero.callsign[4] = 'y';
 			}
 
-			printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
+			/*printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -481,9 +482,9 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 					mdb_zero.track,
 					mdb_zero.speed,
 					mdb_zero.vert_rate
-					);
+					);*/
 
-			int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
+			/*int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -492,17 +493,14 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 					mdb_zero.track,
 					mdb_zero.speed,
 					mdb_zero.vert_rate
-				);
+				);*/
 
 			printf("write to pipe\n");
-			//write(pipe, ret_buf, strlen(ret_buf));
-			//fflush(pipe);
 			
-			//write(pipe, "long frame result", strlen("long frame result"));
-			//fflush(pipe);
-			
-			fwrite(ret_buf, 1, pb, fss);
-			fflush(fss);
+			//fwrite(ret_buf, 1, pb, fss);
+			//fflush(fss);
+
+			send_result(fss, &mdb_zero);
 
 			//int cnt = sprintf((char*)toRelay, "-%s;ss=%d;", (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
@@ -523,7 +521,8 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 				mdb_zero.callsign[3] = 't';
 				mdb_zero.callsign[4] = 'y';
 			}
-			printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
+
+			/*printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -532,9 +531,9 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 					mdb_zero.track,
 					mdb_zero.speed,
 					mdb_zero.vert_rate
-					);
+					);*/
 
-			int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
+			/*int pb = sprintf(ret_buf, "icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n",
 					mdb_zero.address, 
 					mdb_zero.callsign ,
 					mdb_zero.lat, 
@@ -543,15 +542,14 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 					mdb_zero.track,
 					mdb_zero.speed,
 					mdb_zero.vert_rate
-				);
+				);*/
 
-			printf("write to pipe\n");
-			//write(pipe, ret_buf, strlen(ret_buf));
-			//fflush(pipe);
-
-			//write(pipe, "short frame result", strlen("long frame result"));
-			fwrite(ret_buf, 1, pb, fss);
-			fflush(fss);
+			//printf("write to pipe\n");
+			
+			//fwrite(ret_buf, 1, pb, fss);
+			//fflush(fss);
+			
+			send_result(fss, &mdb_zero);
 
 			//cnt= sprintf((char*)toRelay, "-%s;ss=%d;",  (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
@@ -568,7 +566,7 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 			
 			bad_msg_count += 1;
 		}
-		printf("return from processRadioMessage\n");
+		//printf("return from processRadioMessage\n");
 
 	//default:
 		//print("processRadioMessage(): unhandled message size \n", msglen);
@@ -593,4 +591,24 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 		//int i = 0;
 		//fflush(stdout);
 	//}
+}
+
+void send_result(FILE* pipe, struct uat_adsb_mdb* mdb_zero)
+{
+	char ret_buf [800];
+	int pb = sprintf(ret_buf, "icao %d :callsign %s :lat %f :lon %f :adsb_altitude %d :adsb_heading %d :hor_velocity %d :ver_velocity %d\n",
+					mdb_zero->address, 
+					mdb_zero->callsign ,
+					mdb_zero->lat, 
+					mdb_zero->lon,
+					mdb_zero->altitude,
+					mdb_zero->track,
+					mdb_zero->speed,
+					mdb_zero->vert_rate
+				);
+
+	printf("write to pipe\n");
+	fwrite(ret_buf, 1, pb, fss);
+	fflush(fss);
+
 }

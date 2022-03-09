@@ -1,5 +1,6 @@
 
 from os import mkfifo
+from importlib_metadata import re
 from numpy import asmatrix
 import serial
 from threading import Lock, Thread
@@ -7,10 +8,13 @@ import subprocess
 from asyncio.subprocess import PIPE
 import time
 from pathlib import Path
+from pix_hawk_adsb import AdsbDict
+from pix_hawk_gps_reader import GpsThread, GpsManager
+from pix_hawk_util import Math
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 class Radio():
-    def __init__(self, con_str):
+    def __init__(self, con_str, gps_manager):
         self.con_str = con_str
         self.run_thread = True
         self.ser = None
@@ -18,6 +22,8 @@ class Radio():
         self.snd_pipe = None
         self.rec_pipe = None
         self.radio_thread = Thread(target = self.read_target)
+        self.adsb_dic = AdsbDict.get_instance()
+        self.gps_manager = gps_manager
         
         #self.radio_thread.start()
         #self.ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
@@ -59,6 +65,7 @@ class Radio():
             time.sleep(5) """
 
     def readByte(self, ser):
+        print('read byte')
         while self.run_thread:
             ln = ser.read(1)
             if len(ln) == 0:
@@ -118,6 +125,9 @@ class Radio():
                     #vs = self.rec_pipe.read()
                     vs = self.rec_pipe.readline()
                     print(vs)
+                    if vs != 'fec fail\n':
+                        if not self.send_update(vs):
+                            print('adsb update failed, gps not avilable')
                     
                     #self.r2f_pid.stdin.write(d)
                     #self.r2f_pid.stdin.flush()
@@ -125,14 +135,75 @@ class Radio():
             else:
                 cnt = 0
 
-        print('stoped radio thread')
+        print('stopped radio thread')
     
     def close(self):
+        if self.adsb_dic != None:
+            AdsbDict.put_instance()
         self.run_thread = False
+
+    def send_update(self, vh_str):
+        vh_str = vh_str[:-2]
+        vals = vh_str.split(':')
+        for i in range(len(vals)):
+            nvp = vals[i].split(' ')
+
+            if nvp[0] == 'icao':
+                icao = str(int(nvp[1]))
+                continue
+            if nvp[0] == 'callsign':
+                callsign = nvp[1]
+                continue
+            if nvp[0] == 'lat':
+                lat = nvp[1]
+                continue
+            if nvp[0] == 'lon':
+                lon = nvp[1]
+                continue
+            if nvp[0] == 'adsb_altitude':
+                adsb_altitude = nvp[1]
+                continue
+            if nvp[0] == 'adsb_heading':
+                adsb_heading = nvp[1]
+                continue
+            if nvp[0] == 'hor_velocity':
+                hor_velocity = nvp[1]
+                continue
+            if nvp[0] == 'ver_velocity':
+                ver_velocity = nvp[1]
+                continue
+
+        if self.gps_manager != None:
+            gps_lsn = self.gps_manager.get_listener()
+            if gps_lsn != None:
+                gps_lat = gps_lsn.lat
+                gps_lon = gps_lsn.lon
+                gps_alt = gps_lsn.altitude
+                gps_track = gps_lsn.track
+            else:
+                return False
+        else:
+            return False
+        
+        dist = Math.latlon_distance(gps_lat, gps_lon, float(lat), float(lon))
+
+        self.adsb_dic.updateVehicle(icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
+
+        return True
+
 
 if __name__ == '__main__':
     # unit test code
-    rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0')
+    gps_manager = GpsManager()
+    gps_td = GpsThread(gps_manager)
+    if gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):
+        gps_td.start()
+    else:
+        gps_td = None
+
+    time.sleep(2)
+
+    rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', gps_manager)
     if not rdo.mkpipe():
         print('make pipe failed\n')
     rdo.connect()
