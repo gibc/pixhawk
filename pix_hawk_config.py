@@ -10,3 +10,4 @@ AdsbAltThreat = 1 # k ft + or -
 AdsbDistanceThreat = 2 # miles
 MockAirPlane = False
 MockHeading = -1 # -1 for no mock
+Use1090Radio = False  # if true use pixhawk, unvonics radio else use stratux 978 radio

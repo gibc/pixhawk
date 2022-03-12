@@ -29,7 +29,7 @@ int findMagic(FILE* fd);
 int getMsg(FILE* fd);
 void radioSerialPortReader(FILE *fd);
 void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
-void send_result(FILE* pipe, struct uat_adsb_mdb* mdb_zero);
+void send_result(int pipe, struct uat_adsb_mdb* mdb_zero);
 char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
@@ -60,9 +60,9 @@ int main(int argc, char* argv[])
 	}
 
 	printf("opening pipe for write\n");
-	//int out_fp = open("/tmp/receive_radio", O_WRONLY) ;
-	fss = fopen("/tmp/receive_radio", "w");
-	if(fss == NULL)
+	int out_fp = open("/tmp/receive_radio", O_WRONLY) ;
+	//fss = fopen("/tmp/receive_radio", "w");
+	if(out_fp < 0)
 	{
 		printf("open out pipe failed\n");
 		return 0;
@@ -72,35 +72,44 @@ int main(int argc, char* argv[])
 
 	unsigned char msg_buf [MSG_LENGTH];
 	unsigned char byts_buf [MSG_LENGTH/4];
-	
+	unsigned char len_buf[1];
+	unsigned char int_buf[150];
 	while(1)
 	{   
-		
-		//printf("reading 60 bytes from pipe\n");
-		memset(msg_buf,0, sizeof(msg_buf));
-		int cnt = read(in_fp, msg_buf, MSG_LENGTH);
-		printf("read %d bytes\n", cnt);
-		while(cnt < MSG_LENGTH)
+		int lc = read(in_fp, len_buf, sizeof(unsigned char));
+		printf("lc: %d\n", lc);
+		if(lc <= 0)
 		{
-			printf("less than full read %d more bytes\n", MSG_LENGTH-cnt);
-			int bc = read(in_fp, msg_buf[cnt], MSG_LENGTH-cnt);
+			return 0;
+		}
+		printf("array len: %d\n", len_buf[0]);
+		memset(msg_buf,0, sizeof(msg_buf));
+		int byte_len = len_buf[0]*sizeof(unsigned char);
+		printf("byte len: %d\n", byte_len);
+		int cnt = read(in_fp, int_buf, byte_len);
+		printf("read %d bytes\n", cnt);
+		while(cnt < byte_len)
+		{
+			printf("less than full read %d more bytes\n", byte_len-cnt);
+			int bc = read(in_fp, int_buf[cnt], byte_len-cnt);
 			printf("read %d more bytes\n", bc);
 			cnt = cnt + bc;
 			printf("new cnt %d \n", cnt);
 		}
 
-		for(int i = 0; i<MSG_LENGTH; i = i+2)
+		/*for(int i = 0; i<cnt; i++)
 		{
 			// printf("buf index: %d: ", i);
-			int val = hex2int(&msg_buf[i]);
-			byts_buf[i/2] = val;
-			// printf("out buf %d set to %d\n", i/4, val);
-		}
+			//int val = hex2int(&msg_buf[i]);
+			//byts_buf[i/2] = val;
+			//printf("out buf %d set to %d\n", i/4, val);
+			printf("read val: %d \n", int_buf[i]);
+		}*/
 		//printf("exit hex2int loop\n");
 
 		//printf("length of received message: %d: \n", byts_buf[0]);
 		
-		processRadioMessage(0, byts_buf[0], &byts_buf[1]);
+		processRadioMessage(out_fp, int_buf[0], &int_buf[1]);
 		//printf("return from processRadioMessage\n");
 		
 	}
@@ -500,7 +509,7 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 			//fwrite(ret_buf, 1, pb, fss);
 			//fflush(fss);
 
-			send_result(fss, &mdb_zero);
+			send_result(pipe, &mdb_zero);
 
 			//int cnt = sprintf((char*)toRelay, "-%s;ss=%d;", (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
@@ -549,7 +558,7 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 			//fwrite(ret_buf, 1, pb, fss);
 			//fflush(fss);
 			
-			send_result(fss, &mdb_zero);
+			send_result(pipe, &mdb_zero);
 
 			//cnt= sprintf((char*)toRelay, "-%s;ss=%d;",  (char*)to, rssiDump978);
             //toRelay[cnt+1] = 0;
@@ -559,9 +568,10 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 			printf("fec fail\n");
 			strcpy(cb, "fec fail\n");                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 			int nbytes = strlen("fec fail\n");
-			int wc = fwrite(cb, 1, nbytes, fss);
+			//int wc = fwrite(cb, 1, nbytes, fss);
+			int wc = write(pipe, cb, nbytes);
 			printf("write cnt byts: %d\n", wc);
-			fflush(fss);
+			//fflush(fss);
 			printf("wrote fec fail to pipe\n");
 			
 			bad_msg_count += 1;
@@ -593,7 +603,7 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 	//}
 }
 
-void send_result(FILE* pipe, struct uat_adsb_mdb* mdb_zero)
+void send_result(int pipe, struct uat_adsb_mdb* mdb_zero)
 {
 	char ret_buf [800];
 	int pb = sprintf(ret_buf, "icao %d :callsign %s :lat %f :lon %f :adsb_altitude %d :adsb_heading %d :hor_velocity %d :ver_velocity %d\n",
@@ -608,7 +618,8 @@ void send_result(FILE* pipe, struct uat_adsb_mdb* mdb_zero)
 				);
 
 	printf("write to pipe\n");
-	fwrite(ret_buf, 1, pb, fss);
-	fflush(fss);
+	//fwrite(ret_buf, 1, pb, fss);
+	//fflush(fss);
+	write(pipe, ret_buf, pb);
 
 }

@@ -20,6 +20,8 @@ import numpy
 import pix_hawk_config
 from pix_hawk_sound import SoundThread
 import pix_hawk_config
+from pix_hawk_gps_reader import GpsThread, GpsManager
+
 
 
 
@@ -678,35 +680,31 @@ if __name__ == '__main__':
     import cProfile, pstats
     #profiler = cProfile.Profile()
 
+    gps_manager = GpsManager()
+    gps_td = GpsThread(gps_manager)
+    if gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):
+        gps_td.start()
+    else:
+        gps_td = None
+
+    time.sleep(2)
+
+    from pix_hawk_978_radio import Radio
+    rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', gps_manager)
+    if not rdo.mkpipe():
+        print('make pipe failed\n')
+    rdo.connect()
+    rdo.radio2frame()
+    rdo.radio_thread.start()
+
     import pix_hawk_msg
 
     msg_thread = pix_hawk_msg.mavlinkmsg.get_instance() 
 
     ahdata = pix_hawk_msg.aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
     
-    #adsbDict = AdsbDict.get_instance()
-    
     print('__main__')
     
-    #adsb1 = AdsbVehicle(123, 'n123', 2000, 3000, 5500, 70, 5, 90)
-    #adsb2 = AdsbVehicle(456, 'n789', 4000, 5000, 7500, 100, -5, 180)
-    
-    #print(adsb1.call_sign)
-    
-    #print(adsb2.call_sign)
-    
-    #adsbDict.addVehicle(adsb1)
-    #adsbDict.addVehicle(adsb2)
-    
-    #print(adsbDict.getVehicle(adsb1.icao).call_sign)
-    
-    #adsb1.call_sign = "newsign"
-    #adsbDict.updateVehicle(adsb1)
-    #print(adsbDict.getVehicle(adsb1.icao).call_sign)
-    
-    #print(len(adsbDict.dict))
-
-   
     window = pyglet.window.Window(1200,700, fullscreen = False)
 
     adsbwin = AdsbWindow(msg_thread.adsb_dic, window, 1000/2)

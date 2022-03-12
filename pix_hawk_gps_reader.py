@@ -396,9 +396,9 @@ class GpsThread():
                     print('________gps parser error________')
                     continue
 
-                if self.data_complete:
+                """if self.data_complete:
                     print('fix {0}, lat {1}, lon {2}, alt {3}, speed {4}, track {5}'.
-                        format(self.fix, self.lat, self.lon, self.altitude, self.speed, self.track))
+                        format(self.fix, self.lat, self.lon, self.altitude, self.speed, self.track))"""
                 
                 if self.data_complete and int(self.fix) >= 1:
                     self.gps_manager.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)

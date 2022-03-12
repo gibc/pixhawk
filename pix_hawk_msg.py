@@ -8,6 +8,7 @@
 #from posixpath import join
 #from re import S, X
 #import re
+from distutils.command.config import config
 from numpy import float32, true_divide
 from pymavlink import mavutil
 #from pymavlink import mavextra
@@ -573,9 +574,9 @@ class mavlinkmsg (Thread):
 
                             dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
                             if dist > 0:
-
-                                self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
+                                if pix_hawk_config.Use1090Radio:
+                                    self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                        adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
                         if self.gps_manager != None:
                             self.gps_manager.update_gps_listener('sb', 3, self.lat, self.lon, 
