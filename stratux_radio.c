@@ -17,28 +17,30 @@
 #undef UAT_DECODE_H
 #include "uat_decode.h"
 
-unsigned char radioMagic []= {0x0a, 0xb0, 0xcd, 0xe0};
-unsigned char buf[1024];
-unsigned char swpBuf[1024];
-unsigned char tmpBuf[200];
-unsigned char toRelay[200];
+//unsigned char radioMagic []= {0x0a, 0xb0, 0xcd, 0xe0};
+//unsigned char buf[1024];
+//unsigned char swpBuf[1024];
+//unsigned char tmpBuf[200];
+//unsigned char toRelay[200];
 unsigned char to[1000];
-unsigned char readBuf[100];
+//unsigned char readBuf[100];
 
-int findMagic(FILE* fd);
-int getMsg(FILE* fd);
-void radioSerialPortReader(FILE *fd);
-void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
+
+//int findMagic(FILE* fd);
+//int getMsg(FILE* fd);
+//void radioSerialPortReader(FILE *fd);
+//void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
 void send_result(int pipe, struct uat_adsb_mdb* mdb_zero);
-char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
-char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
+//char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
+//char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
 
 int bad_msg_count = 0;
 int good_msg_count = 0;
 
-#define MSG_LENGTH 400
-FILE *fss;
+//#define MSG_LENGTH 400
+
+//FILE *fss;
 int main(int argc, char* argv[])
 {
     //char radio_fifo[] = "/tmp/radio";
@@ -70,34 +72,35 @@ int main(int argc, char* argv[])
 	printf("opened pipe in_fp: %d O_RDONLY\n", in_fp);
 	//printf("opened pipe out_fp: %d O_WRONLY\n", out_fp);
 
-	unsigned char msg_buf [MSG_LENGTH];
-	unsigned char byts_buf [MSG_LENGTH/4];
-	unsigned char len_buf[1];
+	//unsigned char msg_buf [MSG_LENGTH];
+	//unsigned char byts_buf [MSG_LENGTH/4];
+	//unsigned char len_buf[1];
 	unsigned char int_buf[150];
 	while(1)
 	{   
-		int lc = read(in_fp, len_buf, sizeof(unsigned char));
+		int lc = read(in_fp, int_buf, sizeof(unsigned char));
 		printf("lc: %d\n", lc);
 		if(lc <= 0)
 		{
 			return 0;
 		}
-		printf("array len: %d\n", len_buf[0]);
-		memset(msg_buf,0, sizeof(msg_buf));
-		int byte_len = len_buf[0]*sizeof(unsigned char);
+		printf("array len: %d\n", int_buf[0]);
+		//memset(msg_buf,0, sizeof(msg_buf));
+		int byte_len = int_buf[0]*sizeof(unsigned char);
 		printf("byte len: %d\n", byte_len);
-		int cnt = read(in_fp, int_buf, byte_len);
-		printf("read %d bytes\n", cnt);
-		while(cnt < byte_len)
+		int cnt = read(in_fp, &int_buf[1], byte_len);
+		printf("read %d cnt\n", cnt);
+		while(cnt+1 < byte_len)
 		{
-			printf("less than full read %d more bytes\n", byte_len-cnt);
-			int bc = read(in_fp, int_buf[cnt], byte_len-cnt);
+			int gap = cnt+1 - byte_len;
+			printf("less than full read %d more bytes\n", gap);
+			int bc = read(in_fp, int_buf[cnt+1], gap);
 			printf("read %d more bytes\n", bc);
 			cnt = cnt + bc;
 			printf("new cnt %d \n", cnt);
 		}
 
-		/*for(int i = 0; i<cnt; i++)
+		/*for(int i = 0; i < byte_len+2; i++)
 		{
 			// printf("buf index: %d: ", i);
 			//int val = hex2int(&msg_buf[i]);
@@ -109,7 +112,7 @@ int main(int argc, char* argv[])
 
 		//printf("length of received message: %d: \n", byts_buf[0]);
 		
-		processRadioMessage(out_fp, int_buf[0], &int_buf[1]);
+		processRadioMessage(out_fp, int_buf[0], int_buf);
 		//printf("return from processRadioMessage\n");
 		
 	}
@@ -221,6 +224,7 @@ int main(int argc, char* argv[])
 	*/
 }
 
+/*
 int hex2int(bufptr)
 {
 	unsigned char valbuf [3];

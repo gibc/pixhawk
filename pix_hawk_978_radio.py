@@ -1,22 +1,22 @@
 
-from ctypes import sizeof
-import imp
+#from ctypes import sizeof
+#import imp
 from os import mkfifo
-from re import I
-from importlib_metadata import re
+#from re import I
+#from importlib_metadata import re
 #from numpy import _IntType, asmatrix
-import serial
+#import serial
 from threading import Lock, Thread
 import subprocess
 from asyncio.subprocess import PIPE
 import time
-from pathlib import Path
+#from pathlib import Path
 from pix_hawk_adsb import AdsbDict
 from pix_hawk_gps_reader import GpsThread, GpsManager
 from pix_hawk_util import Math
 import pix_hawk_config
 import array
-import os
+#import os
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 class Radio():
@@ -109,33 +109,33 @@ class Radio():
 
                     print('msglen: {0}\n'.format(msgLen))
 
-                    msg = []
+                    #msg = []
                     iarray = array.array('B')
-                    larray = array.array('B')
-                    msg.append(msgLen)
+                    #larray = array.array('B')
+                    #msg.append(msgLen)
                     iarray.append(msgLen)
                     for i in range(msgLen):
                         byte, ret = self.readByte(self.ser)
-                        msg.append(byte)
+                        #msg.append(byte)
                         iarray.append(byte)
 
                         
-                    extra = 200 - len(msg)
-                    for i in range(extra):
-                        msg.append(0)
+                    #extra = 200 - len(msg)
+                    #for i in range(extra):
+                    #    msg.append(0)
 
-                    astr = ""
-                    for i in range(200):
-                        h = '{:02x}'.format(msg[i])
-                        astr += h
+                    #astr = ""
+                    #for i in range(200):
+                    #    h = '{:02x}'.format(msg[i])
+                    #    astr += h
 
                     #alen = len(iarray)
 
-                    iaddr, ilen = iarray.buffer_info()
-                    larray.append(ilen)
-                    iarray.insert(0, ilen)
+                    #iaddr, ilen = iarray.buffer_info()
+                    #larray.append(ilen)
+                    #iarray.insert(0, ilen)
 
-                    laddr, llen = larray.buffer_info()
+                    #laddr, llen = larray.buffer_info()
                     #os.write(self.snd_pipe, laddr)
                     #os.write(self.snd_pipe, iaddr)
                     
