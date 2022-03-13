@@ -5,7 +5,7 @@ from os import mkfifo
 #from re import I
 #from importlib_metadata import re
 #from numpy import _IntType, asmatrix
-#import serial
+import serial
 from threading import Lock, Thread
 import subprocess
 from asyncio.subprocess import PIPE
@@ -16,7 +16,7 @@ from pix_hawk_gps_reader import GpsThread, GpsManager
 from pix_hawk_util import Math
 import pix_hawk_config
 import array
-#import os
+import os
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 class Radio():
@@ -52,10 +52,15 @@ class Radio():
         self.ser = open("/home/pi/PhidgetInsurments/mag_dataadsb_log.txt", "rb")
 
     def radio2frame(self):
+        
+
+        
         self.r2f_pid = subprocess.Popen("./radio2frame", stdin=PIPE)
         #self.snd_pipe = os.open('/tmp/send_radio', os.O_WRONLY)
         self.snd_pipe = open('/tmp/send_radio', 'wb')
+        #self.snd_pipe = os.fdopen(self.out_wt, 'wb')
         self.rec_pipe =  open('/tmp/receive_radio', 'r')
+        
         
             
         """ astr = ""

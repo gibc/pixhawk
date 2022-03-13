@@ -31,6 +31,7 @@ unsigned char to[1000];
 //void radioSerialPortReader(FILE *fd);
 //void processRadioMessage(int pipe, int msg_len, unsigned char* msg) ;
 void send_result(int pipe, struct uat_adsb_mdb* mdb_zero);
+void uat_display_sv(const struct uat_adsb_mdb *mdb);
 //char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
 //char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
@@ -86,7 +87,7 @@ int main(int argc, char* argv[])
 		}
 		printf("array len: %d\n", int_buf[0]);
 		//memset(msg_buf,0, sizeof(msg_buf));
-		int byte_len = int_buf[0]*sizeof(unsigned char);
+		int byte_len = int_buf[0]*sizeof(unsigned char)+1;
 		printf("byte len: %d\n", byte_len);
 		int cnt = read(in_fp, &int_buf[1], byte_len);
 		printf("read %d cnt\n", cnt);
@@ -100,19 +101,19 @@ int main(int argc, char* argv[])
 			printf("new cnt %d \n", cnt);
 		}
 
-		/*for(int i = 0; i < byte_len+2; i++)
+		/*for(int i = 0; i < byte_len; i++)
 		{
 			// printf("buf index: %d: ", i);
 			//int val = hex2int(&msg_buf[i]);
 			//byts_buf[i/2] = val;
 			//printf("out buf %d set to %d\n", i/4, val);
-			printf("read val: %d \n", int_buf[i]);
+			printf("read val: %d idx: %d \n", int_buf[i], i);
 		}*/
 		//printf("exit hex2int loop\n");
 
 		//printf("length of received message: %d: \n", byts_buf[0]);
 		
-		processRadioMessage(out_fp, int_buf[0], int_buf);
+		processRadioMessage(out_fp, int_buf[0], &int_buf[1]);
 		//printf("return from processRadioMessage\n");
 		
 	}
@@ -475,7 +476,6 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 
 			struct uat_adsb_mdb mdb_zero; 
 			
-    		
 			uat_decode_adsb_mdb((char*)to, &mdb_zero);
 			if(mdb_zero.callsign[0] == 0)
 			{
@@ -485,6 +485,8 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 				mdb_zero.callsign[3] = 't';
 				mdb_zero.callsign[4] = 'y';
 			}
+
+			//uat_display_sv(&mdb_zero);
 
 			/*printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
@@ -534,6 +536,8 @@ void processRadioMessage(int pipe, int msg_len, unsigned char* msg) {
 				mdb_zero.callsign[3] = 't';
 				mdb_zero.callsign[4] = 'y';
 			}
+
+			//uat_display_sv(&mdb_zero);
 
 			/*printf("icao: %d callsign: %s lat: %f lon: %f alt: %d track: %d speed: %d v_speed %d\n", 
 					mdb_zero.address, 
@@ -626,4 +630,68 @@ void send_result(int pipe, struct uat_adsb_mdb* mdb_zero)
 	//fflush(fss);
 	write(pipe, ret_buf, pb);
 
+}
+
+// gib - display adsb from aircraft
+void uat_display_sv(const struct uat_adsb_mdb *mdb)
+{
+    if (!mdb->has_sv)
+        return;
+
+    printf(
+            "SV:\n"
+            " NIC:               %u\n",
+            mdb->nic);
+
+    if (mdb->position_valid)
+        printf(
+                " Latitude:          %+.4f\n"
+                " Longitude:         %+.4f\n",
+                mdb->lat,
+                mdb->lon);
+
+    switch (mdb->altitude_type) {
+    case ALT_BARO:
+        printf(
+                " Altitude:          %d ft (barometric)\n",
+                mdb->altitude);
+        break;
+    case ALT_GEO:
+        printf(
+                " Altitude:          %d ft (geometric)\n",
+                mdb->altitude);
+        break;
+    default:
+        break;
+    }
+
+    if (mdb->ns_vel_valid)
+        printf(
+                " N/S velocity:      %d kt\n",
+                mdb->ns_vel);
+
+    if (mdb->ew_vel_valid)
+        printf(
+                " E/W velocity:      %d kt\n",
+                mdb->ew_vel);
+
+    switch (mdb->track_type) {
+    case TT_TRACK:
+        printf(
+                " Track:             %u\n",
+                mdb->track);
+        break;
+    case TT_MAG_HEADING:
+        printf(
+                " Heading:           %u (magnetic)\n",
+                mdb->track);
+        break;
+    case TT_TRUE_HEADING:
+        printf(
+                " Heading:           %u (true)\n",
+                mdb->track);
+        break;
+    default:
+        break;
+    }
 }
