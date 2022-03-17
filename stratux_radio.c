@@ -33,8 +33,7 @@ unsigned char to[1000];
 void send_result(int pipe, struct uat_adsb_mdb* mdb_zero);
 void uat_display_sv(const struct uat_adsb_mdb *mdb);
 //char radio_log[] = "/home/pi/PhidgetInsurments/mag_dataadsb_log.txt";
-//char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
-
+char serial_path[] = "/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0";//, baudrate=2000000, timeout=5)
 
 int bad_msg_count = 0;
 int good_msg_count = 0;
@@ -49,6 +48,22 @@ int main(int argc, char* argv[])
     //FILE *fd = fopen(radio_fifo, O_RDONLY);
     // from py code file = open('/home/pi/PhidgetInsurments/mag_dataadsb_log.txt', 'ab')
 	printf("start radio2frame\n");
+
+	/*int rfd = open(serial_path, O_RDONLY);
+	if(rfd < 0)
+	{
+		printf("open radio usb falied\n");
+	}
+	else
+	{
+		printf("opened radio usb ok\n");
+		printf("radio fd: %d\n ", rfd);
+		printf("reading from radio usb\n");
+		unsigned char lb[10];
+		int rc = read(rfd, lb, 5);
+		printf("read: %d bytes from radio usb\n", rc);
+		perror("Error: ");
+	}*/
  
 	init_fec();
 	//FILE *fd;

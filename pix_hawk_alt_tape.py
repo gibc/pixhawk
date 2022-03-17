@@ -35,7 +35,7 @@ class AltTape(Tape):
         
     def draw(self, alt, climb):
         super().draw(alt)
-        DebugPrint.print('climb', str(climb))
+        #DebugPrint.print('climb', str(climb))
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
         
@@ -144,7 +144,7 @@ class AltTapeLeft(Tape):
 
         super().draw(alt)
 
-        print('climb', str(climb))
+        #str(climb))
         if not self.alt_mode_gps:
             self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
             if self.baro_error != None and self.baro_error > 200:

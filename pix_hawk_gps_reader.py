@@ -85,6 +85,7 @@ class GpsListener():
         self.is_timed_out = False
         self.set_timeout()
         
+        
     def timeout_target(self):
         print('timeout_target thread started')
         while True:
@@ -113,8 +114,7 @@ class GpsThread():
         self.altitude = None
         self.climb = 0
         self.data_complete = False
-
-
+       
         self.run_thread = True
         #self.gps_td = GpsThread('/dev/ttyACM2')
         self.gps_thread = Thread(target = self.thread_fun)
@@ -342,6 +342,7 @@ class GpsThread():
     def close(self):
         self.run_thread = False
 
+
     def check_complete(self):
         self.data_complete = (self.fix != None and self.lat != None and self.lon != None and 
             self.altitude != None and self.speed != None and self.climb != None and self.track != None )
@@ -359,12 +360,12 @@ class GpsThread():
                     if self.gps_parser.checksum(line):
                         if lines[0] == "GPRMC":
                             if not self.gps_parser.printRMC(lines):
-                                print('GPRMC error')
+                                #print('GPRMC error')
                                 continue
                             
                         elif lines[0] == "GPGGA":
                             if not self.gps_parser.printGGA(lines):
-                                print('GPGGA error')
+                                #print('GPGGA error')
                                 continue
                             
                         elif lines[0] == "GPGSA":
@@ -375,12 +376,12 @@ class GpsThread():
                             pass
                         elif lines[0] == "GPGLL":
                             if not self.gps_parser.printGLL(lines):
-                                print('GPGLL error')
+                                #print('GPGLL error')
                                 continue
                             
                         elif lines[0] == "GPVTG":
                             if not self.gps_parser.printVTG(lines):
-                                print('GPVTG error')
+                                #print('GPVTG error')
                                 continue
                             
                         elif lines[0] == "GPTXT":
@@ -405,6 +406,10 @@ class GpsThread():
                     #Global.update_gps_listener('dg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
                 else:
                     self.check_complete()
+                    if not self.data_complete:
+                        print("gps reader error")
+                        time.sleep(3)
+
             print('gps thread end')
 
         except: 

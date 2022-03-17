@@ -27,13 +27,16 @@ import traceback
 from pix_hawk_util import FunTimer
 import pix_hawk_config
 from pix_hawk_gps_reader import GpsThread, GpsManager
+from pix_hawk_978_radio import Radio
+import time
+import pix_hawk_config
 
 
 
 
 class MainWindow():
     def __init__(self, width, height, full_screen = False):
-
+        self.rdo = None
         try:
 
             self.fun_timer = FunTimer(enable=False)
@@ -90,6 +93,14 @@ class MainWindow():
                 self.gps_td.start()
             else:
                 self.gps_td = None
+
+            
+            time.sleep(1)
+            self.rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', self.gps_manager)
+            if not self.rdo.mkpipe():
+                print('make pipe failed\n')
+            self.rdo.radio2frame()
+            self.rdo.radio_thread.start()
                 
 
         
@@ -187,8 +198,8 @@ class MainWindow():
         if self.gps_td != None:
              self.gps_td.close()
 
-        #if self.beep != None:
-        #    self.beep.run_thread = False
+        if self.rdo != None:
+            self.rdo.close()
 
 
 

@@ -1,6 +1,7 @@
 
 #from ctypes import sizeof
 #import imp
+from distutils.command.config import config
 from os import mkfifo
 #from re import I
 #from importlib_metadata import re
@@ -17,6 +18,8 @@ from pix_hawk_util import Math
 import pix_hawk_config
 import array
 import os
+import pix_hawk_config
+import traceback
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 class Radio():
@@ -30,6 +33,7 @@ class Radio():
         self.radio_thread = Thread(target = self.read_target)
         self.adsb_dic = AdsbDict.get_instance()
         self.gps_manager = gps_manager
+        self.connected = False
         
         #self.radio_thread.start()
         #self.ser = serial.Serial('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', baudrate=2000000, timeout=5)
@@ -48,40 +52,38 @@ class Radio():
             return True
         
     def connect(self):
-        #self.ser = serial.Serial(self.con_str, baudrate=2000000, timeout=5)
-        self.ser = open("/home/pi/PhidgetInsurments/mag_dataadsb_log.txt", "rb")
+        try:
+            self.ser = serial.Serial(self.con_str, baudrate=2000000, timeout=5)
+            #st = self.ser.get_settings()
+            #ret = st
+            #self.ser = open("/home/pi/PhidgetInsurments/mag_dataadsb_log.txt", "rb")
+            self.connected = True
+            print('978_radio connected to USB\n')
+            return True
+        except:
+            self.connected = True
+            return False
+        
 
     def radio2frame(self):
         
+        try:
+            self.r2f_pid = subprocess.Popen("/home/pi/PhidgetInsurments/radio2frame", stdin=PIPE)
+            #self.snd_pipe = os.open('/tmp/send_radio', os.O_WRONLY)
+            self.snd_pipe = open('/tmp/send_radio', 'wb')
+            #self.snd_pipe = os.fdopen(self.out_wt, 'wb')
+            self.rec_pipe =  open('/tmp/receive_radio', 'r')
 
-        
-        self.r2f_pid = subprocess.Popen("./radio2frame", stdin=PIPE)
-        #self.snd_pipe = os.open('/tmp/send_radio', os.O_WRONLY)
-        self.snd_pipe = open('/tmp/send_radio', 'wb')
-        #self.snd_pipe = os.fdopen(self.out_wt, 'wb')
-        self.rec_pipe =  open('/tmp/receive_radio', 'r')
-        
-        
-            
-        """ astr = ""
-        for i in range(200):
-            #h = '0x{:02x}'.format(i)
-            h = '{:02x}'.format(i)
-            astr += h
-        l = len(astr)
-        #astr += "\r\n\0"
-
-        while True:
-            b = self.pipe.write(astr)
-            self.pipe.flush()
-            time.sleep(5) """
+        except Exception:
+            traceback.print_exc()
+              
 
     def readByte(self, ser):
         print('read byte')
         while self.run_thread:
             ln = ser.read(1)
             if len(ln) == 0:
-                print('timeout\n')
+                print('978 radio timeout')
             else:
                 byte = ord(ln)
                 #print(byte)
@@ -89,9 +91,15 @@ class Radio():
         return (0,False)
 
     def read_target(self):
-        print('started radio thread')
+        print('started radio thread')   
+        
         cnt = 0
         while self.run_thread:
+
+            if not self.connected:
+                if not self.connect():
+                    time.sleep(2)
+                    continue
         
             byte, ret = self.readByte(self.ser)
             if not ret:
@@ -155,11 +163,13 @@ class Radio():
                         if not self.send_update(vs):
                             print('adsb update failed, gps not avilable')
                     
+                    
                     #self.r2f_pid.stdin.write(d)
                     #self.r2f_pid.stdin.flush()
                     cnt = 0
             else:
                 cnt = 0
+            
 
         print('stopped radio thread')
     
@@ -206,15 +216,22 @@ class Radio():
                 gps_lon = gps_lsn.lon
                 gps_alt = gps_lsn.altitude
                 gps_track = gps_lsn.track
+            elif pix_hawk_config.DEBUG:
+                gps_lat = 39.932138
+                gps_lon = -105.065293
+                gps_alt = 5400
+                gps_track = 0
             else:
                 return False
         else:
             return False
+
         
         dist = Math.latlon_distance(gps_lat, gps_lon, float(lat), float(lon))
 
-        if not pix_hawk_config.Use1090Radio:
-            self.adsb_dic.updateVehicle(icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
+        #if not pix_hawk_config.Use1090Radio:
+        self.adsb_dic.updateVehicle(icao, callsign, float(lat), float(lon), 
+            int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading), True, dist)
 
         return True
 
@@ -233,7 +250,7 @@ if __name__ == '__main__':
     rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', gps_manager)
     if not rdo.mkpipe():
         print('make pipe failed\n')
-    rdo.connect()
+    #rdo.connect()
     rdo.radio2frame()
     rdo.radio_thread.start()
     #time.sleep(30)

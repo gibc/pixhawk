@@ -147,7 +147,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, -1)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, 5)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SENSOR_OFFSETS, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_PRESSURE, 5)
         
         
@@ -574,9 +574,9 @@ class mavlinkmsg (Thread):
 
                             dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
                             if dist > 0:
-                                if pix_hawk_config.Use1090Radio:
-                                    self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
-                                        adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
+                                #if pix_hawk_config.Use1090Radio:
+                                self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                    adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
                         if self.gps_manager != None:
                             self.gps_manager.update_gps_listener('sb', 3, self.lat, self.lon, 
