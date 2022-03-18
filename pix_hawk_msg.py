@@ -563,9 +563,9 @@ class mavlinkmsg (Thread):
                     lat = dic['lat']/10000000
                     lon = dic['lon']/10000000
                     adsb_altitude = .00328 * dic['altitude']
-                    print("adsb_altitude: ", adsb_altitude)
+                    print("pix adsb_altitude: ", adsb_altitude)
                     ICAO_address = str(dic['ICAO_address'])
-                    print("                               ICAO_address: ", ICAO_address)
+                    print("pix ICAO_address: ", ICAO_address)
                     #Don't create new adbs vehical if recieved from adasb out transmitter
                     #    instead, create synthetic vehical from gps msg data
 
@@ -575,6 +575,7 @@ class mavlinkmsg (Thread):
                             dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
                             if dist > 0:
                                 #if pix_hawk_config.Use1090Radio:
+                                print("pix vehicale within disaply limits")
                                 self.adsb_dic.updateVehicle('pix', ICAO_address, callsign, lat, lon, 
                                     adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
@@ -661,7 +662,7 @@ class mavlinkmsg (Thread):
 
                         if self.gps_manager != None:
                             climb = 0 # not availabe in this msg
-                            self.gps_manager.update_gps_listener('sb', self.fix_type, self.lat, self.lon, 
+                            self.gps_manager.update_gps_listener('px', self.fix_type, self.lat, self.lon, 
                                 self.gps_alt, vel, climb, self.gnd_track)
                                
                         if pix_hawk_config.MockAirPlane:

@@ -233,7 +233,7 @@ class Radio():
         self.adsb_dic.updateVehicle('stx', icao, callsign, float(lat), float(lon), 
             int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading), True, dist)
 
-        return Trues
+        return True
 
 
 if __name__ == '__main__':

@@ -189,7 +189,7 @@ class AdsbVehicle():
         self.conv_speed = 0
         self.converging = False
 
-        self.time_out_interval = 5
+        self.time_out_interval = 6
         self.timeout_time = time.time() + self.time_out_interval
         self.timeout_thread = Thread(target = self.timeout_target)
         self.timeout_thread.start()
@@ -584,8 +584,9 @@ class AdsbWindow():
                     del_list.append(vh.icao)
                     continue
 
-                if self.adsb_source != 'all' or vh.msg_type != self.adsb_source:
-                    continue
+                if self.adsb_source != 'all':
+                    if vh.msg_type != self.adsb_source:
+                        continue
 
                 angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, gps_track)
                 
