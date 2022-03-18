@@ -575,7 +575,7 @@ class mavlinkmsg (Thread):
                             dist = self.adsb_dic.vehicleInLimits(self.lat, self.lon, self.gps_alt, lat, lon, adsb_altitude)
                             if dist > 0:
                                 #if pix_hawk_config.Use1090Radio:
-                                self.adsb_dic.updateVehicle(ICAO_address, callsign, lat, lon, 
+                                self.adsb_dic.updateVehicle('pix', ICAO_address, callsign, lat, lon, 
                                     adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
                         if self.gps_manager != None:
@@ -661,7 +661,7 @@ class mavlinkmsg (Thread):
 
                         if self.gps_manager != None:
                             climb = 0 # not availabe in this msg
-                            self.gps_manager.update_gps_listener('px', self.fix_type, self.lat, self.lon, 
+                            self.gps_manager.update_gps_listener('sb', self.fix_type, self.lat, self.lon, 
                                 self.gps_alt, vel, climb, self.gnd_track)
                                
                         if pix_hawk_config.MockAirPlane:
@@ -670,7 +670,7 @@ class mavlinkmsg (Thread):
                                 off =self.tail_count*.001
                                 self.tail_count += 1
                                 dist = Math.latlon_distance(self.lat, self.lon, self.lat-.04+off, self.lon-.005)
-                                self.adsb_dic.updateVehicle('myicao1234a', "N423DS", self.lat-.04+off, 
+                                self.adsb_dic.updateVehicle('pix', 'myicao1234a', "N423DS", self.lat-.04+off, 
                                     self.lon-.005, self.gps_alt+100, 120, 10, self.gnd_track, True, dist) #self.gnd_track)
                             elif self.tail_count < 100:
                                 self.tail_count += 1
@@ -771,13 +771,14 @@ class mavlinkmsg (Thread):
             #print("")
             
             except Exception:
+                traceback.print_exc()
                 self.master.close()
                 self.phigetThread.put_instance()
                 if self.adsb_dic != None:
                     self.adsb_dic.put_instance()
                 self.put_instance()
                 
-                traceback.print_exc()
+                #traceback.print_exc()
                 
         self.master.close()
         if self.phigetThread != None:

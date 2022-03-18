@@ -230,10 +230,10 @@ class Radio():
         dist = Math.latlon_distance(gps_lat, gps_lon, float(lat), float(lon))
 
         #if not pix_hawk_config.Use1090Radio:
-        self.adsb_dic.updateVehicle(icao, callsign, float(lat), float(lon), 
+        self.adsb_dic.updateVehicle('stx', icao, callsign, float(lat), float(lon), 
             int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading), True, dist)
 
-        return True
+        return Trues
 
 
 if __name__ == '__main__':

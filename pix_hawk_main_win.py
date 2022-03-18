@@ -225,7 +225,7 @@ class MainWindow():
                 return
 
         if self.adsb_window != None:
-            if symbol == key.SPACE:
+            if symbol == key.SPACE or symbol == key.F1:
                 self.adsb_window.on_key_press(symbol, modifiers)
                 return
                                                        

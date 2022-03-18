@@ -21,6 +21,7 @@ import pix_hawk_config
 from pix_hawk_sound import SoundThread
 import pix_hawk_config
 from pix_hawk_gps_reader import GpsThread, GpsManager
+from pyglet.window import key
 
 
 
@@ -106,12 +107,12 @@ class AdsbDict():
                 self.dict[str(vehicle.icao)] = vehicle
     
     #AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
-    def updateVehicle(self, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid, distance):
+    def updateVehicle(self, msg_type, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid, distance):
         with self.lock:
             if not icao in self.dict:
                 if not all_valid:
                     return
-                self.dict[str(icao)] = AdsbVehicle(icao, callsign, lat, lon, adsb_altitude, 
+                self.dict[str(icao)] = AdsbVehicle(msg_type, icao, callsign, lat, lon, adsb_altitude, 
                         hor_velocity, ver_velocity, adsb_heading, distance)
                 self.dict[str(icao)].time = time.time()
 
@@ -125,6 +126,7 @@ class AdsbDict():
                 #if icao != 'myicao1234':
                 if icao != pix_hawk_config.icao:
                     self.dict[str(icao)].update_tail(lat,lon,None)
+                self.dict[str(icao)].msg_type = msg_type
                 self.dict[str(icao)].retry_count = 3
                 self.dict[str(icao)].icao = icao
                 self.dict[str(icao)].call_sign = callsign
@@ -164,7 +166,8 @@ class AdsbDict():
     
             
 class AdsbVehicle():
-    def __init__(self, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading, distance):
+    def __init__(self, msg_type, icao, call_sign, lat, lon, altitude, h_speed, v_speed, heading, distance):
+        self.msg_type = msg_type
         self.icao = str(icao)
         self.call_sign = str(call_sign)
         self.lat = lat
@@ -392,6 +395,7 @@ class AdsbWindow():
         self.vehical_circle.anchor_x=0
         self.vehical_circle.anchor_y=0
         self.alert_line = shapes.Line(0,0,0,0, 4, color=(255,0,0))
+        self.adsb_source = 'all'
 
 
     def enable_warning(self):
@@ -580,7 +584,8 @@ class AdsbWindow():
                     del_list.append(vh.icao)
                     continue
 
-                
+                if self.adsb_source != 'all' or vh.msg_type != self.adsb_source:
+                    continue
 
                 angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, gps_track)
                 
@@ -625,7 +630,7 @@ class AdsbWindow():
                 self.alert_line.draw()
 
             if self.threat <= 0:
-                self.vh_label.text = 'PC:' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
+                self.vh_label.text = 'PC[' + self.adsb_source + ']' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
             else:
                 self.vh_label.color = (255,0,0,255)
                 clk = Math.br2clock(self.nearest_bearing)
@@ -654,12 +659,24 @@ class AdsbWindow():
 
             
     def on_key_press(self,symbol, modifiers):
-        self.warning_on = not self.warning_on
-        if not self.warning_on:
-            if self.enable_timer == None:
-                self.enable_timer = threading.Timer(45, self.enable_warning)
-                self.enable_timer.daemon = True
-                self.enable_timer.start()
+        if symbol == key.SPACE:
+            self.warning_on = not self.warning_on
+            if not self.warning_on:
+                if self.enable_timer == None:
+                    self.enable_timer = threading.Timer(45, self.enable_warning)
+                    self.enable_timer.daemon = True
+                    self.enable_timer.start()
+
+        if symbol == key.F1:
+            if self.adsb_source == 'pix':
+                self.adsb_source = 'stx'
+            elif self.adsb_source == 'stx':
+                self.adsb_source = 'all'
+            elif self.adsb_source == 'all':
+                self.adsb_source = 'pix'
+
+            
+        
         
     def close(self):
         global profiler
