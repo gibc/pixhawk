@@ -13,6 +13,7 @@ import numpy as np
 import math
 import pix_hawk_config
 from pix_hawk_gps_reader import GpsListener
+from functools import lru_cache
 
 
 class DebugPrint():
@@ -129,6 +130,7 @@ class FunTimer():
 class Math():
 
     @classmethod
+    @lru_cache(maxsize=128)
     def get_bearing(cls, lat1, long1, lat2, long2, track=0):
         #if(abs(lat1 - lat2) < .00001 or abs(long1 - long2) < .00001):
             #return -1
@@ -220,6 +222,7 @@ class Math():
             return to360 + a2
 
     @classmethod
+    @lru_cache(maxsize=128)
     def latlon_distance(self, lat1, lon1, lat2, lon2):
         origin = (lat1,lon1)
         destination = (lat2,lon2)

@@ -227,9 +227,15 @@ class Radio():
             return False
 
         
-        dist = Math.latlon_distance(gps_lat, gps_lon, float(lat), float(lon))
+        #dist = Math.latlon_distance(gps_lat, gps_lon, float(lat), float(lon))
 
         #if not pix_hawk_config.Use1090Radio:
+        #print('stx update icao %s callsign %s', icao, callsign, float(lat), float(lon),int(adsb_altitude), int(hor_velocity), 
+            #int(ver_velocity or 0), int(adsb_heading), dist)
+        dist = self.adsb_dic.vehicleInLimits(gps_lat, gps_lon, gps_alt, float(lat), float(lon), int(adsb_altitude))
+        if dist < 0:
+            return True
+            
         self.adsb_dic.updateVehicle('stx', icao, callsign, float(lat), float(lon), 
             int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading), True, dist)
 

@@ -6,6 +6,7 @@ import imp
 from re import M
 from tkinter.tix import Tree
 from unicodedata import decimal
+from importlib_metadata import re
 import pyglet
 from pyglet import shapes
 import threading
@@ -96,6 +97,7 @@ class AdsbDict():
 
     def __init__(self):
         #Thread.__init__(self)
+        self.adsb_source = 'all'
         self.lock = Lock()
         self.dict = {}
         #vh = AdsbVehicle('123', '456', 0, 0, 5000, 0,0,0)
@@ -109,6 +111,10 @@ class AdsbDict():
     #AdsbVehicle('1234546', callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
     def updateVehicle(self, msg_type, icao, callsign, lat, lon, adsb_altitude, hor_velocity, ver_velocity, adsb_heading, all_valid, distance):
         with self.lock:
+            if self.adsb_source != 'all':
+                if msg_type != self.adsb_source:
+                    return
+
             if not icao in self.dict:
                 if not all_valid:
                     return
@@ -154,7 +160,13 @@ class AdsbDict():
         
         return dist
 
-        
+    def toggle_adsb_source(self):
+        if self.adsb_source == 'pix':
+            self.adsb_source = 'stx'
+        elif self.adsb_source == 'stx':
+            self.adsb_source = 'all'
+        elif self.adsb_source == 'all':
+            self.adsb_source = 'pix'   
 
             
     def getVehicle(self, icao):
@@ -395,9 +407,7 @@ class AdsbWindow():
         self.vehical_circle.anchor_x=0
         self.vehical_circle.anchor_y=0
         self.alert_line = shapes.Line(0,0,0,0, 4, color=(255,0,0))
-        self.adsb_source = 'all'
-
-
+        
     def enable_warning(self):
         self.warning_on = True
         self.enable_timer = None
@@ -584,9 +594,9 @@ class AdsbWindow():
                     del_list.append(vh.icao)
                     continue
 
-                if self.adsb_source != 'all':
-                    if vh.msg_type != self.adsb_source:
-                        continue
+                #if self.adsb_source != 'all':
+                    #if vh.msg_type != self.adsb_source:
+                        #continue
 
                 angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, gps_track)
                 
@@ -631,7 +641,7 @@ class AdsbWindow():
                 self.alert_line.draw()
 
             if self.threat <= 0:
-                self.vh_label.text = 'PC[' + self.adsb_source + ']' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
+                self.vh_label.text = 'PC[' + self.adsb_dic.adsb_source + ']' + str(len(self.adsb_dic.dict)) + '-' + str(self.threat)
             else:
                 self.vh_label.color = (255,0,0,255)
                 clk = Math.br2clock(self.nearest_bearing)
@@ -668,13 +678,11 @@ class AdsbWindow():
                     self.enable_timer.daemon = True
                     self.enable_timer.start()
 
-        if symbol == key.F1:
-            if self.adsb_source == 'pix':
-                self.adsb_source = 'stx'
-            elif self.adsb_source == 'stx':
-                self.adsb_source = 'all'
-            elif self.adsb_source == 'all':
-                self.adsb_source = 'pix'
+        
+            
+        if symbol == key.F1 and self.adsb_dic != None:
+            self.adsb_dic.toggle_adsb_source()
+                
 
             
         
