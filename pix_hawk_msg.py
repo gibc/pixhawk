@@ -144,7 +144,7 @@ class mavlinkmsg (Thread):
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_VFR_HUD, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_EKF_STATUS_REPORT, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ATTITUDE, 10)
-        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
+        self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 5)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_RAW_IMU, -1)
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_SCALED_IMU, -1)

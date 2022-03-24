@@ -31,6 +31,7 @@ from pix_hawk_gps_reader import GpsThread, GpsManager
 from pix_hawk_978_radio import Radio
 import time
 import pix_hawk_config
+from pix_hawk_uav_radio import UARadio
 
 
 
@@ -102,6 +103,9 @@ class MainWindow():
                 print('make pipe failed\n')
             self.rdo.radio2frame()
             self.rdo.radio_thread.start()
+
+            self.uav_radio = UARadio('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0', gps_manager=self.gps_manager)
+            self.uav_radio.thread.start()
                 
 
         
@@ -202,7 +206,8 @@ class MainWindow():
         if self.rdo != None:
             self.rdo.close()
 
-
+        if self.uav_radio != None:
+            self.uav_radio.close()
 
 
         pyglet.app.exit()

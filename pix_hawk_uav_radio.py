@@ -9,6 +9,7 @@ from pix_hawk_gps_reader import GpsManager
 class UARadio():
     def __init__(self, path, gps_manager=None):
         self.gps_manager = gps_manager
+        self.gps_lsn = None
         self.path = path
         self.run_thread = True
         self.thread = Thread(target = self.target)
@@ -45,6 +46,7 @@ class UARadio():
 
     def close(self):
         self.run_thread = False
+        self.thread.join()
         self.master.close()
         if self.adsb_dic != None:
             self.adsb_dic.put_instance()
@@ -56,21 +58,9 @@ class UARadio():
 
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
 
-        if self.gps_manager != None:
-            gps_lsn = self.gps_manager.get_listener()
-            if gps_lsn != None:
-                gps_lat = gps_lsn.lat
-                gps_lon = gps_lsn.lon
-                gps_alt = gps_lsn.altitude
-                gps_track = gps_lsn.track
-            elif pix_hawk_config.DEBUG:
-                gps_lat = 39.932138
-                gps_lon = -105.065293
-                gps_alt = 5400
-                gps_track = 0
-            else:
-                print('uav radio failed gps fix')
-                return False
+        if self.gps_manager == None:
+            print('uav radio failed no gps manager')
+            return False
         
         print("started uav radio thread")
         while self.run_thread:
@@ -100,6 +90,20 @@ class UARadio():
 
                     Mode S code A50720  in hex for N423DS
                     """	
+                    self.gps_lsn = self.gps_manager.get_listener()
+                    if self.gps_lsn != None:
+                        gps_lat = self.gps_lsn.lat
+                        gps_lon = self.gps_lsn.lon
+                        gps_alt = self.gps_lsn.altitude
+                        gps_track = self.gps_lsn.track
+                    elif pix_hawk_config.DEBUG:
+                        gps_lat = 39.932138
+                        gps_lon = -105.065293
+                        gps_alt = 5400
+                        gps_track = 0
+                    else:
+                        print ('uav radio failed gps fix')
+                        return
 
                     dic = msg.to_dict()
 
