@@ -7,6 +7,7 @@ xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
 
 
 from cmath import pi
+from socketserver import ThreadingUDPServer
 import pyglet
 from pyglet import clock
 from pyglet.window import key
@@ -219,6 +220,15 @@ class MainWindow():
             self.on_close()
             return
 
+        if symbol == key.F2:
+            self.main_window.set_fullscreen(False)
+            self.main_window.set_size(1800, 800)
+            return
+
+        if symbol == key.F3:
+            self.main_window.set_fullscreen(True)
+            return
+
         if self.alt_tape != None:
             if symbol == key.UP or symbol == key.DOWN or symbol == key.LEFT or symbol == key.RIGHT or symbol == key.TAB:
                 self.alt_tape.on_key_press(symbol, modifiers)
@@ -240,6 +250,8 @@ if __name__ == '__main__':
             mw = MainWindow(1500,700, full_screen=False)
         else:
             mw = MainWindow(1500,750, full_screen=True)
+            
+            
 
         pyglet.clock.schedule_interval(mw.update, .05)
 

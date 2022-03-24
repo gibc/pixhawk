@@ -62,7 +62,8 @@ class Aoa():
         
     def draw(self, airspeed_, climb, pitch):
         if self.altimeter != None:
-            alt, climb = self.altimeter.get_current_altimeter()
+            ##alt, climb = self.altimeter.get_current_altimeter()
+            climb = self.altimeter.get_baro_climb()
         try:
             #if not Global.get_alt_mode_gps():
             #    climb = Global.get_baro_climb()

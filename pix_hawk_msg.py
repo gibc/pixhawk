@@ -129,6 +129,7 @@ class mavlinkmsg (Thread):
         self.ymag_ave = 0
         
         self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-Hex_ProfiCNC_CubeOrange_48003D001851303139323937-if00', baud=19200)
+        #self.master = mavutil.mavlink_connection('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0', baud=57600)
         #self.master.close()
         self.master.param_fetch_one('COMPASS_OFS_X')
         self.master.param_fetch_one("COMPASS_OFS_Y")
@@ -188,7 +189,7 @@ class mavlinkmsg (Thread):
         ymag_average = self.old_ymag_average * (n-1)/n + new_val/n
         self.old_ymag_average = ymag_average
         return ymag_average
-
+        
     def zmag_average(self, new_val, n):
         zmag_average = self.old_zmag_average * (n-1)/n + new_val/n
         self.old_zmag_average = zmag_average
@@ -293,6 +294,7 @@ class mavlinkmsg (Thread):
                 if not msg:
                     continue
                 if msg.get_type() == 'BAD_DATA':
+                    #print(msg)
                     continue
                 
                 #print(msg.get_type)
@@ -517,8 +519,9 @@ class mavlinkmsg (Thread):
                         vel_z = vel_z * 1.9685  # to feet/min
                         vel_z = -vel_z # to positive u
                     
-                                       
+
                         self.climb = vel_z
+                        #print("GLOBAL_POSITION_INT climb ", self.climb)
                         
                     
                 
@@ -661,7 +664,8 @@ class mavlinkmsg (Thread):
                         #self.adsb_dic.updateVehicle(my_icao, "N423DS", self.lat, self.lon, self.gps_alt, 0, 0, self.gnd_track, True)
 
                         if self.gps_manager != None:
-                            climb = 0 # not availabe in this msg
+                            #climb = 0 # not availabe in this msg
+                            climb = self.climb
                             self.gps_manager.update_gps_listener('px', self.fix_type, self.lat, self.lon, 
                                 self.gps_alt, vel, climb, self.gnd_track)
                                

@@ -18,10 +18,50 @@ import pyaudio
 import serial
 import simpleaudio as sa
 from numpy import arange
+from pymavlink import mavutil
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 
+def request_message_interval(ser, message_id: int, frequency_hz: float):
+
+            #Request MAVLink message in a desired frequency,
+            #documentation for SET_MESSAGE_INTERVAL:
+            #https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL
+
+            #Args:
+            #message_id (int): MAVLink message ID
+            #frequency_hz (float): Desired frequency in Hz
+        interval = -1
+        if frequency_hz > 0:
+            interval = 1e6 / frequency_hz
+
+        ser.mav.command_long_send(
+            ser.target_system, ser.target_component,
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+            0,
+            message_id, # The MAVLink message ID
+            interval, # The interval between two messages in microseconds. Set to -1 to disable and 0 to request default rate.
+            0, # Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requestor, 2: broadcast.
+            0, 0, 0, 0)
+
+#uvs = mavutil.mavlink_connection('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0',baudrate=57600, timeout=5)
+#request_message_interval(uvs, mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
+uvs = serial.Serial('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0',baudrate=57600, timeout=5)
+while True:
+    msg = uvs.read(100)
+    #msg = uvs.recv_match(blocking=True)
+    #if not msg:
+    #    continue
+    #if msg.get_type() == 'BAD_DATA':
+       # print(msg)
+       # time.sleep(.5)
+       # continue
+
+    print(msg)
+
+
 p = subprocess.Popen("./radio2frame", stdin=PIPE)
+
 
 #p = subprocess.Popen("cat", stdin=PIPE)
 #while(True):

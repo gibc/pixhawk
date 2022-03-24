@@ -144,7 +144,7 @@ class AltTapeLeft(Tape):
 
         super().draw(alt)
 
-        #str(climb))
+        climb = self.get_baro_climb()
         if not self.alt_mode_gps:
             self.baro_label.text = '[' + str(self.round_half_up(self.baro_val,decimals=2)) + ']'
             if self.baro_error != None and self.baro_error > 200:

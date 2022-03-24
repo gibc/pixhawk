@@ -79,7 +79,7 @@ class Radio():
               
 
     def readByte(self, ser):
-        print('read byte')
+        #print('read byte')
         while self.run_thread:
             ln = ser.read(1)
             if len(ln) == 0:
