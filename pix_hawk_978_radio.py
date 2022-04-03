@@ -235,6 +235,12 @@ class Radio():
         dist = self.adsb_dic.vehicleInLimits(gps_lat, gps_lon, gps_alt, float(lat), float(lon), int(adsb_altitude))
         if dist < 0:
             return True
+
+        if icao == pix_hawk_config.icao:
+            if self.gps_manager != None:
+                self.gps_manager.update_gps_listener('sb', 3, float(lat), float(lon), 
+                            int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading))
+            return True
             
         self.adsb_dic.updateVehicle('stx', icao, callsign, float(lat), float(lon), 
             int(adsb_altitude), int(hor_velocity), int(ver_velocity or 0), int(adsb_heading), True, dist)

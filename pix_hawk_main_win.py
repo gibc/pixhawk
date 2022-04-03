@@ -27,7 +27,7 @@ from pix_hawk_beep import Beep
 import traceback
 from pix_hawk_util import FunTimer
 import pix_hawk_config
-from pix_hawk_gps_reader import GpsThread, GpsManager
+from pix_hawk_gps_reader import GpsThread, GpsManager, HgGpsThread
 from pix_hawk_978_radio import Radio
 import time
 import pix_hawk_config
@@ -90,13 +90,12 @@ class MainWindow():
 
             self.phidget_thread = PhidgetThread.get_instance()
 
-            self.gps_td = GpsThread(self.gps_manager)
-            if self.gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):
-                self.gps_td.start()
-            else:
-                self.gps_td = None
+            self.gps_td = GpsThread('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00', self.gps_manager)
+            self.gps_td.start()
 
-            
+            self.hg_gps_td = HgGpsThread(self.gps_manager)
+            self.hg_gps_td.gps_thread.start()
+                        
             time.sleep(1)
             self.rdo = Radio('/dev/serial/by-id/usb-Stratux_Stratux_UATRadio_v1.0_DO0271Z9-if00-port0', self.gps_manager)
             if not self.rdo.mkpipe():
@@ -165,7 +164,7 @@ class MainWindow():
             self.fun_timer.stop('aoa_gague')
 
             self.fun_timer.start('adsb_window')
-            self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, self.ahdata.gnd_track)
+            self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, yaw) # display relative to heading self.ahdata.gnd_track)
             self.fun_timer.stop('adsb_window')
 
             self.fpsd.draw()
@@ -208,6 +207,9 @@ class MainWindow():
 
         if self.uav_radio != None:
             self.uav_radio.close()
+
+        if self.hg_gps_td != None:
+            self.hg_gps_td.close()
 
 
         pyglet.app.exit()

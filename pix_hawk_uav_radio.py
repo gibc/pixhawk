@@ -90,6 +90,10 @@ class UARadio():
 
                     Mode S code A50720  in hex for N423DS
                     """	
+                    if self.gps_manager == None:
+                        print ('uav radio failed no gps manager')
+                        return
+
                     self.gps_lsn = self.gps_manager.get_listener()
                     if self.gps_lsn != None:
                         gps_lat = self.gps_lsn.lat
@@ -102,8 +106,13 @@ class UARadio():
                         gps_alt = 5400
                         gps_track = 0
                     else:
-                        print ('uav radio failed gps fix')
-                        return
+                        gps_lat = 40.0086
+                        gps_lon = -105.0492
+                        gps_alt = 5400
+                        gps_track = 0
+                    
+                        #print ('uav radio failed no gps fix')
+                        #return
 
                     dic = msg.to_dict()
 
@@ -140,12 +149,12 @@ class UARadio():
                             dist = self.adsb_dic.vehicleInLimits(gps_lat, gps_lon, gps_alt, lat, lon, adsb_altitude)
                             if dist > 0:
                                 #if pix_hawk_config.Use1090Radio:
-                                print("pix vehicale within disaply limits")
+                                #print("pix vehicale within disaply limits")
                                 self.adsb_dic.updateVehicle('pix', ICAO_address, callsign, lat, lon, 
                                     adsb_altitude, hor_velocity, ver_velocity, adsb_heading, True, dist)
                     else:
                         if self.gps_manager != None:
-                            self.gps_manager.update_gps_listener('sb', 3, self.lat, self.lon, 
+                            self.gps_manager.update_gps_listener('sb', 3, lat, lon, 
                                 adsb_altitude, hor_velocity, ver_velocity, adsb_heading)
 
             except:

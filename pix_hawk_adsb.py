@@ -150,12 +150,12 @@ class AdsbDict():
     
     def vehicleInLimits(self, gps_lat, gps_lon, gps_alt, vh_lat, vh_lon, vh_alt):
         if abs(gps_alt - vh_alt) > pix_hawk_config.AdsbAltLimit*1000:
-            DebugPrint.print("---out of distance limt----")
+            DebugPrint.print("---out of ALTITUDE limt----")
             return -1
 
         dist = Math.latlon_distance(gps_lat, gps_lon, vh_lat, vh_lon)
         if dist > pix_hawk_config.AdsbDistanceLimit:
-            DebugPrint.print("---out of ALTITUDE limt----")
+            DebugPrint.print("---out of DISTANCE limt----")
             return -1
         
         return dist
@@ -461,10 +461,10 @@ class AdsbWindow():
         return brng
 
     
-    def get_pixel_pos(self, gps_track, lat, lon, gps_lat, gps_lon):
+    def get_pixel_pos(self, heading, lat, lon, gps_lat, gps_lon):
 
         
-        angle = Math.get_bearing(gps_lat, gps_lon, lat, lon, gps_track)
+        angle = Math.get_bearing(gps_lat, gps_lon, lat, lon, heading)
 
         
 
@@ -511,7 +511,7 @@ class AdsbWindow():
 
         
     # draw adsb window
-    def draw(self, gps_lat, gps_lon, gps_alt, gps_track):
+    def draw(self, gps_lat, gps_lon, gps_alt, heading): #gps_track):
 
         if self.gps_manager != None:
             gps_lsn = self.gps_manager.get_listener()
@@ -519,7 +519,7 @@ class AdsbWindow():
                 gps_lat = gps_lsn.lat
                 gps_lon = gps_lsn.lon
                 gps_alt = gps_lsn.altitude
-                gps_track = gps_lsn.track
+                #gps_track = gps_lsn.track
      
         """elif Global.get_gps_listener() != None:
             gps_lsn = Global.get_gps_listener()
@@ -536,7 +536,7 @@ class AdsbWindow():
         self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
         
         #rot = N423DS.heading
-        rot = gps_track
+        rot = heading #gps_track
         #if rot < 360:
         #    rot = 360 - rot
         self.arrow_sprite.rotation = 0
@@ -598,19 +598,21 @@ class AdsbWindow():
                     #if vh.msg_type != self.adsb_source:
                         #continue
 
-                angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, gps_track)
+                angle = Math.get_bearing(gps_lat, gps_lon, vh.lat, vh.lon, heading) #gps_track)
                 
                 
                 #print('gps_lat {0} gps_lon {1} vh_lat {2} vh_lon {3} angle {4}'.format( gps_lat, gps_lon, vh.lat, vh.lon, int(angle)))
                 
-                x_pos, y_pos = self.get_pixel_pos(gps_track, vh.lat, vh.lon, gps_lat, gps_lon)
+                #x_pos, y_pos = self.get_pixel_pos(gps_track, vh.lat, vh.lon, gps_lat, gps_lon)
+                x_pos, y_pos = self.get_pixel_pos(heading, vh.lat, vh.lon, gps_lat, gps_lon)
 
                 for pos in vh.tail_list:
                     #if pos[2] == None:
                     if True:
                         
                         
-                        pos[2] = self.get_pixel_pos(gps_track, pos[0], pos[1], gps_lat, gps_lon)
+                        #pos[2] = self.get_pixel_pos(gps_track, pos[0], pos[1], gps_lat, gps_lon)
+                        pos[2] = self.get_pixel_pos(heading, pos[0], pos[1], gps_lat, gps_lon)
                         
 
                     
@@ -632,7 +634,8 @@ class AdsbWindow():
                 del self.adsb_dic.dict[key]
 
             if self.nearest_ap != None:
-                x_alt, y_alt = self.get_pixel_pos(gps_track, self.nearest_ap.lat, self.nearest_ap.lon, gps_lat, gps_lon)
+                #x_alt, y_alt = self.get_pixel_pos(gps_track, self.nearest_ap.lat, self.nearest_ap.lon, gps_lat, gps_lon)
+                x_alt, y_alt = self.get_pixel_pos(heading, self.nearest_ap.lat, self.nearest_ap.lon, gps_lat, gps_lon)
                 self.alert_line.position = (x_alt, y_alt, self.win_x_org, self.win_y_org)
                 if self.nearest_ap.converging:
                     self.alert_line.color = (255,0,0)

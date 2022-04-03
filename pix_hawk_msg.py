@@ -670,7 +670,7 @@ class mavlinkmsg (Thread):
                                 self.gps_alt, vel, climb, self.gnd_track)
                                
                         if pix_hawk_config.MockAirPlane:
-                        #if False:
+                            """
                             if self.tail_count < 80:
                                 off =self.tail_count*.001
                                 self.tail_count += 1
@@ -681,6 +681,10 @@ class mavlinkmsg (Thread):
                                 self.tail_count += 1
                             else:
                                 self.tail_count = 0
+                            """
+
+                            self.adsb_dic.updateVehicle('pix', pix_hawk_config.icao, pix_hawk_config.callsign, self.lat, 
+                                    self.lon, self.gps_alt, 120, 10, self.gnd_track, True, 0)
 
                             #Global.update_origin_ap(pix_hawk_config.icao, 'N423DS', self.lat, self.lon, self.gps_alt, 120, 0, 0)
 

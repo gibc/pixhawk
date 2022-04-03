@@ -3,7 +3,11 @@
 # Original Code: https://gist.github.com/Lauszus/5785023#file-gps-py
 # Created by: Kristian Sloth Lauszus
 
+from asyncio import sleep
+from ntpath import join
+from pickle import NONE
 from re import M
+from struct import pack
 import time
 from turtle import pos
 import serial
@@ -39,9 +43,10 @@ class GpsManager():
             if len(self.gps_dict) == 0:
                 return None
 
-            if 'sb' in self.gps_dict: 
-                return self.gps_dict['sb']
-            
+            if 'hg' in self.gps_dict:
+                if int(self.gps_dict['hg'].fix) >= 3:
+                    return self.gps_dict['hg']
+
             if 'dg' in self.gps_dict:
                 if int(self.gps_dict['dg'].fix) >= 1:
                     return self.gps_dict['dg']
@@ -49,6 +54,10 @@ class GpsManager():
             if 'px' in self.gps_dict: 
                 if int(self.gps_dict['px'].fix) >= 3:
                     return self.gps_dict['px']
+
+            if 'sb' in self.gps_dict: 
+                return self.gps_dict['sb']
+
             else:
                 return None
             
@@ -93,7 +102,7 @@ class GpsListener():
                 time.sleep(self.timeout_time - time.time())
             else:
                 self.is_timed_out = True
-                from pix_hawk_util import Global
+                #from pix_hawk_util import Global
                 #Global.set_gps_listener(None)
                 self.gps_manager.delete_listener(self.type)
                 print('timeout_target thread stopped')  
@@ -104,7 +113,8 @@ class GpsListener():
 
 class GpsThread():
 
-    def __init__(self, gps_manager):
+    def __init__(self, path, gps_manager):
+        self.path = path
         self.gps_manager = gps_manager
         self.lat = None
         self.lon = None
@@ -114,15 +124,16 @@ class GpsThread():
         self.altitude = None
         self.climb = 0
         self.data_complete = False
+        self.ser = None
        
         self.run_thread = True
         #self.gps_td = GpsThread('/dev/ttyACM2')
         self.gps_thread = Thread(target = self.thread_fun)
         #self.gps_thread.start()
 
-    def connect(self, tty_path):
+    def connect(self):
         try:
-            self.ser = serial.Serial(tty_path, 9600, timeout=1)
+            self.ser = serial.Serial(self.path, 9600, timeout=1)
             return True
         except:
             return False
@@ -346,6 +357,7 @@ class GpsThread():
     def check_complete(self):
         self.data_complete = (self.fix != None and self.lat != None and self.lon != None and 
             self.altitude != None and self.speed != None and self.climb != None and self.track != None )
+        
 
 
     def thread_fun(self):
@@ -353,9 +365,27 @@ class GpsThread():
         #from pix_hawk_util import Global
         try:
             print('gps thread started')
+            
             while self.run_thread:
                 try: 
-                    line = self.gps_parser.readString()
+                    if self.ser == None:
+                        if not self.connect():
+                            print('gps thread try connect')
+                            time.sleep(1)
+                            continue
+
+                    if self.ser.is_open == False:
+                        if not self.connect():
+                            print('gps thread try connect')
+                            time.sleep(1)
+                            continue
+                    try:
+                        line = self.gps_parser.readString()
+                    except:
+                        print('gps thread read exception')
+                        self.ser.close()
+                        continue
+
                     lines = line.split(",")
                     if self.gps_parser.checksum(line):
                         if lines[0] == "GPRMC":
@@ -390,11 +420,17 @@ class GpsThread():
                             print('message:', lines[4])
                             #print('GPTXT discarded')
                             continue
+                        
+                        elif line[0 == 'GPGSV']:
+                            continue
+                        elif line[0 == 'GPGSV']:
+                            continue
                         else:
                             print("\n\nUnknown type:", lines[0], "\n\n")
                             continue
                 except:
-                    print('________gps parser error________')
+                    print('gps parser exception')
+                    traceback.print_exc()
                     continue
 
                 """if self.data_complete:
@@ -407,13 +443,69 @@ class GpsThread():
                 else:
                     self.check_complete()
                     if not self.data_complete:
-                        print("gps reader error")
+                        print("******** gps dongle reader error *********")
                         time.sleep(3)
 
             print('gps thread end')
 
         except: 
-            print('Exiting Script')
+            print('gps thread exception')
+            traceback.print_exc()
+            self.run_thread = False
+
+import gpsd
+
+
+class HgGpsThread():
+
+    def __init__(self,gps_manager):
+        self.gps_manager = gps_manager
+        self.lat = None
+        self.lon = None
+        self.fix = None
+        self.speed = None
+        self.track = None
+        self.altitude = None
+        self.climb = 0
+        self.data_complete = False
+        self.ser = None
+       
+        self.run_thread = True
+        self.gps_thread = Thread(target = self.thread_fun)
+
+    def close(self):
+        self.run_thread = False
+        join(self.gps_thread)
+
+    def thread_fun(self):
+        
+        try:
+            print('HG gps thread started')
+
+            gpsd.connect()   
+            
+            while self.run_thread:
+                packet = gpsd.get_current()
+                if packet.mode < 3:
+                    time.sleep(.5)
+                    continue
+
+                print(packet.position())
+                self.fix = packet.mode
+                self.lat = packet.lat
+                self.lon = packet.lon
+                self.speed = packet.hspeed * 2.23694 # m / sec to mph
+                self.altitude = packet.alt * 3.28084 # meters to feet
+                self.climb = packet.climb * 196.85 # m / sec to feet per min
+                self.track = packet.track
+
+                self.gps_manager.update_gps_listener('hg', self.fix, self.lat, self.lon, self.altitude, self.speed, self.climb, self.track)
+                time.sleep(.5)
+
+            print('HG gps thread stopped')
+
+        except:
+            print('HG gps thread exception')
             traceback.print_exc()
             self.run_thread = False
 
@@ -421,12 +513,10 @@ class GpsThread():
 if __name__ == '__main__':
     #ser = serial.Serial('/dev/ttyACM2', 9600, timeout=1)  # Open Serial port
     gps_mng = GpsManager()
-    gps_td = GpsThread(gps_mng)
-    #if gps_td.connect('/dev/ttyACM2'):
-    if gps_td.connect('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00'):    
-        gps_td.start()
-    #    time.sleep(50)
-    #    gps_td.close()
-    #else:
-    #    gps_td = None
+    #gps_td = GpsThread('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00', gps_mng)
+    gps_td = HgGpsThread(gps_mng)
+      
+    #gps_td.start()
+    gps_td.gps_thread.start()
+    
     

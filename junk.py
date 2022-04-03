@@ -22,6 +22,43 @@ from pymavlink import mavutil
 
 magic = [0x0a, 0xb0, 0xcd, 0xe0]
 
+
+import gpsd
+
+gpsd.connect()
+
+while True:
+
+    packet = gpsd.get_current()
+    if packet.mode < 3:
+        time.sleep(.5)
+        continue
+    print(packet.position())
+    #print(packet.mode)
+    print(packet.movement)
+    time.sleep(.5)
+
+
+
+
+from usb_iss import defs, UsbIss
+
+
+iss = UsbIss()
+iss.open('/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AL04J09L-if00-port0')
+#ver = iss.read_fw_version()
+iss.setup_i2c()
+iss.i2c.write(0x62, 0, [0,1,2])
+data = iss.i2c.read(0x62, 0, 3)
+
+ass = serial.Serial('/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_AL04J10W-if00-port0' ,baudrate=9600, timeout=5)
+#wb = 0x58
+ab = bytearray()
+ab.append(0x5A)
+ab.append(0x01)
+sent = ass.write(ab)
+ab = ass.read()
+
 def request_message_interval(ser, message_id: int, frequency_hz: float):
 
             #Request MAVLink message in a desired frequency,
@@ -44,9 +81,10 @@ def request_message_interval(ser, message_id: int, frequency_hz: float):
             0, # Target address of message stream (if message has target address fields). 0: Flight-stack default (recommended), 1: address of requestor, 2: broadcast.
             0, 0, 0, 0)
 
-#uvs = mavutil.mavlink_connection('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0',baudrate=57600, timeout=5)
+#uvs = mavutil.mavlink_connection('
+# ',baudrate=57600, timeout=5)
 #request_message_interval(uvs, mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
-uvs = serial.Serial('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0',baudrate=57600, timeout=5)
+uvs = serial.Serial('/dev/serial/by-id/',baudrate=57600, timeout=5)
 while True:
     msg = uvs.read(100)
     #msg = uvs.recv_match(blocking=True)

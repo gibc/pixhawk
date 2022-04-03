@@ -59,7 +59,7 @@ class GPS_Window():
                           y=self.border_rect.y,
                           anchor_y='bottom', anchor_x='left')
 
-        self.speed_name = pyglet.text.Label('speed:',
+        self.speed_name = pyglet.text.Label('climb:',
                           font_size=35,
                           x=self.fix_label.x+ 2*label_width,
                           y=self.border_rect.y ,
@@ -86,15 +86,19 @@ class GPS_Window():
                           anchor_y='bottom', anchor_x='left')
 
     def draw(self, fix, track, speed, commpass_heading, alt):
-        gps_type = ''
-        if self.gps_manager != None and self.gps_manager.get_listener() != None:
-            self.border_rect.color=(0,255,255)
+        gps_type = 'xx'
+        gps_climb = None
+        if self.gps_manager != None:
+            #if self.gps_manager.get_listener() != None:
+            #    self.border_rect.color=(0,255,255)
             gps_lsn = self.gps_manager.get_listener()
-            fix = gps_lsn.fix
-            track = gps_lsn.track
-            speed = gps_lsn.speed
-            alt = gps_lsn.altitude
-            gps_type = gps_lsn.type
+            if gps_lsn != None:
+                fix = gps_lsn.fix
+                track = gps_lsn.track
+                speed = gps_lsn.speed
+                alt = gps_lsn.altitude
+                gps_type = gps_lsn.type
+                gps_climb = gps_lsn.climb
 
         #elif Global.get_gps_listener() != None:
             #self.border_rect.color=(0,255,0)
@@ -105,22 +109,22 @@ class GPS_Window():
             #alt = gps_lsn.altitude
             #gps_type = gps_lsn.type
             
-        elif fix < 3:
-            self.border_rect.color=(255,0,0)
-        else:
-            self.border_rect.color=(0,0,0)
+        #elif fix < 3:
+        #    self.border_rect.color=(255,0,0)
+        #else:
+        #    self.border_rect.color=(0,0,0)
 
+        if gps_type == 'hg':
+            self.border_rect.color=(94,101,201)
         if gps_type == 'sb':
             self.border_rect.color=(0,0,255)
         elif gps_type == 'px':
             self.border_rect.color=(0,255,0)
         elif gps_type == 'dg':
             self.border_rect.color=(205,133,63)
-        elif gps_type == '':
+        elif gps_type == 'xx':
             self.border_rect.color=(255,0,0)
 
-
-        
         self.border_rect.draw()
 
         self.fix_label.text = gps_type +' '+ str(fix)
@@ -131,9 +135,10 @@ class GPS_Window():
         self.track_label.draw()
         self.track_name.draw()
 
-        self.speed_label.text = str(int(speed))
-        self.speed_name.draw()
-        self.speed_label.draw()
+        if(gps_climb != None):
+            self.speed_label.text = str(gps_climb)
+            self.speed_name.draw()
+            self.speed_label.draw()
 
         self.alt_label.text = str(int(alt))
         self.alt_name.draw()
