@@ -2,6 +2,7 @@
 
 #Play a fixed frequency sound.
 #from __future__ import division
+from locale import atoi
 import math
 import os
 import subprocess
@@ -10,7 +11,8 @@ import time
 import tty
 from asyncio.subprocess import PIPE
 from encodings import utf_8
-from re import I, M
+from re import I, L, M
+from click import pass_obj
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,7 +22,61 @@ import simpleaudio as sa
 from numpy import arange
 from pymavlink import mavutil
 
-magic = [0x0a, 0xb0, 0xcd, 0xe0]
+rmagic = [0x0a, 0xb0, 0xcd, 0xe0]
+
+import i2cdriver
+
+i2c = i2cdriver.I2CDriver('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
+#i2c.scan()
+
+def raw_pres2pa(dp_raw):
+    P_min = -1.0
+    P_max = 1.0
+    PSI_to_Pa = 6894.757
+
+    diff_press_PSI = -((dp_raw - 0.1 *16383)*(P_max - P_min)/ (0.8 * 16383)+P_min)
+    diff_press_pa_raw = diff_press_PSI * PSI_to_Pa
+    return diff_press_pa_raw
+
+
+def parse(str):
+    pa = bytearray()
+    ta = bytearray()
+    ln = len(str)
+    for i in range(ln):
+        v = str[i]
+        if i < 2:
+            pa.append(v)
+        else:
+            ta.append(v)
+        #print(v)
+    
+    pres = int.from_bytes(pa,byteorder='big')
+    pa_pressure = raw_pres2pa(pres)
+    print('pa pressure ', pa_pressure)
+    pres -= 8000
+    
+    temp = int.from_bytes(ta,byteorder='big')
+    temp /= 32
+    temp = ((200.0 * temp) / 2047) - 50
+    temp = (temp*9/5)+32 # C to F
+    
+    print('prss ', pres)
+    print('temp ', temp)
+    return pres, temp
+        
+            
+
+while True:
+    i2c.start(0x28, 1)
+    
+    time.sleep(.1)
+    
+    r = i2c.read(4)
+    
+    parse(r)
+
+    time.sleep(.1)
 
 
 import gpsd

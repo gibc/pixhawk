@@ -475,19 +475,21 @@ class HgGpsThread():
 
     def close(self):
         self.run_thread = False
-        join(self.gps_thread)
+        self.gps_thread.join()
 
     def thread_fun(self):
         
         try:
             print('HG gps thread started')
 
-            gpsd.connect()   
+            gpsd.connect() 
+            time.sleep(1)  
             
             while self.run_thread:
                 packet = gpsd.get_current()
                 if packet.mode < 3:
-                    time.sleep(.5)
+                    print('no hg gps fix')
+                    time.sleep(1)
                     continue
 
                 print(packet.position())
