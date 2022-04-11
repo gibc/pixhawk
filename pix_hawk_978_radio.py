@@ -61,7 +61,7 @@ class Radio():
             print('978_radio connected to USB\n')
             return True
         except:
-            self.connected = True
+            self.connected = False
             return False
         
 

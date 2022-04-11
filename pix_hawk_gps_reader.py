@@ -13,12 +13,30 @@ from turtle import pos
 import serial
 from threading import Thread, Lock, Timer
 import traceback
+import pix_hawk_config
 #from pix_hawk_util import Global, Math
 
 class GpsManager():
     def __init__(self):    
         self.gps_dict = {}
         self.lock = Lock()
+        self.set_default()
+
+    def set_default(self):
+        gps_track = 0
+        gps_climb = 0
+        gps_speed = 0
+        if pix_hawk_config.DEBUG:
+            gps_lat = 39.932138
+            gps_lon = -105.065293
+            gps_alt = 5400
+                    
+        else:
+            gps_lat = 40.0086
+            gps_lon = -105.0492
+            gps_alt = 5400
+                    
+        self.update_gps_listener('xx', 1, gps_lat, gps_lon, gps_alt, gps_speed, gps_climb, gps_track)
 
     def update_gps_listener(self, type, fix, lat, lon, altitude, speed, climb, track):
         
@@ -40,8 +58,7 @@ class GpsManager():
     #----- Public Methods For Dependency Injection-----
     def get_listener(self):
         with self.lock:
-            if len(self.gps_dict) == 0:
-                return None
+            
 
             if 'hg' in self.gps_dict:
                 if int(self.gps_dict['hg'].fix) >= 3:
@@ -57,6 +74,9 @@ class GpsManager():
 
             if 'sb' in self.gps_dict: 
                 return self.gps_dict['sb']
+
+            if 'xx' in self.gps_dict: 
+                return self.gps_dict['xx']
 
             else:
                 return None

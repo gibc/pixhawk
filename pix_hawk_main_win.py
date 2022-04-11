@@ -18,7 +18,7 @@ from pix_hawk_tape import Align
 from pix_hawk_tape import Orient
 from pix_hawk_alt_tape import AltTapeLeft
 from pix_hawk_speed_tape import SpeedTapeRight
-from pix_hawk_adsb import AdsbWindow
+from pix_hawk_adsb import AdsbWindow, AdsbDict
 from PhidgetThread import PhidgetThread
 from pix_hawk_gps import GPS_Window
 from pix_hawk_wind import WindChild
@@ -32,6 +32,7 @@ from pix_hawk_978_radio import Radio
 import time
 import pix_hawk_config
 from pix_hawk_uav_radio import UARadio
+from pix_hawk_airspeed import AirSpeed
 
 
 
@@ -59,8 +60,9 @@ class MainWindow():
             self.gps_manager = GpsManager()
 
             #self.msg_thread = pix_hawk_msg.mavlinkmsg.get_instance()  
-            self.msg_thread = mavlinkmsg(self.gps_manager)
-            self.msg_thread.start()
+            """self.msg_thread = mavlinkmsg(self.gps_manager)
+            self.msg_thread.start()"""
+            self.msg_thread = None
 
             self.ahdata = aharsData(-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1)
 
@@ -78,7 +80,10 @@ class MainWindow():
             self.speed_tape = SpeedTapeRight(self.main_window, self.compass_tape.border_rect.height, self.compass_tape.border_rect.width, 
                 150, 100, 500, 55, 6, 100, align=Align.LEFT, orient=Orient.VERT)
 
-            self.adsb_window = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width, 
+            
+            """self.adsb_window = AdsbWindow(self.msg_thread.adsb_dic, self.main_window, self.compass_tape.border_rect.width, 
+                gps_manager= self.gps_manager)"""
+            self.adsb_window = AdsbWindow(AdsbDict.get_instance(), self.main_window, self.compass_tape.border_rect.width, 
                 gps_manager= self.gps_manager)
 
             self.gps_window = GPS_Window(self.main_window, self.compass_tape.border_rect.width, self.gps_manager)
@@ -105,7 +110,9 @@ class MainWindow():
 
             self.uav_radio = UARadio('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0', gps_manager=self.gps_manager)
             self.uav_radio.thread.start()
-                
+
+            self.airspeed  = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
+            self.airspeed.airspeed_thread.start()    
 
         
         except Exception:
@@ -122,17 +129,38 @@ class MainWindow():
 
             
 
-            self.ahdata = self.msg_thread.getAharsData(self.ahdata)
+            """self.ahdata = self.msg_thread.getAharsData(self.ahdata)"""
 
-            # draw all controls on top of roll gague to overaly top and bot rects
-            self.fun_timer.start('roll_gague')
-            self.roll_gague.draw(self.ahdata.roll, self.ahdata.pitch)
-            self.fun_timer.stop('roll_gague')
+            gps_lsn = self.gps_manager.get_listener()
+            if gps_lsn != None:
+                gps_alt = gps_lsn.altitude
+                gps_climb = gps_lsn.climb
+                gps_speed = gps_lsn.speed
+                gps_fix = gps_lsn.fix
+                gps_track = gps_lsn.track
+                gps_lat = gps_lsn.lat
+                gps_lon = gps_lsn.lon
+
 
             if self.phidget_thread != None:
                 yaw = self.phidget_thread.get_yaw()
+                pitch = self.phidget_thread.get_pitch()
+                roll = self.phidget_thread.get_roll()
             else:
                 yaw = 0
+                pitch = 0
+                roll = 0
+
+            # draw all controls on top of roll gague to overaly top and bot rects
+            self.fun_timer.start('roll_gague')
+            #self.roll_gague.draw(self.ahdata.roll, self.ahdata.pitch)
+            self.roll_gague.draw(roll, pitch)
+            self.fun_timer.stop('roll_gague')
+
+            """if self.phidget_thread != None:
+                yaw = self.phidget_thread.get_yaw()
+            else:
+                yaw = 0"""
             
             
             self.fun_timer.start('compass_tape')
@@ -144,27 +172,33 @@ class MainWindow():
             #    gps_lsn = Global.get_gps_listener()
             #    self.alt_tape.draw(gps_lsn.altitude, gps_lsn.climb, self.ahdata.baro_press)
             #else:
-            self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)
+            """self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)"""
+            self.alt_tape.draw(gps_alt, gps_climb, 0) # self.ahdata.baro_press)
             self.fun_timer.stop('alt_tape')
 
             self.fun_timer.start('speed_tape')
-            self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)
+            """self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)"""
+            self.speed_tape.draw(self.airspeed.get_airspeed(), gps_speed, self.airspeed.get_temp())
             self.fun_timer.stop('speed_tape')
 
             self.fun_timer.start('gps_window')
-            self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
+            #self.gps_window.draw(self.ahdata.fix_type, self.ahdata.gnd_track, self.ahdata.groundspeed, yaw, self.ahdata.gps_alt)
+            self.gps_window.draw(gps_fix, gps_track, gps_speed, yaw, gps_alt)
             self.fun_timer.stop('gps_window')
 
             self.fun_timer.start('wind_gague')
-            self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
+            #self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
+            self.wind_gague.draw_calc(0, yaw, gps_speed, gps_track, gps_alt)
             self.fun_timer.stop('wind_gague')
 
             self.fun_timer.start('aoa_gague')
-            self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
+            #self.aoa_gague.draw(self.ahdata.airspeed, self.ahdata.climb, self.ahdata.pitch)
+            self.aoa_gague.draw(0, gps_climb, pitch)
             self.fun_timer.stop('aoa_gague')
 
             self.fun_timer.start('adsb_window')
-            self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, yaw) # display relative to heading self.ahdata.gnd_track)
+            #self.adsb_window.draw(self.ahdata.lat, self.ahdata.lon, self.ahdata.gps_alt, yaw) # display relative to heading self.ahdata.gnd_track)
+            self.adsb_window.draw(gps_lat, gps_lon, gps_alt, yaw) 
             self.fun_timer.stop('adsb_window')
 
             self.fpsd.draw()
@@ -210,6 +244,9 @@ class MainWindow():
 
         if self.hg_gps_td != None:
             self.hg_gps_td.close()
+
+        if self.airspeed !=None:
+            self.airspeed.close()
 
 
         pyglet.app.exit()
@@ -261,6 +298,8 @@ if __name__ == '__main__':
             
 
         pyglet.clock.schedule_interval(mw.update, .05)
+        
+
 
         pyglet.app.run()
 

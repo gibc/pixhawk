@@ -45,7 +45,7 @@ def onAlgorithmData(self, quaternion, timestamp):
     #print("roll " + str(ea[0]))
     #print("pith " + str(ea[1]))
     #print("yaw " + str(ea[2]))
-    print('roll {0} pitch {1} yaw {2}'.format(ea[0], ea[1], ea[2]))
+    #print('roll {0} pitch {1} yaw {2}'.format(ea[0], ea[1], ea[2]))
 
 def euler_from_quaternion(x, y, z, w):
     #print('call euler_from_quaternion')
@@ -73,6 +73,8 @@ def euler_from_quaternion(x, y, z, w):
     #setyaw(yaw)
     if PhidgetThread._instance != None:
         PhidgetThread._instance.set_yaw(math.degrees(yaw))
+        PhidgetThread._instance.set_pitch(math.degrees(pitch_y))
+        PhidgetThread._instance.set_roll(math.degrees(roll_x))
     #print('yaw_z1', 
     return math.degrees(roll_x), math.degrees(pitch_y), math.degrees(yaw) # in radians
  
@@ -113,6 +115,8 @@ class PhidgetThread (Thread):
 
         self.phidgetMag = PhidgetMag(-1,-1,-1)
         self.yaw = 0
+        self.pitch = 0
+        self.roll = 0
         self.msglock = Lock()
 
     def run(self):
@@ -152,8 +156,25 @@ class PhidgetThread (Thread):
             yaw = self.yaw
         return yaw
 
+    def set_pitch(self, pitch):
+        with self.msglock:
+            self.pitch = pitch
 
+    def get_pitch(self):
+        with self.msglock: 
+            pitch = self.pitch
+        return pitch
 
+    def set_roll(self, roll):
+        with self.msglock:
+            self.roll = roll
+
+    def get_roll(self):
+        with self.msglock: 
+            roll = self.roll
+        return roll
+
+    
     def setMagFeild(self, field):
         with self.msglock:
             #print('called setMagFeild')
@@ -164,8 +185,8 @@ class PhidgetThread (Thread):
         with self.msglock:
             field = self.phidgetMag
         
-        print('called getMagFeild')
-        print("MagneticField: \t"+ str(field.xmag) + "  |  " + str(field.ymag)+ "  |  "+ str(field.zmag))
+        #print('called getMagFeild')
+        #print("MagneticField: \t"+ str(field.xmag) + "  |  " + str(field.ymag)+ "  |  "+ str(field.zmag))
         return field
             
     
@@ -197,7 +218,7 @@ if __name__ == '__main__':
     count = 0
     while count < 30:
         yaw = pdthd.get_yaw()
-        print('eulor yaw: ', yaw)
+        #print('eulor yaw: ', yaw)
         
         """field = pdthd.getMagFeild()
         print('magx {0}, magy {1}, magz {2}'.format(field.xmag, field.ymag, field.zmag))

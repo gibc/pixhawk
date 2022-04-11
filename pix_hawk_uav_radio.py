@@ -5,6 +5,7 @@ import pix_hawk_config
 from pix_hawk_adsb import AdsbDict, AdsbVehicle
 import traceback
 from pix_hawk_gps_reader import GpsManager
+import time
 
 class UARadio():
     def __init__(self, path, gps_manager=None):
@@ -20,6 +21,7 @@ class UARadio():
             self.master = mavutil.mavlink_connection(self.path, baud=57600)
             return True
         except:
+            self.master = None
             return False
 
     def request_message_interval(self, message_id: int, frequency_hz: float):
@@ -54,7 +56,7 @@ class UARadio():
     def target(self):
         if not self.connect():
             print('uav radio connect failed')
-            return
+            #return
 
         self.request_message_interval(mavutil.mavlink.MAVLINK_MSG_ID_ADSB_VEHICLE, 10)
 
@@ -66,6 +68,12 @@ class UARadio():
         while self.run_thread:
             #time.sleep(.1)
             try:
+                if self.master == None:
+                    self.connect()
+                    if not self.connected:
+                        time.sleep(.5)
+                        continue
+
                 msg = self.master.recv_match(blocking=True)
                 if not msg:
                     continue
