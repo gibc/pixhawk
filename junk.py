@@ -26,7 +26,25 @@ rmagic = [0x0a, 0xb0, 0xcd, 0xe0]
 
 import i2cdriver
 import math
-i2c = i2cdriver.I2CDriver('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
+
+
+#import pylibftdi as ftdi
+
+#d = ftdi.Device()
+#print(ftdi.Driver().list_devices())
+
+#i2c = i2cdriver.I2CDriver('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_ftdi://ftdi:232h:FT4VTTQV/1  DN00EDLI-if00-port0')
+#i2c = i2cdriver.I2CDriver('/dev/serial/by-id/usb-FTDI_C232HM-DDHSL-0_FT4VTTQV-if00-port0')
+from pyftdi.ftdi import Ftdi
+from pyftdi.i2c import I2cController
+i2c = I2cController()
+Ftdi.show_devices()
+
+i2c.configure('ftdi://ftdi:232h:FT4VTTQV/1')
+slave = i2c.get_port(0x77)
+
+#ftdi://ftdi:ft-x:DT04LJG6/1 
+
 #i2c.scan()
 
 def indicated_airspeed(pressure):

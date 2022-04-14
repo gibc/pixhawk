@@ -536,7 +536,7 @@ class AdsbWindow():
         self.arrow_sprite.position = (self.border_rect.x + self.border_rect.width - 45, self.border_rect.y + self.border_rect.height-60)
         
         #rot = N423DS.heading
-        rot = heading #gps_track
+        rot = -heading #heading
         #if rot < 360:
         #    rot = 360 - rot
         self.arrow_sprite.rotation = 0

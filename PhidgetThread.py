@@ -97,21 +97,21 @@ class PhidgetThread (Thread):
 
     def __init__(self):
         Thread.__init__(self)
-        self.magnetometer0 = Magnetometer()
+        """self.magnetometer0 = Magnetometer()
         self.accelerometer0 = Accelerometer()
-        self.gyroscope0 = Gyroscope()
+        self.gyroscope0 = Gyroscope()"""
         self.spatial0 = Spatial()
 
-        self.accelerometer0.setOnAccelerationChangeHandler(onAccelerationChange)
+        """self.accelerometer0.setOnAccelerationChangeHandler(onAccelerationChange)
         self.gyroscope0.setOnAngularRateUpdateHandler(onAngularRateUpdate)
         self.magnetometer0.setOnMagneticFieldChangeHandler(onMagneticFieldChange)
-        self.spatial0.setOnSpatialDataHandler(onSpatialData)
+        self.spatial0.setOnSpatialDataHandler(onSpatialData)"""
         self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)
 
-        self.accelerometer0.openWaitForAttachment(1000)
+        """self.accelerometer0.openWaitForAttachment(1000)
         self.gyroscope0.openWaitForAttachment(1000)
-        self.magnetometer0.openWaitForAttachment(1000)
-        self.spatial0.openWaitForAttachment(1000)
+        self.magnetometer0.openWaitForAttachment(1000)"""
+        self.spatial0.openWaitForAttachment(1500)
 
         self.phidgetMag = PhidgetMag(-1,-1,-1)
         self.yaw = 0
@@ -135,9 +135,9 @@ class PhidgetThread (Thread):
             PhidgetThread.put_instance()
             
 
-        self.accelerometer0.close()
+        """self.accelerometer0.close()
         self.gyroscope0.close()
-        self.magnetometer0.close()
+        self.magnetometer0.close()"""
         self.spatial0.close()
         print("ended PhidgetThread thread")
 
@@ -218,7 +218,7 @@ if __name__ == '__main__':
     count = 0
     while count < 30:
         yaw = pdthd.get_yaw()
-        #print('eulor yaw: ', yaw)
+        print('eulor yaw: ', yaw)
         
         """field = pdthd.getMagFeild()
         print('magx {0}, magy {1}, magz {2}'.format(field.xmag, field.ymag, field.zmag))
@@ -233,7 +233,7 @@ if __name__ == '__main__':
 
         print('heading ', h)"""
         time.sleep(.05)
-        #count += 1
+        count += 1
     
     pdthd.put_instance()
 

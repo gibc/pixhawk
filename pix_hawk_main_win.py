@@ -94,7 +94,7 @@ class MainWindow():
             self.aoa_gague = Aoa(self.main_window, self.compass_tape.border_rect.width, 100, 200, 20, self.alt_tape)
 
             self.phidget_thread = PhidgetThread.get_instance()
-
+            
             self.gps_td = GpsThread('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00', self.gps_manager)
             self.gps_td.start()
 
@@ -126,7 +126,7 @@ class MainWindow():
         try:
             #self.beep.beep()
             self.main_window.clear()
-
+            
             
 
             """self.ahdata = self.msg_thread.getAharsData(self.ahdata)"""
@@ -296,7 +296,8 @@ if __name__ == '__main__':
             mw = MainWindow(1500,750, full_screen=True)
             
             
-
+        # pyglet event loop will run each time update funtion is due and call
+        # window draw evet at the beginning of each loop
         pyglet.clock.schedule_interval(mw.update, .05)
         
 
