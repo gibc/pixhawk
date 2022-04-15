@@ -102,25 +102,35 @@ class PhidgetThread (Thread):
         self.accelerometer0 = Accelerometer()
         self.gyroscope0 = Gyroscope()"""
         self.run_thread = True
-        self.spatial0 = Spatial()
+        self.connected = False
 
         """self.accelerometer0.setOnAccelerationChangeHandler(onAccelerationChange)
         self.gyroscope0.setOnAngularRateUpdateHandler(onAngularRateUpdate)
         self.magnetometer0.setOnMagneticFieldChangeHandler(onMagneticFieldChange)
-        self.spatial0.setOnSpatialDataHandler(onSpatialData)"""
-        self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)
+        self.spatial0.setOnSpatialDataHandler(onSpatialData)
+        self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)"""
 
         """self.accelerometer0.openWaitForAttachment(1000)
         self.gyroscope0.openWaitForAttachment(1000)
-        self.magnetometer0.openWaitForAttachment(1000)"""
-        self.spatial0.openWaitForAttachment(1500)
+        self.magnetometer0.openWaitForAttachment(1000)
+        self.spatial0.openWaitForAttachment(1500)"""
+        self.spatial0 = Spatial()
+        self.spatial0.setOnAlgorithmDataHandler(onAlgorithmData)
 
         self.phidgetMag = PhidgetMag(-1,-1,-1)
         self.yaw = 0
         self.pitch = 0
         self.roll = 0
         self.msglock = Lock()
-    
+
+    def connect(self):
+        try:
+            self.spatial0.openWaitForAttachment(1500)
+            self.connected = True
+        except:
+            self.connected = False
+
+
     def run(self):
         #return
         print("started PhidgetThread thread")
@@ -131,10 +141,15 @@ class PhidgetThread (Thread):
             #self.spatial0.openWaitForAttachment(5000)
 
             while self.run_thread:
+                if not self.connected:
+                    self.connect()
+                    time.sleep(.5)
+                    continue
+                
                 time.sleep(.5)
 
         except:
-            PhidgetThread.put_instance()
+            print('Phidget Exception')
             
 
         """self.accelerometer0.close()

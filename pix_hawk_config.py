@@ -3,7 +3,7 @@
 
 icao = str(0xA50720) # for N423DS verified with SkyBeacon phone app
 callsign = 'N423DS'
-DEBUG = False
+DEBUG = True
 AdsbAltLimit = 6 # k ft + or -
 AdsbDistanceLimit = 5 # miles
 AdsbAltThreat = 1 # k ft + or -
