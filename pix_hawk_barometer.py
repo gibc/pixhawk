@@ -81,6 +81,7 @@ class Barometer(object):
         self.temperature = 0
         self.pressure = 0
         self.altitude = -1
+        self.density_alt = -1
         #self._bus = smbus.SMBus(0x01)
         
         self.ctrl = I2cController()
@@ -164,6 +165,15 @@ class Barometer(object):
     def set_alt(self, alt):
         with self.lock:
             self.altitude = alt
+
+    def get_density_alt(self):
+        with self.lock:
+            den_alt = int(self.density_alt)
+        return den_alt
+
+    def set_density_alt(self, den_alt):
+        with self.lock:
+            self.density_alt = den_alt
         
 
 
@@ -292,16 +302,21 @@ class Barometer(object):
 
         altitude *= 3.28084 # meters to feet
         pressure/=100
+        pressure/=100 # convert from pa to hpa
 
         temperature /= 100
+        temp_c = temperature
         temperature = (temperature * 9/5) + 32 # C to F
+
+        density_alt = altitude + 118.8 * (temp_c - 15)
 
         self.set_temp(temperature)
         self.set_pressure(pressure)
         self.set_alt(altitude)
-        print("pressure {0} temperature {1} altitude {2}".format(pressure, temperature, altitude))
+        self.set_density_alt(density_alt)
+        #print("pressure {0} temperature {1} altitude {2} density alt {3}".format(pressure, temperature, altitude, density_alt))
 
-        return (temperature, pressure, altitude)
+        return (temperature, pressure, altitude, density_alt)
     
     def close(self): 
         self.run_thread = False

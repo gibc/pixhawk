@@ -97,9 +97,11 @@ class PhidgetThread (Thread):
 
     def __init__(self):
         Thread.__init__(self)
+        PhidgetThread._instance = self
         """self.magnetometer0 = Magnetometer()
         self.accelerometer0 = Accelerometer()
         self.gyroscope0 = Gyroscope()"""
+        self.run_thread = True
         self.spatial0 = Spatial()
 
         """self.accelerometer0.setOnAccelerationChangeHandler(onAccelerationChange)
@@ -118,7 +120,7 @@ class PhidgetThread (Thread):
         self.pitch = 0
         self.roll = 0
         self.msglock = Lock()
-
+    
     def run(self):
         #return
         print("started PhidgetThread thread")
@@ -128,8 +130,8 @@ class PhidgetThread (Thread):
             #self.magnetometer0.openWaitForAttachment(5000)
             #self.spatial0.openWaitForAttachment(5000)
 
-            while PhidgetThread._run_thread:
-                time.sleep(1)
+            while self.run_thread:
+                time.sleep(.5)
 
         except:
             PhidgetThread.put_instance()
@@ -141,8 +143,12 @@ class PhidgetThread (Thread):
         self.spatial0.close()
         print("ended PhidgetThread thread")
 
+    def close(self):
+        self.run_thread = False
+        self.join()
+
     def set_yaw(self, yaw):
-        #yaw -= 7
+        #print('yaw ', yaw)
         if yaw < 0:
             yaw = 360 + yaw
         yaw += 7
@@ -214,13 +220,18 @@ class PhidgetThread (Thread):
     
 
 if __name__ == '__main__':
-    pdthd = PhidgetThread.get_instance()
+    pdthd = PhidgetThread()        
+    pdthd.start()
+    time.sleep(20)
+    pdthd.close()
+
+    """pdthd = PhidgetThread.get_instance()
     count = 0
     while count < 30:
         yaw = pdthd.get_yaw()
         print('eulor yaw: ', yaw)
         
-        """field = pdthd.getMagFeild()
+        field = pdthd.getMagFeild()
         print('magx {0}, magy {1}, magz {2}'.format(field.xmag, field.ymag, field.zmag))
         h = math.atan2(field.xmag, field.ymag)
         h = math.degrees(h)
@@ -231,11 +242,11 @@ if __name__ == '__main__':
         if h > 360:
             h = h - 360
 
-        print('heading ', h)"""
+        print('heading ', h)
         time.sleep(.05)
         count += 1
     
-    pdthd.put_instance()
+    pdthd.put_instance()"""
 
 
 

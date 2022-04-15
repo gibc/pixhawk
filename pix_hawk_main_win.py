@@ -33,6 +33,7 @@ import time
 import pix_hawk_config
 from pix_hawk_uav_radio import UARadio
 from pix_hawk_airspeed import AirSpeed
+from pix_hawk_barometer import Barometer
 
 
 
@@ -93,7 +94,9 @@ class MainWindow():
 
             self.aoa_gague = Aoa(self.main_window, self.compass_tape.border_rect.width, 100, 200, 20, self.alt_tape)
 
-            self.phidget_thread = PhidgetThread.get_instance()
+            #self.phidget_thread = PhidgetThread.get_instance()
+            self.phidget_thread = PhidgetThread()        
+            self.phidget_thread.start()
             
             self.gps_td = GpsThread('/dev/serial/by-id/usb-u-blox_AG_-_www.u-blox.com_u-blox_7_-_GPS_GNSS_Receiver-if00', self.gps_manager)
             self.gps_td.start()
@@ -112,7 +115,10 @@ class MainWindow():
             self.uav_radio.thread.start()
 
             self.airspeed  = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
-            self.airspeed.airspeed_thread.start()    
+            self.airspeed.airspeed_thread.start() 
+
+            self.barometer = Barometer('ftdi://ftdi:232h:FT4VTTQV/1')   
+            self.barometer.baro_thread.start()
 
         
         except Exception:
@@ -173,7 +179,7 @@ class MainWindow():
             #    self.alt_tape.draw(gps_lsn.altitude, gps_lsn.climb, self.ahdata.baro_press)
             #else:
             """self.alt_tape.draw(self.ahdata.altitude, self.ahdata.climb, self.ahdata.baro_press)"""
-            self.alt_tape.draw(gps_alt, gps_climb, 0) # self.ahdata.baro_press)
+            self.alt_tape.draw(gps_alt, gps_climb, self.barometer.get_pressure(), self.barometer.get_density_alt()) # self.ahdata.baro_press)
             self.fun_timer.stop('alt_tape')
 
             self.fun_timer.start('speed_tape')
@@ -223,10 +229,10 @@ class MainWindow():
             
 
         if self.phidget_thread != None:
-            PhidgetThread.put_instance()
-            if not PhidgetThread._run_thread:
-                self.phidget_thread.join()
-
+            #PhidgetThread.put_instance()
+            #if not PhidgetThread._run_thread:
+            self.phidget_thread.close()
+            
         if self.aoa_gague != None:
             self.aoa_gague.close()
         
@@ -247,6 +253,9 @@ class MainWindow():
 
         if self.airspeed !=None:
             self.airspeed.close()
+
+        if self.barometer != None:
+            self.barometer.close()
 
 
         pyglet.app.exit()

@@ -74,9 +74,16 @@ class AltTapeLeft(Tape):
 
         self.baro_label = pyglet.text.Label('',
                           font_size=35,
+                          x=self.current_val_rect.x + 50,
+                          y=self.current_val_label.y+65,
+                          color=(0,255,0,255),
+                          anchor_y='bottom', anchor_x='left')
+
+        self.den_alt_label = pyglet.text.Label('',
+                          font_size=35,
                           x=self.current_val_rect.x + self.current_val_rect.width,
                           y=self.current_val_label.y,
-                          color=(0,255,0,255),
+                          color=(0,255,255,255),
                           anchor_y='bottom', anchor_x='left')
 
         self.climb_val_label = pyglet.text.Label('',
@@ -97,7 +104,7 @@ class AltTapeLeft(Tape):
 
         self.tick_pixels = self.border_rect.height/self.tick_count
         self.units2pix_scale = self.tick_pixels/self.units_interval
-        self.baro_val = 29.29
+        self.baro_val = 29.92
         self.alt_mode_gps = True
         self.alt_mode_gps_request = True
         self.climb_list = []
@@ -114,7 +121,7 @@ class AltTapeLeft(Tape):
         
 
         
-    def draw(self, alt, climb, baro_press):
+    def draw(self, alt, climb, baro_press, density_alt):
 
         self.baro_altitude = self.get_baro_alt(baro_press)
         self.baro_climb = self.get_baro_climb()
@@ -152,12 +159,16 @@ class AltTapeLeft(Tape):
             else:
                 self.baro_label.color = (0,255,0,255)
             self.baro_label.draw()
+
         else:
             self.baro_label.color = (0,255,0,255)
             self.baro_label.text = '[gps]'
             self.baro_label.draw()
         self.climb_val_label.text = str(int(round(climb)))
         self.climb_val_rect.draw()
+
+        self.den_alt_label.text = '['+str(density_alt)+']'
+        self.den_alt_label.draw()
         
         if climb > 1000:
             climb = 1000
