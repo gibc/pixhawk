@@ -8,6 +8,7 @@ xterm -e python3 /home/pi/PhidgetInsurments/pix_hawk_ui.py
 
 from cmath import pi
 from socketserver import ThreadingUDPServer
+from numpy import True_
 import pyglet
 from pyglet import clock
 from pyglet.window import key
@@ -34,6 +35,7 @@ import pix_hawk_config
 from pix_hawk_uav_radio import UARadio
 from pix_hawk_airspeed import AirSpeed
 from pix_hawk_barometer import Barometer
+from pix_hawk_log import Log
 
 
 
@@ -42,7 +44,7 @@ class MainWindow():
     def __init__(self, width, height, full_screen = False):
         self.rdo = None
         try:
-
+            Log.enable_log("/home/pi/PhidgetInsurments/LogFiles", enabled=True)
             self.fun_timer = FunTimer(enable=False)
             #self.fun_timer = FunTimer()
             
@@ -115,6 +117,7 @@ class MainWindow():
             self.uav_radio.thread.start()
 
             self.airspeed  = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
+            #self.airspeed = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EERE-if00-port0')
             self.airspeed.airspeed_thread.start() 
 
             self.barometer = Barometer('ftdi://ftdi:232h:FT4VTTQV/1')   
@@ -295,6 +298,9 @@ class MainWindow():
     def update(self, dt):
         x=0
 
+    def write_log(self, dt):
+        Log.write_log()
+
 if __name__ == '__main__':
     # unit test code
 
@@ -308,6 +314,7 @@ if __name__ == '__main__':
         # pyglet event loop will run each time update funtion is due and call
         # window draw evet at the beginning of each loop
         pyglet.clock.schedule_interval(mw.update, .05)
+        pyglet.clock.schedule_interval(mw.write_log, .5)
         
 
 
