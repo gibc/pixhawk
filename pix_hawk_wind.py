@@ -2,6 +2,7 @@ import pyglet
 from pyglet import clock
 from pyglet import shapes
 import numpy as np
+from pix_hawk_log import Log
 
 class Arrow():
     def __init__(self, alen):
@@ -195,7 +196,7 @@ class Wind():
         #print()
         return(x, y)
     
-    def calulateWind(self, airspeed, heading, gndspeed, track, altitude):
+    def calulateWind(self, true_airspeed, heading, gndspeed, track, altitude):
         """
         print('\n***call calulateWind***')
         print('airspeed ',airspeed)
@@ -204,27 +205,33 @@ class Wind():
         print('track ',track)
         print('altitude ',altitude)
         """
-        alt_adj = altitude / 1000 # alt in thousands
+        """alt_adj = altitude / 1000 # alt in thousands
         alt_adj = (alt_adj * .02) # alt pec adj at 2% percent per 1000ft
-        alt_adj = alt_adj + 1 # alt adj factor > 1
+        alt_adj = alt_adj + 1 # alt adj factor > 1"""
         #print('alt_adj ',alt_adj)
-        airspeed = airspeed * alt_adj
+        #airspeed = airspeed * alt_adj
         heading_dif = heading - track
-        self.true_airspeed_label.text = 'Wnd:tas ' + str(int(round(airspeed))) #+ ' c-t ' + str(int(round(heading_dif)))
+        self.true_airspeed_label.text = 'Wnd:tas ' + str(int(round(true_airspeed))) #+ ' c-t ' + str(int(round(heading_dif)))
         heading_dif = heading - track
         self.true_airspeed_label.draw()
         #print('airspeed ',airspeed)
         
         #print('\nget gnd comps')
+        Log.log_val('wnd track', track)
+        Log.log_val('wnd heading', heading)
+        Log.log_val('wnd true_airspeed', true_airspeed)
+        Log.log_val('wnd gndspeed', gndspeed)
         gnd_vec = self.pol2cart(gndspeed, track)
         #print('\nget air comps')
-        air_vec = self.pol2cart(airspeed, heading,)
+        air_vec = self.pol2cart(true_airspeed, heading,)
         
         #print('\nget wind comps')
         wind_x = air_vec[0] - gnd_vec[0]
         #print('wind_x ', wind_x)
         wind_y = air_vec[1] - gnd_vec[1]
         #print('wind_y ', wind_y)
+        Log.log_val('wnd wind_x', round(wind_x,2))
+        Log.log_val('wnd wind_y', round(wind_y,2))
         
         #print('\nget polar from wind cart')
         wind_vec = self.cart2pol(wind_x, wind_y)
@@ -234,11 +241,15 @@ class Wind():
         #print('wind mag', mag)
         
         #print('\nconvert from 90 origin to 360 origin')
-        ang = 90 - ang  
+        
+        #ang = 90 - ang  
+        ang = 90 + ang
         if ang > 360:
             ang = ang - 360
         if ang < 0:
             ang = 360 + ang
+        Log.log_val('wnd angle', round(ang,2))
+        Log.log_val('wnd mag', round(mag,2))
         
         """
         print('wind ang', ang)
@@ -464,18 +475,18 @@ class Wind():
         
         self.set_wind_comps_text(heading, msg_wind_speed, msg_wind_dir)
     """
-    def draw_calc(self, airspeed, heading, gnd_speed, gnd_track, altitude):
+    def draw_calc(self, true_airspeed, heading, gnd_speed, gnd_track, altitude):
 
         if self.gps_manager != None:
-            gps_lsn = self.gps_manager.get_listener()
+            """gps_lsn = self.gps_manager.get_listener()
             if gps_lsn != None:
                 gnd_speed = gps_lsn.speed
-                gnd_track = gps_lsn.track
+                gnd_track = gps_lsn.track"""
 
             if self.altimeter != None:
                 altitude, climb = self.altimeter.get_current_altimeter()
                 
-        wind = self.calulateWind(airspeed, heading, gnd_speed, gnd_track, altitude)
+        wind = self.calulateWind(true_airspeed, heading, gnd_speed, gnd_track, altitude)
         #print('wind ang', wind[0])
         #print('wind speed', wind[1])
         

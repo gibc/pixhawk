@@ -330,6 +330,8 @@ if __name__ == '__main__':
 
     baro = Barometer('ftdi://ftdi:232h:FT4VTTQV/1')
     baro.baro_thread.start()
+    time.sleep(.5)
+    print('baro connected', baro.connected)
     time.sleep(20)
     baro.close()
 

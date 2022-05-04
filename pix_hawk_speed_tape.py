@@ -74,13 +74,13 @@ class SpeedTapeRight(Tape):
         self.current_val_label.y = self.border_rect.height/2
 
 
-        self.temp_val_label = pyglet.text.Label('****',
+        self.true_air_seed_val_label = pyglet.text.Label('****',
                           font_size=30,
-                          x=self.current_val_rect.x-120,
+                          x=self.current_val_rect.x,
                           y=self.current_val_rect.y,
                           height=self.current_val_label.height,
                           width=self.current_val_label.width,
-                          anchor_y='bottom', anchor_x='left')
+                          anchor_y='bottom', anchor_x='right')
         
         self.grd_speed_val_label = pyglet.text.Label('****',
                           font_size=50,
@@ -96,7 +96,7 @@ class SpeedTapeRight(Tape):
         self.units2pix_scale = self.tick_pixels/self.units_interval
         
         
-    def draw(self, air_speed, gnd_speed, temperature):
+    def draw(self, air_speed, gnd_speed, temperature, true_air_speed):
         super().draw(air_speed)
         #print('gnd_speed', str(gnd_speed))
         gnd_speed = super().round_half_up(gnd_speed)
@@ -119,9 +119,10 @@ class SpeedTapeRight(Tape):
         #self.climb_val_label.color = self.up_rect.color
         """
         self.grd_speed_val_label.draw()
-        self.temp_val_label.color = (0,255,255,255)
-        self.temp_val_label.text = '[' + str(temperature) + ']'
-        self.temp_val_label.draw()
+        self.true_air_seed_val_label.color = (0,255,255,255)
+        #self.temp_val_label.text = '[' + str(temperature) + ']'
+        self.true_air_seed_val_label.text = '[' + str(int(true_air_speed)).rjust(3,' ') + ']'
+        self.true_air_seed_val_label.draw()
         #self.up_rect.draw()
     
 if __name__ == '__main__':

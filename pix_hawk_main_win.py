@@ -116,13 +116,13 @@ class MainWindow():
             self.uav_radio = UARadio('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DT04LJG6-if00-port0', gps_manager=self.gps_manager)
             self.uav_radio.thread.start()
 
-            self.airspeed  = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0')
-            #self.airspeed = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EERE-if00-port0')
-            self.airspeed.airspeed_thread.start() 
-
+        
             self.barometer = Barometer('ftdi://ftdi:232h:FT4VTTQV/1')   
             self.barometer.baro_thread.start()
-
+            
+            #self.airspeed  = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EDLI-if00-port0',self.barometer) # in plane address
+            self.airspeed = AirSpeed('/dev/serial/by-id/usb-FTDI_FT230X_Basic_UART_DN00EERE-if00-port0',self.barometer) # bench address
+            self.airspeed.airspeed_thread.start() 
         
         except Exception:
             self.ex_stop()
@@ -149,6 +149,7 @@ class MainWindow():
                 gps_track = gps_lsn.track
                 gps_lat = gps_lsn.lat
                 gps_lon = gps_lsn.lon
+            #gps_speed = 30
 
 
             if self.phidget_thread != None:
@@ -159,6 +160,7 @@ class MainWindow():
                 yaw = 0
                 pitch = 0
                 roll = 0
+            #yaw =360-45
 
             # draw all controls on top of roll gague to overaly top and bot rects
             self.fun_timer.start('roll_gague')
@@ -187,7 +189,8 @@ class MainWindow():
 
             self.fun_timer.start('speed_tape')
             """self.speed_tape.draw(self.ahdata.airspeed, self.ahdata.groundspeed)"""
-            self.speed_tape.draw(self.airspeed.get_airspeed(), gps_speed, self.airspeed.get_temp())
+            self.speed_tape.draw(self.airspeed.get_airspeed(), gps_speed, self.airspeed.get_temp(), 
+                                 self.airspeed.get_true_airspeed())
             self.fun_timer.stop('speed_tape')
 
             self.fun_timer.start('gps_window')
@@ -197,7 +200,7 @@ class MainWindow():
 
             self.fun_timer.start('wind_gague')
             #self.wind_gague.draw_calc(self.ahdata.airspeed, yaw, self.ahdata.groundspeed, self.ahdata.gnd_track, self.ahdata.altitude)
-            self.wind_gague.draw_calc(0, yaw, gps_speed, gps_track, gps_alt)
+            self.wind_gague.draw_calc(self.airspeed.get_true_airspeed(), yaw, gps_speed, gps_track, gps_alt)
             self.fun_timer.stop('wind_gague')
 
             self.fun_timer.start('aoa_gague')
